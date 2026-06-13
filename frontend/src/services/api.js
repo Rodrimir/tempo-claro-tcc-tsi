@@ -2,8 +2,8 @@ import axios from 'axios';
 import { getAuthToken, clearAuthToken } from '../utils/storage';
 
 const api = axios.create({
-  // Conectando o celular na rede Wi-Fi local para o Java
-  baseURL: 'http://192.168.8.4:8082/api/v1', 
+  // URL final da API na nuvem (Render)
+  baseURL: 'https://tempo-claro-tcc-tsi.onrender.com/api/v1', 
 });
 
 api.interceptors.request.use((config) => {
