@@ -1,0 +1,31 @@
+***Usuários***
+
+@RequestMapping("/usuarios")
+
+    Buscar Perfil Completo (GET)
+
+    @GetMapping("/busca/{id}")
+
+    URL: http://localhost:8082/usuarios/busca/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+    Método: GET
+
+    Resposta: Retorna o PerfilUsuarioDTO completo em JSON. (primeiro json)
+
+------------------------------------------------------------------------------------------
+
+    Salvar Onboarding (POST)
+
+    @PostMapping("/salvar/onboarding/{id}")
+
+    URL: http://localhost:8082/usuarios/salvar/onboarding/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+    Método: POST
+
+    Body (JSON):
+    {
+        "principaisAtritos": "MOTIVO DE ATRITO",
+        "regraInegociavelGeral": "REGRA INEGOCIAVEL"
+    }
+
+    Resposta: 200 OK (Sem corpo de resposta).

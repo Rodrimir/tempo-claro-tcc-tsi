@@ -1,0 +1,28 @@
+export const lightTheme = {
+  primaryColor: '#4f46e5',
+  primaryLight: '#e0e7ff',
+  bgPrimary: '#f8fafc',
+  bgSurface: '#ffffff',
+  textPrimary: '#0f172a',
+  textSecondary: '#64748b',
+  successColor: '#10b981',
+  warningColor: '#f59e0b',
+  dangerColor: '#ef4444',
+  borderColor: '#e2e8f0',
+  radiusMd: '12px',
+  radiusFull: '9999px',
+};
+export const darkTheme = {
+  primaryColor: '#818cf8',
+  primaryLight: '#312e81',
+  bgPrimary: '#020617',
+  bgSurface: '#0f172a',
+  textPrimary: '#f8fafc',
+  textSecondary: '#94a3b8',
+  successColor: '#34d399', 
+  warningColor: '#fbbf24',
+  dangerColor: '#f87171', 
+  borderColor: '#1e293b',
+  radiusMd: '12px',
+  radiusFull: '9999px',
+};

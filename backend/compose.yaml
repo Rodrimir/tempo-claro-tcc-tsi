@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: "postgres_db"
+    environment:
+      POSTGRES_DB: "backend_db"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "123"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d backend_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: "backend_app"
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/backend_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=123
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # --- NOVO SERVIÇO: Interface Web do Banco ---
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: "pgadmin4_web"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
+      PGADMIN_DEFAULT_PASSWORD: "admin"
+    ports:
+      - "8093:80" # Porta que você usará no navegador
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

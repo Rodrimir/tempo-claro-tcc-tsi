@@ -1,0 +1,49 @@
+{
+    "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "nome": "Eduardo Teixeira",
+    "email": "eduardo@tempoclaro.com",
+    "streakGlobal": 5,
+    "xpTotal": 120,
+    "onboarding": {
+        "principaisAtritos": "Paralisia de decisão ao iniciar o TCC",
+        "regraInegociavelGeral": "Sempre abrir a IDE e o notion antes de pensar no que fazer."
+    }
+}
+
+{
+    "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "nome": "Eduardo de Souza Teixeira",
+    "email": "eduardo.teixeira@tempoclaro.com",
+    "streakGlobal": 5,
+    "xpTotal": 120,
+    "onboarding": {
+        "principaisAtritos": "Paralisia de decisão ao iniciar o TCC",
+        "regraInegociavelGeral": "Sempre abrir a IDE e o notion antes de pensar no que fazer."
+    }
+}
+
+{
+    "id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21",
+    "nome": "Desenvolver App Tempo Claro",
+    "categoria": "Estudos",
+    "streakAtual": 3,
+    "xpAcumulado": 50,
+    "ativo": true,
+    "dataCriacao": "2026-05-04T08:30:00",
+    "diasSemana": [2, 3, 4, 5, 6],
+    "microHabitos": [
+        {
+            "id": "e1f1bc99-9c0b-4ef8-bb6d-6bb9bd380a31",
+            "ordemFase": 1,
+            "metaPratica": "Ligar o PC e abrir o projeto",
+            "metaEmocional": "Focar apenas em ver a tela inicial"
+        },
+        {
+            "id": "e2f1bc99-9c0b-4ef8-bb6d-6bb9bd380a32",
+            "ordemFase": 2,
+            "metaPratica": "Escrever 1 linha de código ou documentação",
+            "metaEmocional": "Sentimento de destravamento"
+        }
+    ]
+}
+

@@ -1,0 +1,66 @@
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.FailContainer {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: white;
+}
+
+.ContentWrapper {
+  text-align: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.IconWrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+  animation: float 4s ease-in-out infinite;
+}
+
+.Title {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.Subtitle {
+  font-size: 18px;
+  opacity: 0.9;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.CoinsCard {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  border-radius: 16px;
+  margin-bottom: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ActionButton {
+  width: 100%;
+  padding: 20px;
+  border-radius: 9999px;
+  background: white;
+  font-weight: 800;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
