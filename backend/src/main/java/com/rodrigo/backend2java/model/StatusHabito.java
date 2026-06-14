@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-StatusHabito.java-01
 package com.rodrigo.backend2java.model;
 
 import java.time.OffsetDateTime;

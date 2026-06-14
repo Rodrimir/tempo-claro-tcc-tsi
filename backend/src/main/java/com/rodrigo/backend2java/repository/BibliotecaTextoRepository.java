@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-BibliotecaTextoRepository.java-01
 package com.rodrigo.backend2java.repository;
 
 import com.rodrigo.backend2java.model.BibliotecaTexto;

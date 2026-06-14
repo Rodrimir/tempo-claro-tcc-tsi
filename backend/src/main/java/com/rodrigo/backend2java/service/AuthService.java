@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-AuthService.java-01
 package com.rodrigo.backend2java.service;
 
 import com.rodrigo.backend2java.config.JwtService;
@@ -21,7 +22,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    // audit-ok: BACK-SRV-01 - Verificação de credenciais e match BCrypt
+    // @audit-ok: BACK-SRV-01 - Verificação de credenciais e match BCrypt
     public AuthResponseDTO autenticar(final LoginRequestDTO request) {
         final var usuario = usuarioRepository.findByEmail(request.email())
                 .orElseThrow(() -> new IllegalArgumentException("Erro credenciais invalidas!"));
@@ -30,7 +31,7 @@ public class AuthService {
             throw new IllegalArgumentException("Erro credenciais invalidas!");
         }
 
-        // audit-ok: BACK-SRV-02 - Geração de Bearer Token JWT após validação
+        // @audit-ok: BACK-SRV-02 - Geração de Bearer Token JWT após validação
         final var token = jwtService.generateToken(usuario.getEmail());
 
         return AuthResponseDTO.builder()
@@ -42,7 +43,7 @@ public class AuthService {
                 .build();
     }
 
-    // audit-ok: BACK-SRV-03 - Fluxo de persistência e Hash BCrypt para novos usuários
+    // @audit-ok: BACK-SRV-03 - Fluxo de persistência e Hash BCrypt para novos usuários
     public AuthResponseDTO cadastrar(final RegisterRequestDTO request) {
         if (usuarioRepository.existsByEmail(request.email())) {
             throw new RuntimeException("E-mail já está em uso");

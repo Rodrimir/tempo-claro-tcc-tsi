@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-HabitoService.java-01
 package com.rodrigo.backend2java.service;
 
 import com.rodrigo.backend2java.model.Habito;

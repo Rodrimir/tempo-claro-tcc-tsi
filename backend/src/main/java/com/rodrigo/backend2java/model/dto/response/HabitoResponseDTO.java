@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-HabitoResponseDTO.java-01
 package com.rodrigo.backend2java.model.dto.response;
 
 import java.time.LocalTime;

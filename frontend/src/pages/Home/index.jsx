@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Check } from 'lucide-react';
@@ -44,7 +45,7 @@ const HomeScreen = () => {
     const loadData = async () => {
       try {
         const response = await getDashboard();
-        // Assume API returns { habits: [...] } or an array directly
+        // @audit-info:  Assume API returns { habits: [...] } or an array directly
         let data = response.data.habits || response.data || [];
         if (Array.isArray(data)) {
           data.sort((a, b) => {

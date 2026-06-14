@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import {
   Overlay,

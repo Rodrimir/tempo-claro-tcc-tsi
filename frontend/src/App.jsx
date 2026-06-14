@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-App.jsx-01
 import React from 'react';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyle } from './styles/GlobalStyles';

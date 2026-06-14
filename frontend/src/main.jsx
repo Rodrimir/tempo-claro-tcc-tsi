@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-main.jsx-01
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

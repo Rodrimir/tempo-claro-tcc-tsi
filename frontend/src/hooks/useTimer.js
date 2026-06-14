@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-useTimer.js-01
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { saveExecutionState, loadExecutionState, clearExecutionState, isWithinTolerance } from '../utils/storage';
 export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true) => {

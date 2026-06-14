@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-GlobalStyles.js-01
 import { createGlobalStyle } from 'styled-components';
 
 // @audit-info : Styled Components
@@ -22,10 +23,21 @@ export const GlobalStyle = createGlobalStyle`
   }
   body {
     font-family: 'Lexend', sans-serif;
-    background-color: ${(props) => props.theme.bgPrimary};
+    background-color: ${(props) => props.theme.bgPrimary === '#0f172a' ? '#000000' : '#e2e8f0'};
     color: ${(props) => props.theme.textPrimary};
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.3s ease, color 0.3s ease;
+    display: flex;
+    justify-content: center;
+  }
+  #root {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    background-color: ${(props) => props.theme.bgPrimary};
+    box-shadow: 0 0 25px rgba(0,0,0,0.15);
+    position: relative;
+    overflow-x: hidden;
   }
   .btn {
     font-family: 'Lexend', sans-serif;

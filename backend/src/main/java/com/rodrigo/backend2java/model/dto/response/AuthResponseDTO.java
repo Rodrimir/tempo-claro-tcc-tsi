@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-AuthResponseDTO.java-01
 package com.rodrigo.backend2java.model.dto.response;
 
 import lombok.Builder;

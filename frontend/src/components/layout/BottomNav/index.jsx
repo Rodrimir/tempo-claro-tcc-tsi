@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Target, Store, Play, User, BarChart2, Check } from 'lucide-react';
@@ -28,7 +29,7 @@ const BottomNav = () => {
       return;
     }
     
-    // O currentHabit já está setado, só precisamos navegar
+    // @audit-info:  O currentHabit já está setado, só precisamos navegar
     navigate('/pretask');
   };
 

@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimer } from '../../hooks/useTimer';

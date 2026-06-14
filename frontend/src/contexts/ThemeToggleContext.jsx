@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-ThemeToggleContext.jsx-01
 import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeToggleContext = createContext();
 export const useThemeToggle = () => useContext(ThemeToggleContext);

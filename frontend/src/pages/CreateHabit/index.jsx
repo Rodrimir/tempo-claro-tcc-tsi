@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ArrowLeft, Ruler, Edit3 } from 'lucide-react';

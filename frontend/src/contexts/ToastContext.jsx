@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-ToastContext.jsx-01
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { ToastContainer, ToastMessage } from '../components/common/Toast/styles';
 

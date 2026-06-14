@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-BackEndIiApplication.java-01
 package com.rodrigo.backend2java;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.SpringApplication;

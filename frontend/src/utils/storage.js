@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-storage.js-01
 export const saveExecutionState = (habitId, token, elapsed, startedAt) => {
   localStorage.setItem(`tempoClaro_exec_${habitId}`, JSON.stringify({ token, elapsed, startedAt }));
 };

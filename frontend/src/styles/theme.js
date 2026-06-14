@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-theme.js-01
 export const lightTheme = {
   primaryColor: '#4f46e5',
   primaryLight: '#e0e7ff',

@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';

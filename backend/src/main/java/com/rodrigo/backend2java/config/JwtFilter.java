@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-JwtFilter.java-01
 package com.rodrigo.backend2java.config;
 
 import com.rodrigo.backend2java.repository.UsuarioRepository;
@@ -43,7 +44,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             
-            // Verifica no banco se o usuário existe
+            // @audit-info:  Verifica no banco se o usuário existe
             if (usuarioRepository.existsByEmail(userEmail) && jwtService.isTokenValid(jwt, userEmail)) {
                 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

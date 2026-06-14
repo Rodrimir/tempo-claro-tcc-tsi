@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-HabitoRequestDTO.java-01
 package com.rodrigo.backend2java.model.dto.request;
 
 import jakarta.validation.constraints.Min;

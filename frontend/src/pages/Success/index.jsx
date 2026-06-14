@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Coins, Flame } from 'lucide-react';

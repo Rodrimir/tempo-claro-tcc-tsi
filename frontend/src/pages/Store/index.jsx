@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
@@ -61,7 +62,7 @@ const Store = () => {
       await apiBuyShield(selectedHabitId);
       addToast('Escudo comprado com sucesso para o hábito!', 'success');
       setSelectedHabitId('');
-      loadHabits(); // Recarrega para atualizar os saldos
+      loadHabits(); // @audit-info:  Recarrega para atualizar os saldos
     } catch (error) {
       addToast('Erro ao comprar escudo. Moedas insuficientes?', 'error');
     }

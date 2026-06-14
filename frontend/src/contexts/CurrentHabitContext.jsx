@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-CurrentHabitContext.jsx-01
 import React, { createContext, useContext, useState } from 'react';
 const CurrentHabitContext = createContext();
 export const CurrentHabitProvider = ({ children }) => {

@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';

@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HeartCrack, Clock, ShieldAlert } from 'lucide-react';

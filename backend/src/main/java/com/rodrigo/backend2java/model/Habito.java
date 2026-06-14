@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-Habito.java-01
 package com.rodrigo.backend2java.model;
 
 import java.time.LocalTime;

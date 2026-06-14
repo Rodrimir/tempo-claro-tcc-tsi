@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-StatsController.java-01
 package com.rodrigo.backend2java.controller;
 
 import org.springframework.http.ResponseEntity;

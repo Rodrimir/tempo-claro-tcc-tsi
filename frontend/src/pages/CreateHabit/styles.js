@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-styles.js-01
 import styled from 'styled-components';
 
 export const Container = styled.div`

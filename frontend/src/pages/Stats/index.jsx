@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Search, Flame, Target } from 'lucide-react';
@@ -35,15 +36,15 @@ const Stats = () => {
       
       try {
         setLoading(true);
-        // Em um cenário real de API, você poderia passar o habit.id para getWeeklyStats(habit.id)
+        // @audit-info:  Em um cenário real de API, você poderia passar o habit.id para getWeeklyStats(habit.id)
         const response = await getWeeklyStats();
         
-        // Se a API retornar dados reais, usaremos. 
-        // Caso contrário, montamos um chart baseado na meta do hábito ativo.
+        // @audit-info:  Se a API retornar dados reais, usaremos. 
+        // @audit-info:  Caso contrário, montamos um chart baseado na meta do hábito ativo.
         if (response.data && response.data.length > 0) {
            setData(response.data);
         } else {
-           // Fallback UI data
+           // @audit-info:  Fallback UI data
            const isTempo = habit.tipo_medida === 'TEMPO';
            const meta = habit.meta_base || 1;
            const fallbackData = [

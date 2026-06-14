@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-ProfileUpdateDTO.java-01
 package com.rodrigo.backend2java.model.dto.request;
 
 import lombok.Builder;

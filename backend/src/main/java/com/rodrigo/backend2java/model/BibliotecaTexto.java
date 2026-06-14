@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-BibliotecaTexto.java-01
 package com.rodrigo.backend2java.model;
 
 import java.util.UUID;

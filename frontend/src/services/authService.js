@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-authService.js-01
 export const validateLogin = (formData) => {
   if (!formData.email || !formData.senha) {
     throw new Error('Campos de e-mail ou senha não podem estar vazios.');

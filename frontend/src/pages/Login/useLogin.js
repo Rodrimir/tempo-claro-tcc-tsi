@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-useLogin.js-01
 import { useState } from 'react';
 import { validateLogin, validateRegister } from '../../services/authService';
 

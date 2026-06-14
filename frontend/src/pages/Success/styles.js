@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-styles.js-01
 import styled, { keyframes } from 'styled-components';
 
 export const floatUp = keyframes`
@@ -15,7 +16,8 @@ export const SuccessContainer = styled.div`
   position: relative;
   overflow: hidden;
   height: 100vh;
-  background: ${(props) => props.$isBonus ? '#0ea5e9' : 'var(--success-color)'}; /* ajustado para diferenciar o bonus */
+  // @audit-info: ajustado para diferenciar o bonus
+  background: ${(props) => props.$isBonus ? '#0ea5e9' : 'var(--success-color)'};
   display: flex;
   flex-direction: column;
   align-items: center;

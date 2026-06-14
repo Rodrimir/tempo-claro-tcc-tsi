@@ -1,3 +1,4 @@
+// @audit-ok: FRONTEND-AuthContext.jsx-01
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { login as apiLogin, register as apiRegister, getDashboard } from '../services/api';
 import { setAuthToken, clearAuthToken, getAuthToken } from '../utils/storage';

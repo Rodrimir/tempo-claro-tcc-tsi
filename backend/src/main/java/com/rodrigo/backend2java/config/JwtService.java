@@ -1,3 +1,4 @@
+// @audit-ok: BACKEND-JwtService.java-01
 package com.rodrigo.backend2java.config;
 
 import io.jsonwebtoken.Claims;
@@ -13,11 +14,11 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // Em produção, a chave deve vir das variáveis de ambiente
+    // @audit-info:  Em produção, a chave deve vir das variáveis de ambiente
     @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
     private String secretKey;
 
-    @Value("${jwt.expiration:86400000}") // 1 dia em ms
+    @Value("${jwt.expiration:86400000}") // @audit-info:  1 dia em ms
     private long jwtExpiration;
 
     private SecretKey getSigningKey() {
