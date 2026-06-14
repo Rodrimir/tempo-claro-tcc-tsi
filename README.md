@@ -1,59 +1,59 @@
-# Trabalho de ConclusÃ£o de Curso (TCC) - Sistema Tempo Claro
+# Trabalho de Conclusão de Curso (TCC) - Sistema Tempo Claro
 
-## 1. InformaÃ§Ãµes AcadÃªmicas e Institucionais
-**InstituiÃ§Ã£o:** Instituto Federal Sul-rio-grandense (IFSul) - Campus Pelotas
+## 1. Informações Acadêmicas e Institucionais
+**Instituição:** Instituto Federal Sul-rio-grandense (IFSul) - Campus Pelotas
 **Curso:** Tecnologia em Sistemas para Internet (TSI)
 **Semestre:** 2026/1
 **Aluno(a):** Rodrigo Miranda da Silva
 **Orientador(a):** 
 **GitHub do Aluno:** https://github.com/Rodrimir
-**Site Institucional / ReferÃªncia:** www.monzai.com.br
+**Site Institucional / Referência:** www.monzai.com.br
 
-**Status do Projeto:** Primeira versÃ£o do sistema, em fase de testes fechados, operando integralmente em ambiente de ProduÃ§Ã£o (Nuvem).
+**Status do Projeto:** Primeira versão do sistema, em fase de testes fechados, operando integralmente em ambiente de Produção (Nuvem).
 
 ---
 
 ## 2. Arquitetura e Infraestrutura de Hospedagem (Nuvem)
-O sistema foi projetado sob uma arquitetura de microsserviÃ§os dividida em trÃªs camadas principais:
-1. **Frontend (AplicaÃ§Ã£o Web e Mobile):** Desenvolvido em ReactJS com Vite, encapsulado nativamente via CapacitorJS para Android. Hospedado via deploy contÃ­nuo na plataforma **Vercel**.
+O sistema foi projetado sob uma arquitetura de microsserviços dividida em três camadas principais:
+1. **Frontend (Aplicação Web e Mobile):** Desenvolvido em ReactJS com Vite, encapsulado nativamente via CapacitorJS para Android. Hospedado via deploy contínuo na plataforma **Vercel**.
 2. **Backend (API RESTful):** Desenvolvido em Java 17 com Spring Boot 3 e empacotado via Docker. Hospedado como Web Service na plataforma **Render**.
 3. **Banco de Dados (Relacional):** Modelado em PostgreSQL. Hospedado em arquitetura Serverless na plataforma **Neon Postgres** (AWS).
 
 ---
 
-## 3. Mapeamento de DiretÃ³rios do Projeto
+## 3. Mapeamento de Diretórios do Projeto
 ```text
 /
-â”œâ”€â”€ backend/                  # MÃ³dulo de API (Java/Spring Boot)
-â”‚   â”œâ”€â”€ src/main/java/        # CÃ³digo-fonte da aplicaÃ§Ã£o
-â”‚   â”‚   â””â”€â”€ com/rodrigo/backend2java/
-â”‚   â”‚       â”œâ”€â”€ config/       # ConfiguraÃ§Ãµes de SeguranÃ§a e JWT
-â”‚   â”‚       â”œâ”€â”€ controller/   # Endpoints REST expostos
-â”‚   â”‚       â”œâ”€â”€ dto/          # Objetos de TransferÃªncia de Dados
-â”‚   â”‚       â”œâ”€â”€ model/        # Entidades do Banco de Dados
-â”‚   â”‚       â”œâ”€â”€ repository/   # Interfaces de persistÃªncia JPA
-â”‚   â”‚       â””â”€â”€ service/      # Regras de NegÃ³cio
-â”‚   â”œâ”€â”€ src/main/resources/   # Propriedades e scripts SQL (schema.sql)
-â”‚   â”œâ”€â”€ Dockerfile            # InstruÃ§Ãµes de containerizaÃ§Ã£o para o Render
-â”‚   â””â”€â”€ build.gradle          # Gerenciador de dependÃªncias Gradle
-â”‚
-â”œâ”€â”€ frontend/                 # MÃ³dulo de Interface (React/Vite)
-â”‚   â”œâ”€â”€ android/              # Projeto nativo gerado pelo CapacitorJS (APK)
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ components/       # Componentes React reutilizÃ¡veis
-â”‚   â”‚   â”œâ”€â”€ contexts/         # Gerenciamento de estado global (Context API)
-â”‚   â”‚   â”œâ”€â”€ pages/            # Telas da aplicaÃ§Ã£o
-â”‚   â”‚   â”œâ”€â”€ services/         # IntegraÃ§Ã£o HTTP com o Backend via Axios
-â”‚   â”‚   â””â”€â”€ utils/            # FunÃ§Ãµes utilitÃ¡rias e gerenciamento de LocalStorage
-â”‚   â””â”€â”€ package.json          # Gerenciador de dependÃªncias Node (NPM)
+├── backend/                  # Módulo de API (Java/Spring Boot)
+│   ├── src/main/java/        # Código-fonte da aplicação
+│   │   └── com/rodrigo/backend2java/
+│   │       ├── config/       # Configurações de Segurança e JWT
+│   │       ├── controller/   # Endpoints REST expostos
+│   │       ├── dto/          # Objetos de Transferência de Dados
+│   │       ├── model/        # Entidades do Banco de Dados
+│   │       ├── repository/   # Interfaces de persistência JPA
+│   │       └── service/      # Regras de Negócio
+│   ├── src/main/resources/   # Propriedades e scripts SQL (schema.sql)
+│   ├── Dockerfile            # Instruções de containerização para o Render
+│   └── build.gradle          # Gerenciador de dependências Gradle
+│
+├── frontend/                 # Módulo de Interface (React/Vite)
+│   ├── android/              # Projeto nativo gerado pelo CapacitorJS (APK)
+│   ├── src/
+│   │   ├── components/       # Componentes React reutilizáveis
+│   │   ├── contexts/         # Gerenciamento de estado global (Context API)
+│   │   ├── pages/            # Telas da aplicação
+│   │   ├── services/         # Integração HTTP com o Backend via Axios
+│   │   └── utils/            # Funções utilitárias e gerenciamento de LocalStorage
+│   └── package.json          # Gerenciador de dependências Node (NPM)
 ```
 
 ---
 
-## 4. MÃ³dulo Back-end (API RESTful e Modelagem)
+## 4. Módulo Back-end (API RESTful e Modelagem)
 
-### 4.1. Linguagem de DefiniÃ§Ã£o de Dados (DDL - Schema)
-A estrutura do banco de dados relacional (PostgreSQL) foi elaborada para suportar a gamificaÃ§Ã£o e o rastreamento de hÃ¡bitos. O schema inicial inclui:
+### 4.1. Linguagem de Definição de Dados (DDL - Schema)
+A estrutura do banco de dados relacional (PostgreSQL) foi elaborada para suportar a gamificação e o rastreamento de hábitos. O schema inicial inclui:
 
 ```sql
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -103,14 +103,14 @@ CREATE TABLE IF NOT EXISTS status_habitos (
 );
 ```
 
-### 4.2. DocumentaÃ§Ã£o Exaustiva da API (Endpoints e Contratos)
-**URL de ProduÃ§Ã£o Base:** `https://tempo-claro-tcc-tsi.onrender.com/api/v1`
+### 4.2. Documentação Exaustiva da API (Endpoints e Contratos)
+**URL de Produção Base:** `https://tempo-claro-tcc-tsi.onrender.com/api/v1`
 
-Todas as requisiÃ§Ãµes (exceto os mÃ©todos de AutenticaÃ§Ã£o) exigem o cabeÃ§alho `Authorization: Bearer <token>`.
+Todas as requisições (exceto os métodos de Autenticação) exigem o cabeçalho `Authorization: Bearer <token>`.
 
-#### 4.2.1. AutenticaÃ§Ã£o (Tabela: `usuarios`)
-**1. Registrar Novo UsuÃ¡rio**
-- **MÃ©todo:** `POST /auth/register`
+#### 4.2.1. Autenticação (Tabela: `usuarios`)
+**1. Registrar Novo Usuário**
+- **Método:** `POST /auth/register`
 - **Request (JSON):**
   ```json
   {
@@ -122,7 +122,7 @@ Todas as requisiÃ§Ãµes (exceto os mÃ©todos de AutenticaÃ§Ã£o) exigem o
 - **Response (201 Created):** Retorna `{ "token": "eyJhb...", "user": { "name": "Rodrigo Miranda", "email": "..." } }`
 
 **2. Login**
-- **MÃ©todo:** `POST /auth/login`
+- **Método:** `POST /auth/login`
 - **Request (JSON):**
   ```json
   {
@@ -132,13 +132,13 @@ Todas as requisiÃ§Ãµes (exceto os mÃ©todos de AutenticaÃ§Ã£o) exigem o
   ```
 - **Response (200 OK):** Retorna o Token JWT.
 
-#### 4.2.2. GestÃ£o de HÃ¡bitos (Tabelas: `habitos`, `status_habitos`)
-**3. Criar HÃ¡bito**
-- **MÃ©todo:** `POST /habits`
+#### 4.2.2. Gestão de Hábitos (Tabelas: `habitos`, `status_habitos`)
+**3. Criar Hábito**
+- **Método:** `POST /habits`
 - **Request (JSON):**
   ```json
   {
-    "titulo": "Beber Ãgua",
+    "titulo": "Beber Água",
     "categoria": "SAUDE",
     "gatilho_ancora": "Depois de acordar",
     "tipo_medida": "UNIDADES",
@@ -147,26 +147,26 @@ Todas as requisiÃ§Ãµes (exceto os mÃ©todos de AutenticaÃ§Ã£o) exigem o
     "meta_frequencia_diaria": 1
   }
   ```
-- **Response (200 OK):** Retorna o objeto completo do hÃ¡bito com o respectivo ID.
+- **Response (200 OK):** Retorna o objeto completo do hábito com o respectivo ID.
 
-**4. Atualizar HÃ¡bito**
-- **MÃ©todo:** `PUT /habits/{id}`
+**4. Atualizar Hábito**
+- **Método:** `PUT /habits/{id}`
 - **Request (JSON):** Mesma estrutura do POST, com os campos atualizados.
 - **Response (200 OK):** `{ "success": true }`
 
-**5. Excluir HÃ¡bito (Soft/Hard Delete)**
-- **MÃ©todo:** `DELETE /habits/{id}`
+**5. Excluir Hábito (Soft/Hard Delete)**
+- **Método:** `DELETE /habits/{id}`
 - **Response (200 OK):** `{ "success": true }`
 
-**6. Obter Dashboard de HÃ¡bitos**
-- **MÃ©todo:** `GET /dashboard`
+**6. Obter Dashboard de Hábitos**
+- **Método:** `GET /dashboard`
 - **Response (200 OK):**
   ```json
   {
     "habitos": [
       {
         "id": "uuid",
-        "titulo": "Beber Ãgua",
+        "titulo": "Beber Água",
         "status": {
           "moedasLocais": 50,
           "diasSeguidos": 3,
@@ -178,13 +178,13 @@ Todas as requisiÃ§Ãµes (exceto os mÃ©todos de AutenticaÃ§Ã£o) exigem o
   }
   ```
 
-#### 4.2.3. ExecuÃ§Ã£o e GamificaÃ§Ã£o (Tabelas: `historico_execucoes`)
+#### 4.2.3. Execução e Gamificação (Tabelas: `historico_execucoes`)
 **7. Resgatar Texto de Priming Cognitivo**
-- **MÃ©todo:** `GET /habits/{id}/priming`
-- **Response (200 OK):** `{ "executionToken": "uuid-temp", "textoMotivacional": "Cada copo de Ã¡gua Ã© um passo..." }`
+- **Método:** `GET /habits/{id}/priming`
+- **Response (200 OK):** `{ "executionToken": "uuid-temp", "textoMotivacional": "Cada copo de água é um passo..." }`
 
-**8. Confirmar ExecuÃ§Ã£o do HÃ¡bito**
-- **MÃ©todo:** `POST /habits/{id}/executions`
+**8. Confirmar Execução do Hábito**
+- **Método:** `POST /habits/{id}/executions`
 - **Request (JSON):**
   ```json
   {
@@ -195,47 +195,47 @@ Todas as requisiÃ§Ãµes (exceto os mÃ©todos de AutenticaÃ§Ã£o) exigem o
 - **Response (200 OK):** `{ "success": true, "moedasGanhas": 10, "tipoSucesso": "NORMAL" }`
 
 **9. Comprar Escudo (Shield)**
-- **MÃ©todo:** `POST /habits/{id}/shield`
+- **Método:** `POST /habits/{id}/shield`
 - **Response (200 OK):** `{ "success": true, "moedasRestantes": 0, "bloqueiosAtuais": 1 }`
 
-#### 4.2.4. Perfil e EstatÃ­sticas globais
+#### 4.2.4. Perfil e Estatísticas globais
 **10. Atualizar Perfil**
-- **MÃ©todo:** `PUT /profile`
+- **Método:** `PUT /profile`
 - **Request (JSON):** `{ "nome": "Rodrigo Atualizado" }`
 - **Response (200 OK):** `{ "success": true }`
 
-**11. Obter EstatÃ­sticas Semanais**
-- **MÃ©todo:** `GET /stats/weekly`
-- **Response (200 OK):** `[]` *(AgregaÃ§Ã£o estendida para versÃ£o 2.0)*
+**11. Obter Estatísticas Semanais**
+- **Método:** `GET /stats/weekly`
+- **Response (200 OK):** `[]` *(Agregação estendida para versão 2.0)*
 
 ---
 
-## 5. Rastreabilidade de CÃ³digo (PadrÃ£o de Auditoria SistÃªmica)
+## 5. Rastreabilidade de Código (Padrão de Auditoria Sistêmica)
 
-Em conformidade com padrÃµes de engenharia de software rigorosos (nÃ­vel stricto sensu), estabelecemos uma polÃ­tica de rastreabilidade bidirecional. 
+Em conformidade com padrões de engenharia de software rigorosos (nível stricto sensu), estabelecemos uma política de rastreabilidade bidirecional. 
 
-**Exatos 81 arquivos-fonte** do projeto (33 componentes backend e 48 componentes frontend) receberam no topo da sua hierarquia a tag de auditoria sistÃªmica no formato:
-`// @audit-ok: [MÃ“DULO]-[NOME_DO_ARQUIVO]-01`
+**Exatos 81 arquivos-fonte** do projeto (33 componentes backend e 48 componentes frontend) receberam no topo da sua hierarquia a tag de auditoria sistêmica no formato:
+`// @audit-ok: [MÓDULO]-[NOME_DO_ARQUIVO]-01`
 
 **Como interpretar a Rastreabilidade:**
-- Se ocorrer um erro no fluxo da aplicaÃ§Ã£o Web na tela de `Login.jsx`, o rastreio apontarÃ¡ para a marcaÃ§Ã£o `FRONTEND-Login.jsx-01`. 
-- Ao analisar essa requisiÃ§Ã£o, o payload direciona-se fisicamente para o componente mapeado com `BACKEND-AuthController.java-01`.
-- Essa correlaÃ§Ã£o unÃ­voca garante que cada arquivo no repositÃ³rio possua um "RG" rastreÃ¡vel, facilitando debug, auditorias de seguranÃ§a (Pentest) e avaliaÃ§Ãµes acadÃªmicas da banca sem a necessidade de gerar tabelas documentais imensas que desatualizam com o tempo.
+- Se ocorrer um erro no fluxo da aplicação Web na tela de `Login.jsx`, o rastreio apontará para a marcação `FRONTEND-Login.jsx-01`. 
+- Ao analisar essa requisição, o payload direciona-se fisicamente para o componente mapeado com `BACKEND-AuthController.java-01`.
+- Essa correlação unívoca garante que cada arquivo no repositório possua um "RG" rastreável, facilitando debug, auditorias de segurança (Pentest) e avaliações acadêmicas da banca sem a necessidade de gerar tabelas documentais imensas que desatualizam com o tempo.
 
 ---
 
-## 6. PrÃ©-requisitos e ExecuÃ§Ã£o Local
+## 6. Pré-requisitos e Execução Local
 
-### PrÃ©-requisitos do Ambiente
-Para compilar e executar o projeto em sua mÃ¡quina local, certifique-se de ter instalado:
+### Pré-requisitos do Ambiente
+Para compilar e executar o projeto em sua máquina local, certifique-se de ter instalado:
 - **Java Development Kit (JDK) 17**
-- **Node.js (versÃ£o 20 ou superior)** e **NPM**
-- **Android Studio** (apenas para compilaÃ§Ã£o do APK Mobile)
+- **Node.js (versão 20 ou superior)** e **NPM**
+- **Android Studio** (apenas para compilação do APK Mobile)
 
-### Passo a Passo para InicializaÃ§Ã£o
+### Passo a Passo para Inicialização
 
 **1. Executando o Back-end (API Spring Boot)**
-Abra o terminal na raiz do projeto e navegue atÃ© a pasta `backend/`:
+Abra o terminal na raiz do projeto e navegue até a pasta `backend/`:
 ```bash
 cd backend
 # No Windows:
@@ -243,22 +243,22 @@ cd backend
 # No Linux/Mac:
 ./gradlew bootRun
 ```
-A API estarÃ¡ exposta em `http://localhost:8080`.
+A API estará exposta em `http://localhost:8080`.
 
 **2. Executando o Front-end (React/Vite)**
-Abra um novo terminal, navegue atÃ© a pasta `frontend/` e instale as dependÃªncias:
+Abra um novo terminal, navegue até a pasta `frontend/` e instale as dependências:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-A interface Web estarÃ¡ disponÃ­vel em `http://localhost:5173`.
+A interface Web estará disponível em `http://localhost:5173`.
 
 **3. Compilando o Aplicativo Mobile (Android APK)**
-Com o Front-end construÃ­do, sincronize o cÃ³digo Web com o projeto Nativo usando o Capacitor:
+Com o Front-end construído, sincronize o código Web com o projeto Nativo usando o Capacitor:
 ```bash
 cd frontend
 npm run build
 npx cap sync android
 ```
-ApÃ³s a sincronizaÃ§Ã£o, abra a pasta `frontend/android/` diretamente no **Android Studio**. No menu superior da IDE, acesse: `Build > Build Bundle(s) / APK(s) > Build APK(s)` para gerar o instalador do aplicativo (`.apk`) para celulares Android nativos.
+Após a sincronização, abra a pasta `frontend/android/` diretamente no **Android Studio**. No menu superior da IDE, acesse: `Build > Build Bundle(s) / APK(s) > Build APK(s)` para gerar o instalador do aplicativo (`.apk`) para celulares Android nativos.
