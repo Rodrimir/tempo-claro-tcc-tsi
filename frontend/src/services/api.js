@@ -2,10 +2,11 @@ import axios from 'axios';
 import { getAuthToken, clearAuthToken } from '../utils/storage';
 
 const api = axios.create({
-  // URL final da API na nuvem (Render)
+  // audit-ok: FRONT-API-01 - URL base de produção no Render
   baseURL: 'https://tempo-claro-tcc-tsi.onrender.com/api/v1', 
 });
 
+// audit-ok: FRONT-API-02 - Interceptor para injeção automática de Bearer Token JWT
 api.interceptors.request.use((config) => {
   const token = getAuthToken();
   if (token) {

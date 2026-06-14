@@ -24,6 +24,7 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
 
+    // audit-ok: BACK-CFG-01 - Corrente de filtros de segurança (Stateless, CSRF disabled, CORS habilitado)
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -41,11 +42,13 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // audit-ok: BACK-CFG-02 - Configuração do BCrypt para hash seguro de senhas
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // audit-ok: BACK-CFG-03 - Configuração permissiva de CORS (adequar em produção caso necessário)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
