@@ -5,8 +5,10 @@ import { NavLink } from 'react-router-dom';
 export const NavContainer = styled.nav`
   position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   background-color: var(--bg-surface);
   border-top: 1px solid var(--border-color);
   display: flex;

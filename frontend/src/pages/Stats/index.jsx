@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Search, Flame, Target } from 'lucide-react';
+import LoadingScreen from '../../components/common/LoadingScreen';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { getWeeklyStats } from '../../services/api';
 import {
@@ -90,7 +91,7 @@ const Stats = () => {
     return `${Math.round(valor)} ${habit.categoria === 'AGUA' ? 'ml' : 'vezes'}`;
   };
 
-  if (loading) return <div style={{ padding: '24px', textAlign: 'center' }}>Carregando estatísticas...</div>;
+  if (loading) return <LoadingScreen message="Carregando Estatísticas" />;
 
   return (
     <StatsContainer>

@@ -23,7 +23,12 @@ export const GlobalStyle = createGlobalStyle`
   }
   body {
     font-family: 'Lexend', sans-serif;
-    background-color: ${(props) => props.theme.bgPrimary === '#0f172a' ? '#000000' : '#e2e8f0'};
+    background-color: ${(props) => props.theme.bgPrimary === '#0f172a' ? '#000000' : '#d8f3fd'};
+    background-image: ${(props) => props.theme.bgPrimary === '#0f172a' 
+      ? 'none' 
+      : 'radial-gradient(#89d4f6 3px, transparent 4px), radial-gradient(#89d4f6 2px, transparent 3px)'};
+    background-size: ${(props) => props.theme.bgPrimary === '#0f172a' ? 'auto' : '40px 40px, 60px 60px'};
+    background-position: ${(props) => props.theme.bgPrimary === '#0f172a' ? '0 0' : '0 0, 20px 20px'};
     color: ${(props) => props.theme.textPrimary};
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.3s ease, color 0.3s ease;

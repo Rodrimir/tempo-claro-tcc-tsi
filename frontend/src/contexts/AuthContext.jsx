@@ -11,14 +11,13 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      const token = getAuthToken();
-      if (!token) {
-        setIsAuthenticated(false);
-        setLoading(false);
-        return;
-      }
-      
       try {
+        const token = getAuthToken();
+        if (!token) {
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
         await getDashboard();
         setIsAuthenticated(true);
       } catch (error) {

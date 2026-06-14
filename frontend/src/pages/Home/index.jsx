@@ -9,6 +9,7 @@ import solFlutuando from '../../assets/sol_flutuando.webp';
 import luaFlutuando from '../../assets/lua_flutuando.png';
 import gotinhaNormal from '../../assets/gotinha/normal.png';
 import gotinhaFeliz from '../../assets/gotinha/feliz.png';
+import LoadingScreen from '../../components/common/LoadingScreen';
 import LocalHeader from '../../components/layout/LocalHeader';
 import {
   HomeContainer,
@@ -137,7 +138,7 @@ const HomeScreen = () => {
     );
   };
 
-  if (loading) return <div style={{ padding: '24px', textAlign: 'center' }}>Carregando...</div>;
+  if (loading) return <LoadingScreen message="Carregando Hábitos" />;
 
   return (
     <HomeContainer>

@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
+import LocalHeader from '../../components/layout/LocalHeader';
+import LoadingScreen from '../../components/common/LoadingScreen';
 import { useToast } from '../../contexts/ToastContext';
 import {
   StoreContainer,
@@ -68,7 +70,7 @@ const Store = () => {
     }
   };
 
-  if (loading) return <div style={{ padding: '24px', textAlign: 'center' }}>Carregando loja...</div>;
+  if (loading) return <LoadingScreen message="Carregando Loja" />;
 
   return (
     <StoreContainer>

@@ -177,6 +177,7 @@ export const SettingsModalOverlay = styled.div`
 
 export const SettingsModalContent = styled.div`
   width: 100%;
+  max-width: 432px;
   background: ${({ theme }) => theme.bgSurface};
   border-radius: 20px;
   padding: 24px;

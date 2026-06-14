@@ -14,12 +14,19 @@ export const fadeOut = keyframes`
 export const ToastContainer = styled.div`
   position: fixed;
   top: 24px;
-  right: 24px;
+  left: 50%;
+  transform: translateX(calc(240px - 100% - 24px));
   z-index: 9999;
   display: flex;
   flex-direction: column;
   gap: 12px;
   pointer-events: none;
+
+  @media (max-width: 480px) {
+    left: auto;
+    right: 24px;
+    transform: none;
+  }
 `;
 
 export const ToastMessage = styled.div`
