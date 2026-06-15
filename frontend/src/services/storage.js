@@ -1,4 +1,8 @@
 // @audit-ok getAuthToken e setAuthToken pelo o localStorage
+
+// @audit-ok Atividade 7
+
+
 export const saveExecutionState = (habitId, token, elapsed, startedAt) => 
   {
   localStorage.setItem(`tempoClaro_exec_${habitId}`, JSON.stringify(
