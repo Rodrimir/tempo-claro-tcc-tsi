@@ -28,7 +28,8 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
+// @audit-ok Atividade 8 CRUDS
+// @audit-ok Atividade 7
 // @audit-ok Endpoint de Login
 export const login = async (data) => api.post('/auth/login', data);
 

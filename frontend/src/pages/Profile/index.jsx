@@ -25,6 +25,7 @@ import {
   ToggleSwitch
 } from './styles';
 
+// @audit-ok Atividade 8
 const Profile = () => {
   const { logout } = useAuth();
   const { isDark, toggleTheme } = useThemeToggle();

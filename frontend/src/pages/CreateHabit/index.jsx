@@ -43,6 +43,7 @@ const MOLDES = [
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+// @audit-ok Atividade 8
 const CreateHabit = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();

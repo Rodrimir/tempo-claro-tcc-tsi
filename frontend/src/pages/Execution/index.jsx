@@ -22,6 +22,7 @@ import {
   GiveUpButton
 } from './styles';
 
+// @audit-ok Atividade 8
 const ExecutionScreen = () => {
   const navigate = useNavigate();
   const { currentHabit } = useCurrentHabit();
