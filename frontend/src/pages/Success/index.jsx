@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Coins, Flame } from 'lucide-react';
@@ -23,7 +22,7 @@ const Success = () => {
   const location = useLocation();
   const isBonus = location.state?.bonus;
   const feedback = location.state?.feedback;
-  
+
   const moedasGanhas = feedback?.moedas_ganhas || (isBonus ? 150 : 100);
   const diasSeguidos = feedback?.dias_seguidos || 1;
   const subtitleText = feedback?.texto_feedback || 'A excelência é um hábito.';
@@ -41,26 +40,26 @@ const Success = () => {
     <SuccessContainer $isBonus={isBonus}>
       <ParticlesWrapper>
         {particles.map((p, i) => (
-          <Particle 
-            key={i} 
-            $size={p.size} 
-            $left={p.left} 
-            $duration={p.duration} 
-            $delay={p.delay} 
+          <Particle
+            key={i}
+            $size={p.size}
+            $left={p.left}
+            $duration={p.duration}
+            $delay={p.delay}
           />
         ))}
       </ParticlesWrapper>
-      
+
       <ContentWrapper>
         <IconWrapper>
           {isBonus ? '🌟' : '✨'}
         </IconWrapper>
-        
+
         <Title>
           {isBonus ? 'Incrível!' : 'Tarefa Concluída!'}
         </Title>
         <Subtitle>{subtitleText}</Subtitle>
-        
+
         <RewardCard>
           <Row>
             <Label>Recompensa</Label>
@@ -76,8 +75,8 @@ const Success = () => {
             </Value>
           </Row>
         </RewardCard>
-        
-        <BackButton 
+
+        <BackButton
           onClick={() => navigate('/home')}
           $isBonus={isBonus}
         >

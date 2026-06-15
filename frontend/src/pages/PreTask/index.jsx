@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Quote, ArrowLeft } from 'lucide-react';
@@ -38,14 +37,14 @@ const PreTask = () => {
           <ArrowLeft size={32} />
         </BackButton>
       </BackButtonWrapper>
-      
+
       <ContentWrapper>
         <Quote size={48} style={{ marginBottom: '24px', opacity: 0.5 }} />
         <QuoteText>
           {text}
         </QuoteText>
       </ContentWrapper>
-      
+
       <ActionWrapper>
         <ReadyButton onClick={() => navigate('/execute')}>
           ESTOU PRONTO

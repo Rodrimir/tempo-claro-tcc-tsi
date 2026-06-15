@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-ProfileController.java-01
 package com.rodrigo.backend2java.controller;
 
 import com.rodrigo.backend2java.model.dto.request.ProfileUpdateDTO;
@@ -17,6 +16,7 @@ public class ProfileController {
 
     private final UsuarioService usuarioService;
 
+    // @audit-ok : @Endpoint de atualização@ do perfil de usuário
     @PutMapping
     public ResponseEntity<Map<String, Boolean>> updateProfile(@RequestBody final ProfileUpdateDTO request) {
         final var emailContexto = SecurityContextHolder.getContext().getAuthentication().getName();

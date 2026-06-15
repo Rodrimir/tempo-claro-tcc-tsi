@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimer } from '../../hooks/useTimer';
@@ -44,26 +43,26 @@ const ExecutionScreen = () => {
     bloqueios_acumulados: 0
   };
 
-  const { 
-    timeLeft, 
-    overachieveTime, 
-    isOverachieving, 
-    pause, 
-    resume, 
-    clearTimerState 
+  const {
+    timeLeft,
+    overachieveTime,
+    isOverachieving,
+    pause,
+    resume,
+    clearTimerState
   } = useTimer(
-    habit.tipo_medida === 'TEMPO' ? habit.meta_base : 0, 
-    habit.id, 
+    habit.tipo_medida === 'TEMPO' ? habit.meta_base : 0,
+    habit.id,
     executionToken,
-    habit.tipo_medida === 'TEMPO' 
+    habit.tipo_medida === 'TEMPO'
   );
 
   const isQuantityDone = quantity >= habit.meta_base;
 
   const handleComplete = async () => {
     try {
-      pause(); 
-      const isExtra = habit.tipo_medida === 'TEMPO' 
+      pause();
+      const isExtra = habit.tipo_medida === 'TEMPO'
         ? isOverachieving && overachieveTime >= (habit.meta_base * 0.2)
         : quantity >= (habit.meta_base * 1.2);
 
@@ -86,7 +85,7 @@ const ExecutionScreen = () => {
       pause();
       const payload = {
         execution_token: executionToken,
-        tipo: type, 
+        tipo: type,
         valor_realizado: habit.tipo_medida === 'TEMPO' ? (habit.meta_base - timeLeft) : quantity
       };
 
@@ -126,22 +125,22 @@ const ExecutionScreen = () => {
             CONCLUIR TAREFA
           </CompleteButton>
         </CompleteButtonWrapper>
-        
+
         <GiveUpButton onClick={() => { pause(); setShowGiveUpModal(true); }}>
           Desistir
         </GiveUpButton>
       </ActionsWrapper>
 
       {showGiveUpModal && (
-        <GiveUpModal 
-          bloqueiosAcumulados={habit.bloqueios_acumulados} 
-          handleGiveUp={handleGiveUp} 
-          onCancel={() => { setShowGiveUpModal(false); resume(); }} 
+        <GiveUpModal
+          bloqueiosAcumulados={habit.bloqueios_acumulados}
+          handleGiveUp={handleGiveUp}
+          onCancel={() => { setShowGiveUpModal(false); resume(); }}
         />
       )}
 
       {showPwaModal && (
-        <PwaPauseModal 
+        <PwaPauseModal
           onResume={() => { setShowPwaModal(false); resume(); }}
           onTimeout={() => { setShowPwaModal(false); handleGiveUp('FAIL_TIMEOUT'); }}
         />

@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-useLogin.js-01
 import { useState } from 'react';
 import { validateLogin, validateRegister } from '../../services/authService';
 
@@ -7,7 +6,7 @@ export const useLogin = (loginFn, registerFn) => {
 
   const executeAuth = async (isLogin, data) => {
     setIsSubmitting(true);
-    
+
     try {
       if (isLogin) {
         validateLogin(data);

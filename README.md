@@ -1,3 +1,6 @@
+Colocar cryptJS para salvar o context encriptado e o local storege
+
+
 # Trabalho de Conclusão de Curso (TCC) - Sistema Tempo Claro
 
 ## 1. Informações Acadêmicas e Institucionais
@@ -215,7 +218,7 @@ Todas as requisições (exceto os métodos de Autenticação) exigem o cabeçalh
 Em conformidade com padrões de engenharia de software rigorosos (nível stricto sensu), estabelecemos uma política de rastreabilidade bidirecional. 
 
 **Exatos 81 arquivos-fonte** do projeto (33 componentes backend e 48 componentes frontend) receberam no topo da sua hierarquia a tag de auditoria sistêmica no formato:
-`// @audit-ok: [MÓDULO]-[NOME_DO_ARQUIVO]-01`
+`// @audit-ok : @RESUMO@-DESCRIÇÃO`
 
 **Como interpretar a Rastreabilidade:**
 - Se ocorrer um erro no fluxo da aplicação Web na tela de `Login.jsx`, o rastreio apontará para a marcação `FRONTEND-Login.jsx-01`. 

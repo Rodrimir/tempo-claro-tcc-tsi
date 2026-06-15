@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Search, Flame, Target } from 'lucide-react';
@@ -34,30 +33,30 @@ const Stats = () => {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
-        // @audit-info:  Em um cenário real de API, você poderia passar o habit.id para getWeeklyStats(habit.id)
+        // @audit-info :  Em um cenário real de API, você poderia passar o habit.id para getWeeklyStats(habit.id)
         const response = await getWeeklyStats();
-        
-        // @audit-info:  Se a API retornar dados reais, usaremos. 
-        // @audit-info:  Caso contrário, montamos um chart baseado na meta do hábito ativo.
+
+        // @audit-info :  Se a API retornar dados reais, usaremos. 
+        // @audit-info :  Caso contrário, montamos um chart baseado na meta do hábito ativo.
         if (response.data && response.data.length > 0) {
-           setData(response.data);
+          setData(response.data);
         } else {
-           // @audit-info:  Fallback UI data
-           const isTempo = habit.tipo_medida === 'TEMPO';
-           const meta = habit.meta_base || 1;
-           const fallbackData = [
-             { name: 'Seg', valor: isTempo ? meta * 0.8 : meta * 1.1 },
-             { name: 'Ter', valor: isTempo ? meta * 1.2 : meta * 0.9 },
-             { name: 'Qua', valor: meta },
-             { name: 'Qui', valor: 0 },
-             { name: 'Sex', valor: isTempo ? meta * 1.5 : meta * 0.5 },
-             { name: 'Sáb', valor: isTempo ? meta * 0.2 : meta },
-             { name: 'Dom', valor: meta }
-           ];
-           setData(fallbackData);
+          // @audit-info :  Fallback UI data
+          const isTempo = habit.tipo_medida === 'TEMPO';
+          const meta = habit.meta_base || 1;
+          const fallbackData = [
+            { name: 'Seg', valor: isTempo ? meta * 0.8 : meta * 1.1 },
+            { name: 'Ter', valor: isTempo ? meta * 1.2 : meta * 0.9 },
+            { name: 'Qua', valor: meta },
+            { name: 'Qui', valor: 0 },
+            { name: 'Sex', valor: isTempo ? meta * 1.5 : meta * 0.5 },
+            { name: 'Sáb', valor: isTempo ? meta * 0.2 : meta },
+            { name: 'Dom', valor: meta }
+          ];
+          setData(fallbackData);
         }
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
@@ -85,7 +84,7 @@ const Stats = () => {
 
   const isTempo = habit.tipo_medida === 'TEMPO';
   const maxRecord = data.length > 0 ? Math.max(...data.map(d => d.valor)) : 0;
-  
+
   const formatMedida = (valor) => {
     if (isTempo) return `${Math.round(valor / 60)} min`;
     return `${Math.round(valor)} ${habit.categoria === 'AGUA' ? 'ml' : 'vezes'}`;
@@ -106,7 +105,7 @@ const Stats = () => {
             </CardHeader>
             <CardValue $large>{habit.dias_seguidos || 0}</CardValue>
           </StatCard>
-          
+
           <StatCard>
             <CardHeader>
               <Target size={16} color="var(--primary-color)" /> Recorde da Semana
@@ -121,9 +120,9 @@ const Stats = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data}>
                 <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  cursor={{fill: 'var(--primary-light)'}} 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontWeight: 600 }} 
+                <Tooltip
+                  cursor={{ fill: 'var(--primary-light)' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontWeight: 600 }}
                   formatter={(value) => [formatMedida(value), 'Realizado']}
                 />
                 <Bar dataKey="valor" fill="var(--primary-color)" radius={[6, 6, 0, 0]} />

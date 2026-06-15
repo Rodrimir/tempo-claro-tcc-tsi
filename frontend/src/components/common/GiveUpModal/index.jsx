@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import {
   Overlay,
@@ -21,13 +20,13 @@ const GiveUpModal = ({ bloqueiosAcumulados, handleGiveUp, onCancel }) => {
           <PrimaryButton onClick={onCancel}>
             Voltar e Continuar
           </PrimaryButton>
-          
+
           {bloqueiosAcumulados > 0 && (
             <ShieldButton onClick={() => handleGiveUp('BLOCK_ACTIVE')}>
               🛡️ Usar Escudo ({bloqueiosAcumulados})
             </ShieldButton>
           )}
-          
+
           <DangerButton onClick={() => handleGiveUp('FAIL_VOLUNTARY')}>
             Assumir Falha
           </DangerButton>

@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-main.jsx-01
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -11,7 +10,9 @@ if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').match
 }
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    // @audit-ok @Contexto autenticação@
     <AuthProvider>
+
       <CurrentHabitProvider>
         <ThemeToggleProvider>
           <ToastProvider>

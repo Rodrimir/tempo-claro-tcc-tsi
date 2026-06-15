@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-styles.js-01
 import styled, { keyframes } from 'styled-components';
 
 export const popIn = keyframes`

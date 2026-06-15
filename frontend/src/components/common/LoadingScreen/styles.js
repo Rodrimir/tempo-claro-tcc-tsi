@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-LoadingScreen-styles.js-01
 import styled, { keyframes } from 'styled-components';
 
 const spin = keyframes`

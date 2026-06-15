@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-GamificacaoService.java-01
 package com.rodrigo.backend2java.service;
 
 import com.rodrigo.backend2java.model.HistoricoExecucao;
@@ -28,12 +27,13 @@ public class GamificacaoService {
     public PrimingResponseDTO obterPriming(final UUID habitoId) {
         final var habito = habitoRepository.findById(habitoId)
                 .orElseThrow(() -> new RuntimeException("Hábito não encontrado"));
-        
+
         final var biblioteca = bibliotecaRepository.findByCategoriaAndIdioma(habito.getCategoria(), "pt-BR")
                 .orElse(null);
 
-        final var texto = biblioteca != null ? biblioteca.getTextoPreTarefa() : "Concentre-se e respire fundo. Você consegue!";
-        
+        final var texto = biblioteca != null ? biblioteca.getTextoPreTarefa()
+                : "Concentre-se e respire fundo. Você consegue!";
+
         return new PrimingResponseDTO(texto);
     }
 
@@ -45,13 +45,13 @@ public class GamificacaoService {
 
         final var habito = habitoRepository.findById(habitoId)
                 .orElseThrow(() -> new RuntimeException("Hábito não encontrado"));
-        
+
         final var status = statusHabitoRepository.findById(habitoId)
                 .orElseThrow(() -> new RuntimeException("Status não encontrado"));
 
         var moedasGanhas = 0;
         var textoFeedback = "Execução registrada!";
-        
+
         if ("COMPLETE_PADRAO".equals(request.tipo())) {
             moedasGanhas = 100;
             status.setExecucoesHoje(status.getExecucoesHoje() + 1);
@@ -82,7 +82,7 @@ public class GamificacaoService {
                 .moedasGanhas(moedasGanhas)
                 .tipoSucesso(request.tipo())
                 .build();
-                
+
         historicoRepository.save(historico);
 
         return ExecutionResponseDTO.builder()

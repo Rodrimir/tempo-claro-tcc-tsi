@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-StatsController.java-01
 package com.rodrigo.backend2java.controller;
 
 import org.springframework.http.ResponseEntity;
@@ -13,9 +12,11 @@ import java.util.List;
 @RequestMapping("/api/v1/stats")
 public class StatsController {
 
+    // @audit-ok : @Endpoint de estatísticas@ semanais
     @GetMapping("/weekly")
     public ResponseEntity<List<Object>> getWeeklyStats() {
-        // @audit-info: Lógica de agregação pendente. Retornando array vazio por enquanto.
+        // @audit-info : Lógica de agregação pendente. Retornando array vazio por
+        // enquanto.
         return ResponseEntity.ok(new ArrayList<>());
     }
 }

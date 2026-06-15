@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-ToastContext.jsx-01
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { ToastContainer, ToastMessage } from '../components/common/Toast/styles';
 
@@ -22,8 +21,8 @@ export const ToastProvider = ({ children }) => {
       <ToastContainer>
         {toasts.map(toast => (
           <ToastMessage key={toast.id} $type={toast.type}>
-            {toast.type === 'success' && '✅ '}
-            {toast.type === 'error' && '⚠️ '}
+            {toast.type === 'success' && '✅'}
+            {toast.type === 'error' && '⚠️'}
             {toast.message}
           </ToastMessage>
         ))}

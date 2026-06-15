@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-Usuario.java-01
 package com.rodrigo.backend2java.model;
 
 import java.time.OffsetDateTime;
@@ -19,13 +18,13 @@ public class Usuario {
     private String nome;
     private String email;
     private String senhaHash;
-    
+
     @Builder.Default
     private String fusoHorario = "America/Sao_Paulo";
-    
+
     @Builder.Default
     private String preferenciaIdioma = "pt-BR";
-    
+
     @Builder.Default
     private OffsetDateTime criadoEm = OffsetDateTime.now();
 }

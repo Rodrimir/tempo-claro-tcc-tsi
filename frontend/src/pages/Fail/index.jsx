@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HeartCrack, Clock, ShieldAlert } from 'lucide-react';
@@ -8,11 +7,11 @@ import './styles.scss';
 const Fail = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const type = location.state?.type || 'FAIL_VOLUNTARY'; 
+  const type = location.state?.type || 'FAIL_VOLUNTARY';
   const feedbackMsg = location.state?.feedback?.texto_feedback;
-  
+
   let icon, title, subtitle, bgColor, iconColor;
-  
+
   if (type === 'BLOCK_ACTIVE') {
     icon = <ShieldAlert size={80} />;
     title = 'Protegido!';
@@ -39,18 +38,18 @@ const Fail = () => {
         <div className="IconWrapper" style={{ color: iconColor }}>
           {icon}
         </div>
-        
+
         <h1 className="Title">{title}</h1>
         <p className="Subtitle">{subtitle}</p>
-        
+
         <div className="CoinsCard">
           <span>🪙 Moedas Ganhas:</span>
           <span>{location.state?.feedback?.moedas_ganhas || 0}</span>
         </div>
-        
-        <button 
-          className="ActionButton" 
-          style={{ color: bgColor }} 
+
+        <button
+          className="ActionButton"
+          style={{ color: bgColor }}
           onClick={() => navigate('/home')}
         >
           CONTINUAR

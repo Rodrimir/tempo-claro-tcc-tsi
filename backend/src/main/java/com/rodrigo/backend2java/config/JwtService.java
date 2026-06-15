@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-JwtService.java-01
 package com.rodrigo.backend2java.config;
 
 import io.jsonwebtoken.Claims;
@@ -14,11 +13,11 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // @audit-info:  Em produção, a chave deve vir das variáveis de ambiente
+    // @audit-info : @TROCAR NA PRODUÇÃO@ key hardcoded 
     @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
     private String secretKey;
 
-    @Value("${jwt.expiration:86400000}") // @audit-info:  1 dia em ms
+    @Value("${jwt.expiration:86400000}") // 24 h = 86400000 ms
     private long jwtExpiration;
 
     private SecretKey getSigningKey() {
@@ -26,6 +25,7 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    // @audit-ok :  @Gerar token JWT@ para o usuário autenticado
     public String generateToken(String email) {
         return Jwts.builder()
                 .subject(email)

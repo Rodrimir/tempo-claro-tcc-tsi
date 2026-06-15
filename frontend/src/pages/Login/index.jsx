@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Globe, Moon, Sun } from 'lucide-react';
@@ -46,16 +45,16 @@ const Login = () => {
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [formData, setFormData] = useState({
-    nome: '', 
-    email: '', 
-    senha: '', 
+    nome: '',
+    email: '',
+    senha: '',
     confirmarSenha: ''
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await executeAuth(isLoginTab, formData);
-    
+
     if (result.success) {
       navigate('/home');
     } else {
@@ -82,14 +81,14 @@ const Login = () => {
       </HeaderWrapper>
 
       <TabContainer>
-        <TabButton 
+        <TabButton
           $active={isLoginTab}
           onClick={() => setIsLoginTab(true)}
           type="button"
         >
           Entrar
         </TabButton>
-        <TabButton 
+        <TabButton
           $active={!isLoginTab}
           onClick={() => setIsLoginTab(false)}
           type="button"
@@ -102,59 +101,59 @@ const Login = () => {
         {!isLoginTab && (
           <FormGroup>
             <Label htmlFor="login-nome">Seu Nome</Label>
-            <Input 
+            <Input
               id="login-nome"
-              type="text" 
-              name="nome" 
-              placeholder="Como quer ser chamado?" 
-              value={formData.nome} 
-              onChange={handleChange} 
+              type="text"
+              name="nome"
+              placeholder="Como quer ser chamado?"
+              value={formData.nome}
+              onChange={handleChange}
               required={!isLoginTab}
             />
           </FormGroup>
         )}
-        
+
         <FormGroup>
           <Label htmlFor="login-email">E-mail</Label>
-          <Input 
+          <Input
             id="login-email"
-            type="email" 
-            name="email" 
-            placeholder="seu@email.com" 
-            value={formData.email} 
-            onChange={handleChange} 
-            required 
+            type="email"
+            name="email"
+            placeholder="seu@email.com"
+            value={formData.email}
+            onChange={handleChange}
+            required
           />
         </FormGroup>
-        
+
         <FormGroup>
           <Label htmlFor="login-senha">Senha</Label>
-          <Input 
+          <Input
             id="login-senha"
-            type="password" 
-            name="senha" 
-            placeholder="••••••••" 
-            value={formData.senha} 
-            onChange={handleChange} 
-            required 
+            type="password"
+            name="senha"
+            placeholder="••••••••"
+            value={formData.senha}
+            onChange={handleChange}
+            required
           />
         </FormGroup>
-        
+
         {!isLoginTab && (
           <FormGroup>
             <Label htmlFor="login-confirmar-senha">Confirme a Senha</Label>
-            <Input 
+            <Input
               id="login-confirmar-senha"
-              type="password" 
-              name="confirmarSenha" 
-              placeholder="••••••••" 
-              value={formData.confirmarSenha} 
-              onChange={handleChange} 
+              type="password"
+              name="confirmarSenha"
+              placeholder="••••••••"
+              value={formData.confirmarSenha}
+              onChange={handleChange}
               required={!isLoginTab}
             />
           </FormGroup>
         )}
-        
+
         <SubmitButton type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
           {isSubmitting ? (
             <>
@@ -177,17 +176,17 @@ const Login = () => {
               </div>
               <LanguageButton>🇧🇷 PT</LanguageButton>
             </SettingsRow>
-            
+
             <SettingsRow $clickable onClick={toggleTheme}>
               <div className="label">
-                {isDark ? <Moon size={20} /> : <Sun size={20} />} 
+                {isDark ? <Moon size={20} /> : <Sun size={20} />}
                 Tema Escuro
               </div>
               <ToggleSwitch $active={isDark}>
                 <div className="dot" />
               </ToggleSwitch>
             </SettingsRow>
-            
+
             <SettingsCloseButton onClick={() => setShowSettings(false)}>
               Fechar
             </SettingsCloseButton>

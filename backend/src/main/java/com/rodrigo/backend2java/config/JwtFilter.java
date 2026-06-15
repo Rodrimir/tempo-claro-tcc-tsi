@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-JwtFilter.java-01
 package com.rodrigo.backend2java.config;
 
 import com.rodrigo.backend2java.repository.UsuarioRepository;
@@ -24,11 +23,11 @@ public class JwtFilter extends OncePerRequestFilter {
     private final UsuarioRepository usuarioRepository;
 
     @Override
+    // @audit-info : @FilterChain@ para verificar o token JWT em cada requisição e autenticar o usuário
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
@@ -43,20 +42,17 @@ public class JwtFilter extends OncePerRequestFilter {
         userEmail = jwtService.extractEmail(jwt);
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            
-            // @audit-info:  Verifica no banco se o usuário existe
+
             if (usuarioRepository.existsByEmail(userEmail) && jwtService.isTokenValid(jwt, userEmail)) {
-                
+
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userEmail,
                         null,
-                        new ArrayList<>()
-                );
-                
+                        new ArrayList<>());
+
                 authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-                
+                        new WebAuthenticationDetailsSource().buildDetails(request));
+
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }

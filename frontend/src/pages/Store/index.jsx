@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
@@ -32,7 +31,7 @@ const Store = () => {
   const [selectedHabitId, setSelectedHabitId] = useState('');
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const loadHabits = async () => {
     try {
       const response = await getDashboard();
@@ -59,12 +58,12 @@ const Store = () => {
       addToast('Selecione um hábito.', 'error');
       return;
     }
-    
+
     try {
       await apiBuyShield(selectedHabitId);
       addToast('Escudo comprado com sucesso para o hábito!', 'success');
       setSelectedHabitId('');
-      loadHabits(); // @audit-info:  Recarrega para atualizar os saldos
+      loadHabits(); // @audit-info :  Recarrega para atualizar os saldos
     } catch (error) {
       addToast('Erro ao comprar escudo. Moedas insuficientes?', 'error');
     }
@@ -92,10 +91,10 @@ const Store = () => {
           <Label htmlFor="store-habit-select">
             Para qual hábito deseja aplicar o escudo?
           </Label>
-          <Select 
+          <Select
             id="store-habit-select"
-            value={selectedHabitId} 
-            onChange={e => setSelectedHabitId(e.target.value)} 
+            value={selectedHabitId}
+            onChange={e => setSelectedHabitId(e.target.value)}
           >
             <option value="" disabled>Selecione um hábito...</option>
             {activeHabits.map(h => (

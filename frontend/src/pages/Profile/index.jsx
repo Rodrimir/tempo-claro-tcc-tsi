@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
@@ -42,7 +41,7 @@ const Profile = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       await updateProfile({
         nome: formData.nome,
@@ -65,7 +64,7 @@ const Profile = () => {
 
       <FormContainer onSubmit={handleUpdate}>
         <SectionTitle>Preferências do App</SectionTitle>
-        
+
         <SettingsRow>
           <div className="label">
             <Globe size={20} aria-hidden="true" /> Idioma
@@ -74,10 +73,10 @@ const Profile = () => {
             🇧🇷 PT
           </div>
         </SettingsRow>
-        
+
         <SettingsRow $clickable onClick={toggleTheme} role="button" aria-label="Alternar Tema Escuro">
           <div className="label">
-            {isDark ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />} 
+            {isDark ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
             Tema Escuro
           </div>
           <ToggleSwitch $active={isDark}>
@@ -87,55 +86,55 @@ const Profile = () => {
 
         <div style={{ marginTop: '24px' }}></div>
         <SectionTitle>Seus Dados</SectionTitle>
-        
+
         <FormGroup>
           <Label htmlFor="profile-nome">Nome</Label>
-          <Input 
+          <Input
             id="profile-nome"
-            type="text" 
-            value={formData.nome} 
-            onChange={e => setFormData({...formData, nome: e.target.value})} 
+            type="text"
+            value={formData.nome}
+            onChange={e => setFormData({ ...formData, nome: e.target.value })}
           />
         </FormGroup>
-        
+
         <FormGroup>
           <Label htmlFor="profile-fuso">Fuso Horário</Label>
-          <Select 
+          <Select
             id="profile-fuso"
-            value={formData.fusoHorario} 
-            onChange={e => setFormData({...formData, fusoHorario: e.target.value})}
+            value={formData.fusoHorario}
+            onChange={e => setFormData({ ...formData, fusoHorario: e.target.value })}
           >
             <option value="America/Sao_Paulo">Brasília (BRT)</option>
             <option value="America/New_York">Nova York (EST)</option>
             <option value="Europe/London">Londres (GMT)</option>
           </Select>
         </FormGroup>
-        
+
         <FormGroup>
           <Label htmlFor="profile-senha-atual">Senha Atual</Label>
-          <Input 
+          <Input
             id="profile-senha-atual"
-            type="password" 
-            value={formData.senhaAtual} 
-            onChange={e => setFormData({...formData, senhaAtual: e.target.value})} 
+            type="password"
+            value={formData.senhaAtual}
+            onChange={e => setFormData({ ...formData, senhaAtual: e.target.value })}
           />
         </FormGroup>
-        
+
         <FormGroup>
           <Label htmlFor="profile-nova-senha">Nova Senha</Label>
-          <Input 
+          <Input
             id="profile-nova-senha"
-            type="password" 
-            value={formData.novaSenha} 
-            onChange={e => setFormData({...formData, novaSenha: e.target.value})} 
+            type="password"
+            value={formData.novaSenha}
+            onChange={e => setFormData({ ...formData, novaSenha: e.target.value })}
           />
         </FormGroup>
-        
+
         <SubmitButton type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
           {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
         </SubmitButton>
       </FormContainer>
-      
+
       <LogoutButton onClick={logout} aria-label="Sair da sua conta">
         Sair do Aplicativo
       </LogoutButton>

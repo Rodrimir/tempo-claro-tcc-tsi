@@ -1,6 +1,5 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';  
 import { Target, Store, Play, User, BarChart2, Check } from 'lucide-react';
 import { useCurrentHabit } from '../../../contexts/CurrentHabitContext';
 import { useToast } from '../../../contexts/ToastContext';
@@ -28,8 +27,8 @@ const BottomNav = () => {
       addToast('Esta tarefa já foi concluída hoje! 🎉', 'success');
       return;
     }
-    
-    // @audit-info:  O currentHabit já está setado, só precisamos navegar
+
+    // @audit-info :  O currentHabit já está setado, só precisamos navegar
     navigate('/pretask');
   };
 
@@ -37,11 +36,11 @@ const BottomNav = () => {
     <NavContainer>
       <NavItem to="/home" icon={<Target size={24} />} label="Foco" />
       <NavItem to="/stats" icon={<BarChart2 size={24} />} label="Dados" />
-      
+
       <PlayButtonWrapper>
-        <PlayButton 
-          $completed={isCompleted} 
-          onClick={handlePlay} 
+        <PlayButton
+          $completed={isCompleted}
+          onClick={handlePlay}
           aria-label={isCompleted ? "Tarefa Concluída" : "Começar Hábito Focado"}
         >
           {isCompleted ? (

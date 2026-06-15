@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-UsuarioService.java-01
 package com.rodrigo.backend2java.service;
 
 import com.rodrigo.backend2java.model.dto.request.ProfileUpdateDTO;
@@ -17,7 +16,7 @@ public class UsuarioService {
     public void atualizarPerfil(final String emailContexto, final ProfileUpdateDTO request) {
         final var usuario = usuarioRepository.findByEmail(emailContexto)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-        
+
         if (request.nome() != null && !request.nome().isBlank()) {
             usuario.setNome(request.nome());
         }
@@ -35,7 +34,7 @@ public class UsuarioService {
             }
             usuario.setSenhaHash(passwordEncoder.encode(request.nova_senha()));
         }
-        
+
         usuarioRepository.update(usuario);
     }
 }

@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-Habito.java-01
 package com.rodrigo.backend2java.model;
 
 import java.time.LocalTime;
@@ -25,15 +24,15 @@ public class Habito {
     private String modalidade;
     private LocalTime horarioAgendado;
     private Integer metaBase;
-    
+
     @Builder.Default
     private Integer metaFrequenciaDiaria = 1;
-    
+
     private Integer intervaloMinutos;
-    
+
     @Builder.Default
     private Boolean ativo = true;
-    
+
     @Builder.Default
     private OffsetDateTime criadoEm = OffsetDateTime.now();
 }

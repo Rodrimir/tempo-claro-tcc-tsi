@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-useTimer.js-01
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { saveExecutionState, loadExecutionState, clearExecutionState, isWithinTolerance } from '../utils/storage';
 export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true) => {
@@ -26,7 +25,7 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     if (savedState) {
       if (!isWithinTolerance(savedState.startedAt)) {
         clearExecutionState(habitId);
-        return; 
+        return;
       }
       const timeDiff = Math.floor((Date.now() - savedState.startedAt) / 1000);
       const { timeLeft: savedTimeLeft, isOverachieving: savedIsOver, overachieveTime: savedExtra } = savedState.elapsed;
@@ -34,8 +33,8 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
         const newTimeLeft = Math.max(0, savedTimeLeft - timeDiff);
         setTimeLeft(newTimeLeft);
         if (newTimeLeft === 0) {
-           setIsOverachieving(true);
-           setOverachieveTime(Math.abs(savedTimeLeft - timeDiff)); 
+          setIsOverachieving(true);
+          setOverachieveTime(Math.abs(savedTimeLeft - timeDiff));
         }
       } else {
         setIsOverachieving(true);
@@ -87,17 +86,17 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     return clearTimer;
   }, [isActive, isOverachieving, isTimer]);
   const elapsed = (initialSeconds - timeLeft) + overachieveTime;
-  return { 
+  return {
     elapsed,
     isRunning: isActive,
     isPaused: !isActive,
     start,
-    pause, 
+    pause,
     resume,
     stop,
-    timeLeft, 
-    overachieveTime, 
-    isOverachieving, 
+    timeLeft,
+    overachieveTime,
+    isOverachieving,
     clearTimerState: () => clearExecutionState(habitId)
   };
 };

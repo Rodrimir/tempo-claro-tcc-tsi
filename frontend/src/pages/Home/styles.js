@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-styles.js-01
 import styled, { keyframes, css } from 'styled-components';
 const float = keyframes`
   0% { transform: translateY(0px); }

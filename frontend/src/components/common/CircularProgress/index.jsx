@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import {
   ProgressContainer,
@@ -18,10 +17,10 @@ const CircularProgress = ({ quantity, meta_base }) => {
     <ProgressContainer>
       <SvgElement>
         <BackgroundCircle cx="100" cy="100" r="90" />
-        <ProgressCircle 
-          cx="100" 
-          cy="100" 
-          r="90" 
+        <ProgressCircle
+          cx="100"
+          cy="100"
+          r="90"
           $isDone={isQuantityDone}
           $percent={progressPercent}
         />

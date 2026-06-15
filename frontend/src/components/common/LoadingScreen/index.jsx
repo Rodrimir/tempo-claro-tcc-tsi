@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-LoadingScreen-index.jsx-01
 import React, { useState, useEffect } from 'react';
 import { Container, SunImage, LoadingText } from './styles';
 import solFlutuando from '../../../assets/sol_flutuando.webp';

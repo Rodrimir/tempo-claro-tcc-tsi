@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Coins, Shield, Plus, Flame } from 'lucide-react';
@@ -14,7 +13,7 @@ import {
 const LocalHeader = () => {
   const navigate = useNavigate();
   const { currentHabit: activeHabit } = useCurrentHabit();
-  
+
   const moedas = activeHabit ? activeHabit.moedas_locais || 0 : 0;
   const escudos = activeHabit ? activeHabit.bloqueios_acumulados || 0 : 0;
   const diasSeguidos = activeHabit ? activeHabit.dias_seguidos || 0 : 0;
@@ -31,7 +30,7 @@ const LocalHeader = () => {
         <span>{diasSeguidos}</span>
       </FlameWrapper>
 
-      <ShieldButton 
+      <ShieldButton
         onClick={() => navigate('/store')}
         aria-label="Bloqueios e Escudos"
       >

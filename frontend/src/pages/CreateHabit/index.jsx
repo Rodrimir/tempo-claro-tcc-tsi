@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ArrowLeft, Ruler, Edit3 } from 'lucide-react';
@@ -50,12 +49,12 @@ const CreateHabit = () => {
   const [step, setStep] = useState(1);
   const [molde, setMolde] = useState(MOLDES[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     meta_base: '',
     aumento_dezena: '',
     meta_maxima: '',
-    frequencia_semanal: [1, 2, 3, 4, 5], 
+    frequencia_semanal: [1, 2, 3, 4, 5],
     vezes_dia: 1,
     horario: ''
   });
@@ -88,8 +87,8 @@ const CreateHabit = () => {
         meta_frequencia_diaria: parseInt(formData.vezes_dia, 10) || 1,
         horario_agendado: formData.horario
       };
-      
-      await new Promise(r => setTimeout(r, 600)); 
+
+      await new Promise(r => setTimeout(r, 600));
       await createHabit(payload);
       addToast('Hábito criado com sucesso!', 'success');
       navigate('/home');
@@ -120,10 +119,10 @@ const CreateHabit = () => {
       {step === 1 && (
         <StepContainer>
           <StepTitle>Escolha o Avatar do Hábito</StepTitle>
-          
+
           <MoldeScrollContainer>
             {MOLDES.map(m => (
-              <MoldeCard 
+              <MoldeCard
                 key={m.id}
                 onClick={() => setMolde(m)}
                 $active={molde.id === m.id}
@@ -134,7 +133,7 @@ const CreateHabit = () => {
               </MoldeCard>
             ))}
           </MoldeScrollContainer>
-          
+
           <NextButton onClick={handleNext}>
             Continuar com {molde.titulo} <ChevronRight size={20} />
           </NextButton>
@@ -145,7 +144,7 @@ const CreateHabit = () => {
         <StepContainer>
           <OptionsContainer>
             <StepTitle>Como vamos configurar a meta?</StepTitle>
-            
+
             <OptionCard onClick={handleMedirDificuldade}>
               <OptionIconWrapper>
                 <Ruler size={24} />
@@ -173,38 +172,38 @@ const CreateHabit = () => {
         <StepContainer>
           <FormSection>
             <StepTitle>Configuração Manual ({molde.titulo})</StepTitle>
-            
+
             <FormCard>
               <FormGroup>
                 <Label htmlFor="meta-base">Meta Mínima Base (Próx. 10 dias)</Label>
-                <Input 
+                <Input
                   id="meta-base"
-                  type="number" 
-                  placeholder={molde.id === 'AGUA' ? 'Ex: 250 (ml)' : 'Ex: 25 (min)'} 
-                  value={formData.meta_base} 
-                  onChange={e => setFormData({...formData, meta_base: e.target.value})} 
+                  type="number"
+                  placeholder={molde.id === 'AGUA' ? 'Ex: 250 (ml)' : 'Ex: 25 (min)'}
+                  value={formData.meta_base}
+                  onChange={e => setFormData({ ...formData, meta_base: e.target.value })}
                 />
               </FormGroup>
-              
+
               <GridRow>
                 <FormGroup>
                   <Label htmlFor="aumento">Aumento a cada 10 dias</Label>
-                  <Input 
+                  <Input
                     id="aumento"
-                    type="number" 
-                    placeholder="+10" 
-                    value={formData.aumento_dezena} 
-                    onChange={e => setFormData({...formData, aumento_dezena: e.target.value})} 
+                    type="number"
+                    placeholder="+10"
+                    value={formData.aumento_dezena}
+                    onChange={e => setFormData({ ...formData, aumento_dezena: e.target.value })}
                   />
                 </FormGroup>
                 <FormGroup>
                   <Label htmlFor="meta-maxima">Meta Máxima (Teto)</Label>
-                  <Input 
+                  <Input
                     id="meta-maxima"
-                    type="number" 
-                    placeholder="Limite" 
-                    value={formData.meta_maxima} 
-                    onChange={e => setFormData({...formData, meta_maxima: e.target.value})} 
+                    type="number"
+                    placeholder="Limite"
+                    value={formData.meta_maxima}
+                    onChange={e => setFormData({ ...formData, meta_maxima: e.target.value })}
                   />
                 </FormGroup>
               </GridRow>
@@ -215,7 +214,7 @@ const CreateHabit = () => {
                 <Label>Frequência Semanal</Label>
                 <WeekDaysContainer>
                   {DIAS_SEMANA.map((dia, index) => (
-                    <DayButton 
+                    <DayButton
                       key={dia}
                       onClick={() => toggleDia(index)}
                       $active={formData.frequencia_semanal.includes(index)}
@@ -230,27 +229,27 @@ const CreateHabit = () => {
               <GridRow>
                 <FormGroup>
                   <Label htmlFor="vezes-dia">Vezes ao Dia</Label>
-                  <Input 
+                  <Input
                     id="vezes-dia"
-                    type="number" 
-                    value={formData.vezes_dia} 
-                    onChange={e => setFormData({...formData, vezes_dia: e.target.value})} 
+                    type="number"
+                    value={formData.vezes_dia}
+                    onChange={e => setFormData({ ...formData, vezes_dia: e.target.value })}
                   />
                 </FormGroup>
                 <FormGroup>
                   <Label htmlFor="hora-execucao">Hora de Execução</Label>
-                  <Input 
+                  <Input
                     id="hora-execucao"
-                    type="time" 
-                    value={formData.horario} 
-                    onChange={e => setFormData({...formData, horario: e.target.value})} 
+                    type="time"
+                    value={formData.horario}
+                    onChange={e => setFormData({ ...formData, horario: e.target.value })}
                   />
                 </FormGroup>
               </GridRow>
             </FormCard>
 
-            <SubmitButton 
-              onClick={handleSave} 
+            <SubmitButton
+              onClick={handleSave}
               disabled={isSubmitting}
               aria-busy={isSubmitting}
             >

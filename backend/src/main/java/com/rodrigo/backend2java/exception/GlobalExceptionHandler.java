@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-GlobalExceptionHandler.java-01
 package com.rodrigo.backend2java.exception;
 
 import org.springframework.http.HttpStatus;
@@ -30,5 +29,6 @@ public class GlobalExceptionHandler {
                 .body(MessageResponseDTO.builder().success(false).message("Validation error").build());
     }
 
-    // @audit-info:  Outros handlers específicos serão adicionados aqui quando os Services lançarem Custom Exceptions.
+    // @audit-info : Outros handlers específicos serão adicionados aqui quando os
+    // Services lançarem Custom Exceptions.
 }

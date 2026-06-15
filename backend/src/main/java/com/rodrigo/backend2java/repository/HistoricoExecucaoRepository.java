@@ -1,4 +1,3 @@
-// @audit-ok: BACKEND-HistoricoExecucaoRepository.java-01
 package com.rodrigo.backend2java.repository;
 
 import com.rodrigo.backend2java.model.HistoricoExecucao;
@@ -12,11 +11,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class HistoricoExecucaoRepository {
 
-    private static final String COUNT_BY_EXECUTION_TOKEN = 
-            "SELECT COUNT(1) FROM historico_execucoes WHERE execution_token = ?";
-            
-    private static final String INSERT_HISTORICO = 
-            "INSERT INTO historico_execucoes (id, habito_id, execution_token, data_hora_execucao, " +
+    private static final String COUNT_BY_EXECUTION_TOKEN = "SELECT COUNT(1) FROM historico_execucoes WHERE execution_token = ?";
+
+    private static final String INSERT_HISTORICO = "INSERT INTO historico_execucoes (id, habito_id, execution_token, data_hora_execucao, "
+            +
             "valor_realizado, moedas_ganhas, tipo_sucesso) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
@@ -35,7 +33,6 @@ public class HistoricoExecucaoRepository {
                 historico.getDataHoraExecucao(),
                 historico.getValorRealizado(),
                 historico.getMoedasGanhas(),
-                historico.getTipoSucesso()
-        );
+                historico.getTipoSucesso());
     }
 }

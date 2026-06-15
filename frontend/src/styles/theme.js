@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-theme.js-01
 export const lightTheme = {
   primaryColor: '#4f46e5',
   primaryLight: '#e0e7ff',
@@ -20,9 +19,9 @@ export const darkTheme = {
   bgSurface: '#0f172a',
   textPrimary: '#f8fafc',
   textSecondary: '#94a3b8',
-  successColor: '#34d399', 
+  successColor: '#34d399',
   warningColor: '#fbbf24',
-  dangerColor: '#f87171', 
+  dangerColor: '#f87171',
   borderColor: '#1e293b',
   radiusMd: '12px',
   radiusFull: '9999px',

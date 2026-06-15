@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-App.jsx-01
 import React from 'react';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyle } from './styles/GlobalStyles';
@@ -10,6 +9,7 @@ import AppRoutes from './routes';
 const App = () => {
   const { isDark } = useThemeToggle();
   return (
+    // @audit-ok @ThemaProvider@ para alternância de temas claro/escuro
     <ThemeProvider theme={isDark ? darkTheme : lightTheme}>
       <GlobalStyle />
       <AppRoutes />

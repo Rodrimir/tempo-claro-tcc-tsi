@@ -1,4 +1,3 @@
-// @audit-ok: FRONTEND-index.jsx-01
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Check } from 'lucide-react';
@@ -46,7 +45,7 @@ const HomeScreen = () => {
     const loadData = async () => {
       try {
         const response = await getDashboard();
-        // @audit-info:  Assume API returns { habits: [...] } or an array directly
+        // @audit-info :  Assume API returns { habits: [...] } or an array directly
         let data = response.data.habits || response.data || [];
         if (Array.isArray(data)) {
           data.sort((a, b) => {
@@ -85,26 +84,26 @@ const HomeScreen = () => {
   const getAvatarExpression = (habit) => {
     if (habit.status === 'COMPLETED') return 'feliz';
     if (!habit.proximo_vencimento) return 'normal';
-    
+
     const now = new Date();
     const due = new Date(habit.proximo_vencimento);
     const diffMin = (due - now) / 60000;
-    
+
     if (diffMin < -60) return 'falha';
     if (diffMin <= 0 && diffMin >= -60) return 'desesperado';
     if (diffMin > 0 && diffMin <= 120) return 'preocupado';
-    
+
     return 'normal';
   };
 
   const getAvatarImage = (habit) => {
     const expression = getAvatarExpression(habit);
     if (expression === 'falha') return '☠️';
-    
+
     const folder = habit.categoria === 'AGUA' ? 'gotinha' : (habit.categoria === 'ESTUDAR' ? 'livrinho' : 'homenzinho');
     const level = Math.min(Math.floor(habit.dias_seguidos / 10) + 1, 3);
     const suffix = level > 1 ? level : '';
-    
+
     if (folder === 'gotinha' && expression === 'normal' && suffix === '') {
       return (
         <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -120,14 +119,14 @@ const HomeScreen = () => {
         </div>
       );
     }
-    
+
     const emojis = {
       'normal': '🌱',
       'preocupado': '😰',
       'desesperado': '😱',
       'feliz': '✨'
     };
-    
+
     return (
       <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ fontSize: '100px', display: 'block' }}>{emojis[expression] || '🌱'}</span>
@@ -171,7 +170,7 @@ const HomeScreen = () => {
                     Tempo esgotado. Falha!
                   </UrgentBadge>
                 )}
-                
+
                 <AvatarWrapper>
                   {getAvatarImage(habit)}
                 </AvatarWrapper>
@@ -190,8 +189,8 @@ const HomeScreen = () => {
                 <EmptyTitle>Começar um novo hábito?</EmptyTitle>
                 <EmptySubtitle>Configure um novo ecossistema.</EmptySubtitle>
               </div>
-              <CreateHabitButton 
-                className="btn btn-primary" 
+              <CreateHabitButton
+                className="btn btn-primary"
                 onClick={() => navigate('/create')}
                 style={{ width: '64px', height: '64px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
               >
