@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken, clearAuthToken } from '../services/storage';
+import { getAuthToken, clearAuthToken } from '../utils/storage';
 
 // @audit-ok @URL do Render@
 const api = axios.create({

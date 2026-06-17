@@ -1,7 +1,7 @@
-Colocar cryptJS para salvar o context encriptado e o local storege
+# Trabalho de Conclusão de Curso (TCC) - Sistema Tempo Claro 
+## Projeto monorepo
 
-
-# Trabalho de Conclusão de Curso (TCC) - Sistema Tempo Claro
+- Colocar cryptJS para salvar o context encriptado e o local storeges
 
 ## 1. Informações Acadêmicas e Institucionais
 **Instituição:** Instituto Federal Sul-rio-grandense (IFSul) - Campus Pelotas
