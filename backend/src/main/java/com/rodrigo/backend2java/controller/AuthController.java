@@ -31,3 +31,5 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.cadastrar(request));
     }
 }
+
+// @audit-info [ teste de deploy: 2024-06-20 ]
