@@ -32,4 +32,5 @@ public class AuthController {
     }
 }
 
-// @audit-info [ teste de deploy: 2024-06-20 ]
+// @audit-info [ teste de deployment]
+
