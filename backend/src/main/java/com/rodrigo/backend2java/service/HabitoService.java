@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+// @audit-ok [Dashboard (7) / Criar Hábito (16) — service de hábitos: CRUD e montagem do HabitoResponseDTO]
+
 @Service
 @RequiredArgsConstructor
 public class HabitoService {
@@ -26,6 +28,7 @@ public class HabitoService {
 
         @Transactional
         public HabitoResponseDTO criarHabito(final String emailContexto, final HabitoRequestDTO request) {
+                // @audit-ok [Criar Hábito (17) — busca usuário e valida limite de 5 hábitos ativos]
                 final var usuario = usuarioRepository.findByEmail(emailContexto)
                                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
@@ -36,6 +39,7 @@ public class HabitoService {
 
                 final var habitoId = UUID.randomUUID();
 
+                // @audit-ok [Criar Hábito (18) — monta entidade Habito a partir do DTO da requisição]
                 final var habito = Habito.builder()
                                 .id(habitoId)
                                 .usuarioId(usuario.getId())
@@ -56,6 +60,7 @@ public class HabitoService {
 
                 habitoRepository.save(habito);
 
+                // @audit-ok [Criar Hábito (19) — cria status inicial zerado vinculado ao novo hábito]
                 final var status = StatusHabito.builder()
                                 .habitoId(habitoId)
                                 .moedasLocais(0)
@@ -68,9 +73,11 @@ public class HabitoService {
 
                 statusHabitoRepository.save(status);
 
+                // @audit-ok [Criar Hábito (20) — retorna hábito completo com status zerado]
                 return buscarDetalhadoPorId(habitoId);
         }
 
+        // @audit-ok [Dashboard (8) — lista todos os hábitos ativos e agrega status para cada um]
         public List<HabitoResponseDTO> listarDashboard(final String emailContexto) {
                 final var usuario = usuarioRepository.findByEmail(emailContexto)
                                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
@@ -80,6 +87,7 @@ public class HabitoService {
                                 .collect(Collectors.toList());
         }
 
+        // @audit-ok [Dashboard (9) — JOIN lógico entre habitos e status_habitos para montar HabitoResponseDTO]
         public HabitoResponseDTO buscarDetalhadoPorId(final UUID habitoId) {
                 final var habito = habitoRepository.findById(habitoId)
                                 .orElseThrow(() -> new RuntimeException("Hábito não encontrado"));
@@ -118,6 +126,7 @@ public class HabitoService {
                 habitoRepository.update(habito);
         }
 
+        // @audit-ok [Deletar Hábito — soft delete: marca ativo=false sem remover dados históricos]
         @Transactional
         public void deletarHabito(final UUID habitoId) {
                 if (habitoRepository.findById(habitoId).isEmpty()) {

@@ -1,6 +1,6 @@
 import { createGlobalStyle } from 'styled-components';
 
-// @audit-info : Styled Components
+// @audit-ok @Styled Components@
 export const GlobalStyle = createGlobalStyle`
   @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
   :root {

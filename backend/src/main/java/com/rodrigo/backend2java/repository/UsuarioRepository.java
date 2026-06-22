@@ -10,6 +10,8 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+// @audit-ok [Login (11) / Cadastro (11) / Verificação de Token (7) — repositório de usuários via JdbcTemplate]
+
 @Repository
 @RequiredArgsConstructor
 public class UsuarioRepository {
@@ -28,6 +30,7 @@ public class UsuarioRepository {
 
         private final JdbcTemplate jdbcTemplate;
 
+        // @audit-ok [Login (11) / Perfil (10) — RowMapper mapeia o ResultSet para a entidade Usuario]
         private final RowMapper<Usuario> rowMapper = (rs, rowNum) -> Usuario.builder()
                         .id(rs.getObject("id", UUID.class))
                         .nome(rs.getString("nome"))
@@ -44,17 +47,20 @@ public class UsuarioRepository {
                                 .findFirst();
         }
 
+        // @audit-ok [Login (11) — busca usuário por email para validação de credenciais]
         public Optional<Usuario> findByEmail(String email) {
                 return jdbcTemplate.query(FIND_BY_EMAIL, rowMapper, email)
                                 .stream()
                                 .findFirst();
         }
 
+        // @audit-ok [Cadastro (11) / Verificação de Token (7) — COUNT para verificar existência sem trazer dados]
         public boolean existsByEmail(String email) {
                 Integer count = jdbcTemplate.queryForObject(COUNT_BY_EMAIL, Integer.class, email);
                 return count != null && count > 0;
         }
 
+        // @audit-ok [Cadastro (13) — INSERT com todos os campos do usuário incluindo hash da senha]
         public void save(Usuario usuario) {
                 jdbcTemplate.update(INSERT_USUARIO,
                                 usuario.getId() != null ? usuario.getId() : UUID.randomUUID(),
@@ -66,6 +72,7 @@ public class UsuarioRepository {
                                 usuario.getCriadoEm());
         }
 
+        // @audit-ok [Perfil (14) — UPDATE que persiste alterações de nome, fuso e nova senha hash]
         public void update(Usuario usuario) {
                 jdbcTemplate.update(UPDATE_USUARIO,
                                 usuario.getNome(),

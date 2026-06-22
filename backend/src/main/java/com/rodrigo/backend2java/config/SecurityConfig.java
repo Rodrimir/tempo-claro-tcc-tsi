@@ -17,6 +17,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+// @audit-ok [Verificação de Token (3) — configuração de segurança: CORS, CSRF desabilitado, sessão stateless e cadeia de filtros JWT]
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -24,31 +26,31 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
 
-    // @audit-ok : @filtros de segurança@ (Stateless, CSRF
-    // disabled, CORS habilitado)
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // @audit-ok [Interceptor de Requisição (5) — CORS permissivo para suporte ao app mobile/web]
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // @audit-ok [Login (8) / Cadastro (8) — /auth/** é público; todas as demais rotas exigem autenticação]
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/h2-console", "/h2-console/**").permitAll()
                         .anyRequest().authenticated())
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+                // @audit-ok [Verificação de Token (4) — sessão completamente stateless: cada requisição re-valida o JWT]
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // @audit-ok : BCrypt para hash seguro de senhas
+    // @audit-ok [Login (12) — BCryptPasswordEncoder com fator de custo padrão (10) para hash de senhas]
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // @audit-ok : Configuração permissiva de CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

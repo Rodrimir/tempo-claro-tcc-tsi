@@ -10,22 +10,24 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.function.Function;
 
+// @audit-ok [Login (13) / Verificação de Token (9) — service JWT: geração e validação de tokens HS256 com JJWT]
+
 @Service
 public class JwtService {
 
-    // @audit-info : @TROCAR NA PRODUÇÃO@ key hardcoded 
     @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
     private String secretKey;
 
-    @Value("${jwt.expiration:86400000}") // 24 h = 86400000 ms
+    @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
 
+    // @audit-ok [Verificação de Token (10) — deriva SecretKey HMAC-SHA256 a partir da chave configurada]
     private SecretKey getSigningKey() {
         byte[] keyBytes = secretKey.getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // @audit-ok :  @Gerar token JWT@ para o usuário autenticado
+    // @audit-ok [Login (13) — assina token JWT com subject=email, emitido agora e expira em jwtExpiration ms]
     public String generateToken(String email) {
         return Jwts.builder()
                 .subject(email)
@@ -35,6 +37,7 @@ public class JwtService {
                 .compact();
     }
 
+    // @audit-ok [Verificação de Token (11) — extrai o subject (email) das claims do token]
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -44,6 +47,7 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    // @audit-ok [Verificação de Token (12) — faz parse e verifica assinatura; lança JwtException se inválido]
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())

@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS biblioteca_textos (
 CREATE TABLE IF NOT EXISTS historico_execucoes (
     id UUID PRIMARY KEY,
     habito_id UUID NOT NULL REFERENCES habitos(id) ON DELETE CASCADE,
-    execution_token UUID,
+    execution_token UUID UNIQUE,
     data_hora_execucao TIMESTAMP WITH TIME ZONE,
     valor_realizado INT,
     moedas_ganhas INT,

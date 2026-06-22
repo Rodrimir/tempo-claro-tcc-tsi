@@ -16,7 +16,7 @@ import Store from '../pages/Store';
 
 import LoadingScreen from '../components/common/LoadingScreen';
 
-// @audit-ok Componente que garante acesso às páginas restritas apenas para usuários autenticados (com token válido)
+// @audit-ok [Verificação de Token (1) — ProtectedRoute redireciona para /login se usuário não autenticado]
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -24,11 +24,15 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// @audit-ok [AppRoutes — define todas as rotas da SPA; rotas protegidas exigem autenticação válida]
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* @audit-ok [Login (1) / Cadastro (1) — rota pública de autenticação] */}
         <Route path="/login" element={<Login />} />
+
+        {/* @audit-ok [Dashboard (1) — rotas protegidas renderizadas dentro do MainLayout com BottomNav] */}
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/home" element={<Home />} />
@@ -37,10 +41,13 @@ const AppRoutes = () => {
           <Route path="/stats/:period?" element={<Stats />} />
           <Route path="/store" element={<Store />} />
         </Route>
+
+        {/* @audit-ok [Pré-Tarefa Priming (6) / Execução Timer (1) — rotas de fluxo fullscreen sem BottomNav] */}
         <Route path="/pretask" element={<ProtectedRoute><PreTask /></ProtectedRoute>} />
         <Route path="/execute" element={<ProtectedRoute><Execution /></ProtectedRoute>} />
         <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
         <Route path="/fail" element={<ProtectedRoute><Fail /></ProtectedRoute>} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

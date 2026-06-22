@@ -10,6 +10,8 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+// @audit-ok [Dashboard (9) / Execução Timer (24) / Loja Escudo (14) — repositório de status de gamificação por hábito]
+
 @Repository
 @RequiredArgsConstructor
 public class StatusHabitoRepository {
@@ -27,6 +29,7 @@ public class StatusHabitoRepository {
 
         private final JdbcTemplate jdbcTemplate;
 
+        // @audit-ok [Dashboard (9) — RowMapper mapeia todos os campos de gamificação do status]
         private final RowMapper<StatusHabito> rowMapper = (rs, rowNum) -> StatusHabito.builder()
                         .habitoId(rs.getObject("habito_id", UUID.class))
                         .moedasLocais(rs.getInt("moedas_locais"))
@@ -43,6 +46,7 @@ public class StatusHabitoRepository {
                                 .findFirst();
         }
 
+        // @audit-ok [Criar Hábito (19) — INSERT com status zerado ao criar o hábito]
         public void save(StatusHabito status) {
                 jdbcTemplate.update(INSERT_STATUS,
                                 status.getHabitoId(),
@@ -54,6 +58,7 @@ public class StatusHabitoRepository {
                                 status.getBloqueioUsadoHoje());
         }
 
+        // @audit-ok [Execução Timer (24) / Loja Escudo (14) — UPDATE completo de todos os campos de gamificação]
         public void update(StatusHabito status) {
                 jdbcTemplate.update(UPDATE_STATUS,
                                 status.getMoedasLocais(),

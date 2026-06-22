@@ -8,15 +8,15 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 
+// @audit-ok [Estatísticas (6) — controller de stats: GET /stats/weekly retorna dados dos últimos 7 dias (stub)]
+
 @RestController
 @RequestMapping("/api/v1/stats")
 public class StatsController {
 
-    // @audit-ok : @Endpoint de estatísticas@ semanais
+    // @audit-ok [Estatísticas (7) — stub: retorna lista vazia até implementação completa do cálculo semanal]
     @GetMapping("/weekly")
     public ResponseEntity<List<Object>> getWeeklyStats() {
-        // @audit-info : Lógica de agregação pendente. Retornando array vazio por
-        // enquanto.
         return ResponseEntity.ok(new ArrayList<>());
     }
 }

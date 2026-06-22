@@ -35,6 +35,8 @@ import {
   SettingsCloseButton
 } from './styles';
 
+// @audit-ok [Login (1) / Cadastro (1) — tela de entrada com abas de Login e Criar Conta]
+
 const Login = () => {
   const { isDark, toggleTheme } = useThemeToggle();
   const { login, register } = useAuth();
@@ -51,11 +53,12 @@ const Login = () => {
     confirmarSenha: ''
   });
 
+  // @audit-ok [Login (2) / Cadastro (2) — captura submissão do formulário e chama executeAuth]
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await executeAuth(isLoginTab, formData);
-
     if (result.success) {
+      // @audit-ok [Login (17) / Cadastro (18) — redireciona para home após autenticação]
       navigate('/home');
     } else {
       addToast(result.error, 'error');
@@ -81,18 +84,10 @@ const Login = () => {
       </HeaderWrapper>
 
       <TabContainer>
-        <TabButton
-          $active={isLoginTab}
-          onClick={() => setIsLoginTab(true)}
-          type="button"
-        >
+        <TabButton $active={isLoginTab} onClick={() => setIsLoginTab(true)} type="button">
           Entrar
         </TabButton>
-        <TabButton
-          $active={!isLoginTab}
-          onClick={() => setIsLoginTab(false)}
-          type="button"
-        >
+        <TabButton $active={!isLoginTab} onClick={() => setIsLoginTab(false)} type="button">
           Criar Conta
         </TabButton>
       </TabContainer>
@@ -156,10 +151,7 @@ const Login = () => {
 
         <SubmitButton type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
           {isSubmitting ? (
-            <>
-              <Spinner aria-hidden="true" />
-              <span>Processando...</span>
-            </>
+            <><Spinner aria-hidden="true" /><span>Processando...</span></>
           ) : (
             isLoginTab ? 'Entrar' : 'Criar Conta'
           )}
@@ -171,25 +163,17 @@ const Login = () => {
           <SettingsModalContent onClick={e => e.stopPropagation()}>
             <h3>Configurações</h3>
             <SettingsRow>
-              <div className="label">
-                <Globe size={20} /> Idioma
-              </div>
+              <div className="label"><Globe size={20} /> Idioma</div>
               <LanguageButton>🇧🇷 PT</LanguageButton>
             </SettingsRow>
-
             <SettingsRow $clickable onClick={toggleTheme}>
               <div className="label">
                 {isDark ? <Moon size={20} /> : <Sun size={20} />}
                 Tema Escuro
               </div>
-              <ToggleSwitch $active={isDark}>
-                <div className="dot" />
-              </ToggleSwitch>
+              <ToggleSwitch $active={isDark}><div className="dot" /></ToggleSwitch>
             </SettingsRow>
-
-            <SettingsCloseButton onClick={() => setShowSettings(false)}>
-              Fechar
-            </SettingsCloseButton>
+            <SettingsCloseButton onClick={() => setShowSettings(false)}>Fechar</SettingsCloseButton>
           </SettingsModalContent>
         </SettingsModalOverlay>
       )}

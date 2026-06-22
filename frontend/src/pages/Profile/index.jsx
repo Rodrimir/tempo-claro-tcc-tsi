@@ -25,12 +25,14 @@ import {
   ToggleSwitch
 } from './styles';
 
-// @audit-ok Atividade 8
+// @audit-ok [Perfil (1) — tela de dados do usuário: nome, fuso horário, tema e troca de senha]
+
 const Profile = () => {
   const { logout } = useAuth();
   const { isDark, toggleTheme } = useThemeToggle();
   const { addToast } = useToast();
 
+  // @audit-ok [Perfil (2) — estado inicial do formulário com valores padrão]
   const [formData, setFormData] = useState({
     nome: 'Usuário',
     senhaAtual: '',
@@ -39,17 +41,20 @@ const Profile = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // @audit-ok [Perfil (3) — processa submissão do formulário de atualização]
   const handleUpdate = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
+      // @audit-ok [Perfil (4) — monta payload incluindo senhas apenas se novaSenha foi preenchida]
       await updateProfile({
         nome: formData.nome,
         fusoHorario: formData.fusoHorario,
         ...(formData.novaSenha && { senhaAtual: formData.senhaAtual, novaSenha: formData.novaSenha })
       });
+      // @audit-ok [Perfil (15) — confirma sucesso e limpa campos de senha]
       addToast('Perfil atualizado com sucesso!', 'success');
+      // @audit-ok [Perfil (16) — limpa campos de senha após salvar]
       setFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '' }));
     } catch (err) {
       console.error("Erro ao atualizar perfil", err);
@@ -80,9 +85,7 @@ const Profile = () => {
             {isDark ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
             Tema Escuro
           </div>
-          <ToggleSwitch $active={isDark}>
-            <div className="dot" />
-          </ToggleSwitch>
+          <ToggleSwitch $active={isDark}><div className="dot" /></ToggleSwitch>
         </SettingsRow>
 
         <div style={{ marginTop: '24px' }}></div>
@@ -136,6 +139,7 @@ const Profile = () => {
         </SubmitButton>
       </FormContainer>
 
+      {/* @audit-ok [Logout — chama AuthContext.logout que limpa token e desmarca autenticação] */}
       <LogoutButton onClick={logout} aria-label="Sair da sua conta">
         Sair do Aplicativo
       </LogoutButton>

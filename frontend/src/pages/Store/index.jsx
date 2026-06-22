@@ -26,12 +26,15 @@ import {
   ItemCount
 } from './styles';
 
+// @audit-ok [Loja Escudo (1) — tela de compra de escudos protetores com moedas locais]
+
 const Store = () => {
   const { addToast } = useToast();
   const [selectedHabitId, setSelectedHabitId] = useState('');
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // @audit-ok [Loja Escudo (2) — busca lista de hábitos via GET /dashboard]
   const loadHabits = async () => {
     try {
       const response = await getDashboard();
@@ -51,19 +54,23 @@ const Store = () => {
     loadHabits();
   }, []);
 
+  // @audit-ok [Loja Escudo (4) — filtra apenas hábitos ativos para o select de compra]
   const activeHabits = habits.filter(h => h.status !== 'ARCHIVED' && h.status !== 'COMPLETED');
 
+  // @audit-ok [Loja Escudo (7) — processa compra de escudo para o hábito selecionado]
   const handleBuyShield = async () => {
+    // @audit-ok [Loja Escudo (8) — valida seleção antes de chamar a API]
     if (!selectedHabitId) {
       addToast('Selecione um hábito.', 'error');
       return;
     }
-
     try {
+      // @audit-ok [Loja Escudo (9) — envia POST /habits/{id}/shield]
       await apiBuyShield(selectedHabitId);
+      // @audit-ok [Loja Escudo (19) — confirma compra e recarrega lista atualizada]
       addToast('Escudo comprado com sucesso para o hábito!', 'success');
       setSelectedHabitId('');
-      loadHabits(); // @audit-info :  Recarrega para atualizar os saldos
+      loadHabits();
     } catch (error) {
       addToast('Erro ao comprar escudo. Moedas insuficientes?', 'error');
     }
@@ -79,18 +86,15 @@ const Store = () => {
       </Subtitle>
 
       <BuyCard>
-        <IconWrapper>
-          <ShieldAlert size={32} />
-        </IconWrapper>
+        <IconWrapper><ShieldAlert size={32} /></IconWrapper>
         <CardTitle>Comprar Bloqueio (Escudo)</CardTitle>
         <CardText>
           Custa 1500 moedas locais. Ele será gasto automaticamente às 23:59h caso você falhe na tarefa, salvando sua ofensiva!
         </CardText>
 
         <FormGroup>
-          <Label htmlFor="store-habit-select">
-            Para qual hábito deseja aplicar o escudo?
-          </Label>
+          <Label htmlFor="store-habit-select">Para qual hábito deseja aplicar o escudo?</Label>
+          {/* @audit-ok [Loja Escudo (5) — dropdown exibe hábitos ativos com saldo de moedas] */}
           <Select
             id="store-habit-select"
             value={selectedHabitId}
@@ -117,9 +121,7 @@ const Store = () => {
                 <ItemTitle>{h.titulo}</ItemTitle>
                 <ItemSubtitle>Saldo: {h.moedas_locais || 0} moedas</ItemSubtitle>
               </ItemInfo>
-              <ItemCount>
-                {h.bloqueios_acumulados || 0} <ShieldCheck size={20} />
-              </ItemCount>
+              <ItemCount>{h.bloqueios_acumulados || 0} <ShieldCheck size={20} /></ItemCount>
             </InventoryItem>
           ))}
         </InventoryList>

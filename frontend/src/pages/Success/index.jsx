@@ -17,16 +17,22 @@ import {
   BackButton
 } from './styles';
 
+// @audit-ok [Sucesso (1) — tela de feedback positivo; lê dados da recompensa do estado de navegação]
+
 const Success = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // @audit-ok [Sucesso (2) — extrai flag de bônus do estado de navegação]
   const isBonus = location.state?.bonus;
+  // @audit-ok [Sucesso (3) — extrai dados da recompensa retornados pela API de execução]
   const feedback = location.state?.feedback;
 
   const moedasGanhas = feedback?.moedas_ganhas || (isBonus ? 150 : 100);
   const diasSeguidos = feedback?.dias_seguidos || 1;
   const subtitleText = feedback?.texto_feedback || 'A excelência é um hábito.';
 
+  // @audit-ok [Sucesso (4) — gera 50 partículas com posições e durações aleatórias para a animação]
   const particles = useMemo(() => {
     return Array.from({ length: 50 }).map(() => ({
       size: Math.random() * 10 + 5,
@@ -40,46 +46,30 @@ const Success = () => {
     <SuccessContainer $isBonus={isBonus}>
       <ParticlesWrapper>
         {particles.map((p, i) => (
-          <Particle
-            key={i}
-            $size={p.size}
-            $left={p.left}
-            $duration={p.duration}
-            $delay={p.delay}
-          />
+          <Particle key={i} $size={p.size} $left={p.left} $duration={p.duration} $delay={p.delay} />
         ))}
       </ParticlesWrapper>
 
       <ContentWrapper>
-        <IconWrapper>
-          {isBonus ? '🌟' : '✨'}
-        </IconWrapper>
-
-        <Title>
-          {isBonus ? 'Incrível!' : 'Tarefa Concluída!'}
-        </Title>
+        {/* @audit-ok [Sucesso (5) — exibe emoji, título e subtítulo diferenciados para conclusão padrão e extra] */}
+        <IconWrapper>{isBonus ? '🌟' : '✨'}</IconWrapper>
+        <Title>{isBonus ? 'Incrível!' : 'Tarefa Concluída!'}</Title>
         <Subtitle>{subtitleText}</Subtitle>
 
         <RewardCard>
           <Row>
             <Label>Recompensa</Label>
-            <Value>
-              <Coins size={28} /> +{moedasGanhas}
-            </Value>
+            <Value><Coins size={28} /> +{moedasGanhas}</Value>
           </Row>
           <Divider />
           <Row>
             <Label>Ofensiva Atual</Label>
-            <Value>
-              <Flame size={28} /> {diasSeguidos} dias
-            </Value>
+            <Value><Flame size={28} /> {diasSeguidos} dias</Value>
           </Row>
         </RewardCard>
 
-        <BackButton
-          onClick={() => navigate('/home')}
-          $isBonus={isBonus}
-        >
+        {/* @audit-ok [Sucesso (6) — retorna ao dashboard] */}
+        <BackButton onClick={() => navigate('/home')} $isBonus={isBonus}>
           VOLTAR PARA A HOME
         </BackButton>
       </ContentWrapper>

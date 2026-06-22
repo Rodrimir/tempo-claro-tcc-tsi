@@ -32,6 +32,8 @@ import {
   DoneButton
 } from './styles';
 
+// @audit-ok [Dashboard (1) — tela principal com carrossel de hábitos e controle de avatar]
+
 const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -41,19 +43,22 @@ const HomeScreen = () => {
   const { isDark } = useThemeToggle();
   const [localHabits, setLocalHabits] = useState([]);
 
+  // @audit-ok [Dashboard (2) — busca lista de hábitos ao montar a tela]
   useEffect(() => {
     const loadData = async () => {
       try {
+        // @audit-ok [Dashboard (3) — chama GET /dashboard]
         const response = await getDashboard();
-        // @audit-info :  Assume API returns { habits: [...] } or an array directly
         let data = response.data.habits || response.data || [];
         if (Array.isArray(data)) {
+          // @audit-ok [Dashboard (13) — ordena: COMPLETED vai ao final, depois por proximo_vencimento]
           data.sort((a, b) => {
             if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
             if (b.status === 'COMPLETED' && a.status !== 'COMPLETED') return -1;
             if (!a.proximo_vencimento || !b.proximo_vencimento) return 0;
             return new Date(a.proximo_vencimento) - new Date(b.proximo_vencimento);
           });
+          // @audit-ok [Dashboard (14) — armazena hábitos no estado local]
           setLocalHabits(data);
         }
       } catch (error) {
@@ -65,6 +70,7 @@ const HomeScreen = () => {
     loadData();
   }, []);
 
+  // @audit-ok [Dashboard (17) — sincroniza o hábito central do carrossel com o CurrentHabitContext]
   useEffect(() => {
     if (localHabits.length > 0 && localHabits[activeIndex]) {
       setCurrentHabit(localHabits[activeIndex]);
@@ -73,6 +79,7 @@ const HomeScreen = () => {
     }
   }, [activeIndex, localHabits, setCurrentHabit]);
 
+  // @audit-ok [Dashboard (17) — calcula o índice ativo ao rolar o carrossel]
   const handleScroll = () => {
     if (carouselRef.current) {
       const scrollLeft = carouselRef.current.scrollLeft;
@@ -81,58 +88,40 @@ const HomeScreen = () => {
     }
   };
 
+  // @audit-ok [Dashboard (16) — determina a expressão do avatar baseado no tempo restante até o vencimento]
   const getAvatarExpression = (habit) => {
     if (habit.status === 'COMPLETED') return 'feliz';
     if (!habit.proximo_vencimento) return 'normal';
-
     const now = new Date();
     const due = new Date(habit.proximo_vencimento);
     const diffMin = (due - now) / 60000;
-
     if (diffMin < -60) return 'falha';
     if (diffMin <= 0 && diffMin >= -60) return 'desesperado';
     if (diffMin > 0 && diffMin <= 120) return 'preocupado';
-
     return 'normal';
   };
 
+  // @audit-ok [Dashboard (15) — retorna o componente visual do avatar (imagem ou emoji)]
   const getAvatarImage = (habit) => {
     const expression = getAvatarExpression(habit);
-    if (expression === 'falha') return '☠️';
-
-    const folder = habit.categoria === 'AGUA' ? 'gotinha' : (habit.categoria === 'ESTUDAR' ? 'livrinho' : 'homenzinho');
-    const level = Math.min(Math.floor(habit.dias_seguidos / 10) + 1, 3);
-    const suffix = level > 1 ? level : '';
-
-    if (folder === 'gotinha' && expression === 'normal' && suffix === '') {
-      return (
-        <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={gotinhaNormal} alt="Gotinha Normal" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        </div>
-      );
-    }
-
-    if (folder === 'gotinha' && expression === 'feliz' && suffix === '') {
-      return (
-        <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={gotinhaFeliz} alt="Gotinha Feliz" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        </div>
-      );
-    }
-
     const emojis = {
       'normal': '🌱',
       'preocupado': '😰',
       'desesperado': '😱',
-      'feliz': '✨'
+      'feliz': '✨',
+      'falha': '☠️'
     };
+    const avatarStyle = { position: 'relative', width: '160px', height: '160px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+    const imgStyle = { width: '100%', height: '100%', objectFit: 'contain' };
+
+    if (habit.categoria === 'AGUA') {
+      if (expression === 'normal') return <div style={avatarStyle}><img src={gotinhaNormal} alt="Gotinha" style={imgStyle} /></div>;
+      if (expression === 'feliz') return <div style={avatarStyle}><img src={gotinhaFeliz} alt="Gotinha Feliz" style={imgStyle} /></div>;
+    }
 
     return (
-      <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={avatarStyle}>
         <span style={{ fontSize: '100px', display: 'block' }}>{emojis[expression] || '🌱'}</span>
-        <span style={{ fontSize: '12px', position: 'absolute', bottom: -24, width: '100%', left: 0, color: 'var(--text-secondary)' }}>
-          {`${folder}/${expression}${suffix}.png`}
-        </span>
       </div>
     );
   };
@@ -153,27 +142,12 @@ const HomeScreen = () => {
                   <CardSubtitle $completed={completed} $urgent={expression === 'preocupado' || expression === 'desesperado'}>
                     {completed ? 'Concluído Hoje' : ((expression === 'preocupado' || expression === 'desesperado') ? 'Atenção!' : 'Sua Tarefa')}
                   </CardSubtitle>
-                  <CardTitle $completed={completed}>
-                    {habit.titulo}
-                  </CardTitle>
+                  <CardTitle $completed={completed}>{habit.titulo}</CardTitle>
                 </HabitCard>
-                {expression === 'preocupado' && (
-                  <UrgentBadge>A hora está chegando!</UrgentBadge>
-                )}
-                {expression === 'desesperado' && (
-                  <UrgentBadge style={{ background: 'var(--danger-color)' }}>
-                    Faça agora ou perca a ofensiva!
-                  </UrgentBadge>
-                )}
-                {expression === 'falha' && (
-                  <UrgentBadge style={{ background: 'var(--danger-color)' }}>
-                    Tempo esgotado. Falha!
-                  </UrgentBadge>
-                )}
-
-                <AvatarWrapper>
-                  {getAvatarImage(habit)}
-                </AvatarWrapper>
+                {expression === 'preocupado' && <UrgentBadge>A hora está chegando!</UrgentBadge>}
+                {expression === 'desesperado' && <UrgentBadge style={{ background: 'var(--danger-color)' }}>Faça agora ou perca a ofensiva!</UrgentBadge>}
+                {expression === 'falha' && <UrgentBadge style={{ background: 'var(--danger-color)' }}>Tempo esgotado. Falha!</UrgentBadge>}
+                <AvatarWrapper>{getAvatarImage(habit)}</AvatarWrapper>
                 <ShadowBlur />
               </SlideInner>
             </HabitSlide>
@@ -201,12 +175,8 @@ const HomeScreen = () => {
         )}
       </CarouselWrapper>
       <DotsWrapper>
-        {localHabits.map((_, i) => (
-          <Dot key={i} $active={i === activeIndex} />
-        ))}
-        {localHabits.length < 5 && (
-          <Dot $active={activeIndex === localHabits.length} />
-        )}
+        {localHabits.map((_, i) => <Dot key={i} $active={i === activeIndex} />)}
+        {localHabits.length < 5 && <Dot $active={activeIndex === localHabits.length} />}
       </DotsWrapper>
       <ActionWrapper>
         {activeIndex < localHabits.length && localHabits[activeIndex]?.status !== 'COMPLETED' ? (
@@ -214,9 +184,7 @@ const HomeScreen = () => {
             Use o botão Play na barra inferior
           </div>
         ) : activeIndex < localHabits.length ? (
-          <DoneButton className="btn">
-            <Check size={24} /> TAREFA FEITA
-          </DoneButton>
+          <DoneButton className="btn"><Check size={24} /> TAREFA FEITA</DoneButton>
         ) : (
           <div style={{ height: '64px' }}></div>
         )}

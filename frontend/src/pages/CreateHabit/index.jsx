@@ -35,6 +35,8 @@ import {
   SubmitButton
 } from './styles';
 
+// @audit-ok [Criar Hábito (1) — wizard de 3 etapas para criação de hábito: avatar > modo > formulário]
+
 const MOLDES = [
   { id: 'AGUA', emoji: '💧', titulo: 'Gotinha', desc: 'Mantenha-se hidratado e evolua sua gotinha.' },
   { id: 'ESTUDAR', emoji: '📚', titulo: 'Livrinho', desc: 'Foco total nos estudos para evoluir seu livro.' },
@@ -43,7 +45,6 @@ const MOLDES = [
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-// @audit-ok Atividade 8
 const CreateHabit = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -76,21 +77,27 @@ const CreateHabit = () => {
     addToast('Medir Dificuldade: Em breve! Por favor, preencha manualmente por enquanto.', 'default');
   };
 
+  // @audit-ok [Criar Hábito (9) — coleta dados do formulário e envia para a API]
   const handleSave = async () => {
+    // @audit-ok [Criar Hábito (10) — desabilita botão para evitar duplo envio]
     setIsSubmitting(true);
     try {
+      // @audit-ok [Criar Hábito (11) — monta payload completo com todos os campos do formulário]
       const payload = {
         categoria: molde.id,
         titulo: molde.titulo,
         tipo_medida: molde.id === 'AGUA' ? 'QUANTIDADE' : 'TEMPO',
         modalidade: 'DIARIA',
         meta_base: parseInt(formData.meta_base, 10) || 1,
+        aumento_dezena: parseInt(formData.aumento_dezena, 10) || 0,
+        meta_maxima: parseInt(formData.meta_maxima, 10) || 0,
+        frequencia_semanal: formData.frequencia_semanal,
         meta_frequencia_diaria: parseInt(formData.vezes_dia, 10) || 1,
         horario_agendado: formData.horario
       };
-
-      await new Promise(r => setTimeout(r, 600));
+      // @audit-ok [Criar Hábito (12) — envia POST /habits]
       await createHabit(payload);
+      // @audit-ok [Criar Hábito (21) — notifica sucesso e redireciona para home]
       addToast('Hábito criado com sucesso!', 'success');
       navigate('/home');
     } catch (err) {
@@ -117,49 +124,42 @@ const CreateHabit = () => {
         </HeaderText>
       </Header>
 
+      {/* @audit-ok [Criar Hábito (2) — Etapa 1: seleção do avatar/categoria do hábito] */}
       {step === 1 && (
         <StepContainer>
           <StepTitle>Escolha o Avatar do Hábito</StepTitle>
-
           <MoldeScrollContainer>
             {MOLDES.map(m => (
-              <MoldeCard
-                key={m.id}
-                onClick={() => setMolde(m)}
-                $active={molde.id === m.id}
-              >
+              <MoldeCard key={m.id} onClick={() => setMolde(m)} $active={molde.id === m.id}>
                 <MoldeEmoji>{m.emoji}</MoldeEmoji>
                 <MoldeTitle>{m.titulo}</MoldeTitle>
                 <MoldeDesc>{m.desc}</MoldeDesc>
               </MoldeCard>
             ))}
           </MoldeScrollContainer>
-
+          {/* @audit-ok [Criar Hábito (3) — avança para etapa 2 com o molde selecionado] */}
           <NextButton onClick={handleNext}>
             Continuar com {molde.titulo} <ChevronRight size={20} />
           </NextButton>
         </StepContainer>
       )}
 
+      {/* @audit-ok [Criar Hábito (4) — Etapa 2: escolha entre configuração automática ou manual] */}
       {step === 2 && (
         <StepContainer>
           <OptionsContainer>
             <StepTitle>Como vamos configurar a meta?</StepTitle>
-
+            {/* @audit-ok [Criar Hábito (5) — opção de questionário inteligente (em desenvolvimento)] */}
             <OptionCard onClick={handleMedirDificuldade}>
-              <OptionIconWrapper>
-                <Ruler size={24} />
-              </OptionIconWrapper>
+              <OptionIconWrapper><Ruler size={24} /></OptionIconWrapper>
               <OptionText>
                 <OptionTitle>Medir Dificuldade</OptionTitle>
                 <OptionSubtitle>Questionário inteligente</OptionSubtitle>
               </OptionText>
             </OptionCard>
-
+            {/* @audit-ok [Criar Hábito (6) — avança para formulário manual na etapa 3] */}
             <OptionCard onClick={handleNext} $primary>
-              <OptionIconWrapper>
-                <Edit3 size={24} />
-              </OptionIconWrapper>
+              <OptionIconWrapper><Edit3 size={24} /></OptionIconWrapper>
               <OptionText>
                 <OptionTitle>Preencher Manualmente</OptionTitle>
                 <OptionSubtitle>Defina suas próprias regras</OptionSubtitle>
@@ -169,6 +169,7 @@ const CreateHabit = () => {
         </StepContainer>
       )}
 
+      {/* @audit-ok [Criar Hábito (7) — Etapa 3: formulário com todos os parâmetros do hábito] */}
       {step === 3 && (
         <StepContainer>
           <FormSection>
@@ -213,6 +214,7 @@ const CreateHabit = () => {
             <FormCard>
               <FormGroup>
                 <Label>Frequência Semanal</Label>
+                {/* @audit-ok [Criar Hábito (8) — dias da semana selecionáveis; 0=Dom a 6=Sáb] */}
                 <WeekDaysContainer>
                   {DIAS_SEMANA.map((dia, index) => (
                     <DayButton
@@ -249,11 +251,7 @@ const CreateHabit = () => {
               </GridRow>
             </FormCard>
 
-            <SubmitButton
-              onClick={handleSave}
-              disabled={isSubmitting}
-              aria-busy={isSubmitting}
-            >
+            <SubmitButton onClick={handleSave} disabled={isSubmitting} aria-busy={isSubmitting}>
               {isSubmitting ? 'Criando...' : 'Criar Hábito'}
             </SubmitButton>
           </FormSection>

@@ -22,41 +22,31 @@ import {
   EmptyText
 } from './styles';
 
+// @audit-ok [Estatísticas (1) — tela de métricas do hábito selecionado no carrossel]
+
 const Stats = () => {
+  // @audit-ok [Estatísticas (2) — lê o hábito ativo do context compartilhado com o Home]
   const { currentHabit: habit } = useCurrentHabit();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // @audit-ok [Estatísticas (4) — carrega dados semanais ao montar ou ao mudar o hábito]
   useEffect(() => {
     const loadStats = async () => {
+      // @audit-ok [Estatísticas (3) — retorna estado vazio se não há hábito selecionado]
       if (!habit) {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
-        // @audit-info :  Em um cenário real de API, você poderia passar o habit.id para getWeeklyStats(habit.id)
+        // @audit-ok [Estatísticas (5) — chama GET /stats/weekly]
         const response = await getWeeklyStats();
-
-        // @audit-info :  Se a API retornar dados reais, usaremos. 
-        // @audit-info :  Caso contrário, montamos um chart baseado na meta do hábito ativo.
+        // @audit-ok [Estatísticas (7) — armazena dados reais ou array vazio (endpoint ainda não implementado)]
         if (response.data && response.data.length > 0) {
           setData(response.data);
         } else {
-          // @audit-info :  Fallback UI data
-          const isTempo = habit.tipo_medida === 'TEMPO';
-          const meta = habit.meta_base || 1;
-          const fallbackData = [
-            { name: 'Seg', valor: isTempo ? meta * 0.8 : meta * 1.1 },
-            { name: 'Ter', valor: isTempo ? meta * 1.2 : meta * 0.9 },
-            { name: 'Qua', valor: meta },
-            { name: 'Qui', valor: 0 },
-            { name: 'Sex', valor: isTempo ? meta * 1.5 : meta * 0.5 },
-            { name: 'Sáb', valor: isTempo ? meta * 0.2 : meta },
-            { name: 'Dom', valor: meta }
-          ];
-          setData(fallbackData);
+          setData([]);
         }
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
@@ -64,16 +54,14 @@ const Stats = () => {
         setLoading(false);
       }
     };
-
     loadStats();
   }, [habit]);
 
+  // @audit-ok [Estatísticas (3) — exibe estado vazio quando não há hábito em foco no carrossel]
   if (!habit) {
     return (
       <EmptyStateContainer>
-        <EmptyIconWrapper>
-          <Search size={32} />
-        </EmptyIconWrapper>
+        <EmptyIconWrapper><Search size={32} /></EmptyIconWrapper>
         <EmptyTitle>Nenhum Hábito em Foco</EmptyTitle>
         <EmptyText>
           Volte para a tela Inicial e posicione um hábito no centro do carrossel para ver seus dados.
@@ -83,6 +71,7 @@ const Stats = () => {
   }
 
   const isTempo = habit.tipo_medida === 'TEMPO';
+  // @audit-ok [Estatísticas (8) — calcula recorde da semana a partir dos dados retornados]
   const maxRecord = data.length > 0 ? Math.max(...data.map(d => d.valor)) : 0;
 
   const formatMedida = (valor) => {
@@ -99,21 +88,18 @@ const Stats = () => {
 
       <ContentWrapper>
         <GridRow>
+          {/* @audit-ok [Estatísticas (10) — exibe dias_seguidos e recorde da semana vindos do hábito e dos dados] */}
           <StatCard>
-            <CardHeader>
-              <Flame size={16} color="var(--warning-color)" /> Dias Seguidos
-            </CardHeader>
+            <CardHeader><Flame size={16} color="var(--warning-color)" /> Dias Seguidos</CardHeader>
             <CardValue $large>{habit.dias_seguidos || 0}</CardValue>
           </StatCard>
-
           <StatCard>
-            <CardHeader>
-              <Target size={16} color="var(--primary-color)" /> Recorde da Semana
-            </CardHeader>
+            <CardHeader><Target size={16} color="var(--primary-color)" /> Recorde da Semana</CardHeader>
             <CardValue>{formatMedida(maxRecord)}</CardValue>
           </StatCard>
         </GridRow>
 
+        {/* @audit-ok [Estatísticas (9) — gráfico de barras com dados dos últimos 7 dias] */}
         <ChartCard>
           <ChartTitle>Desempenho (Últimos 7 dias)</ChartTitle>
           <ChartWrapper>
@@ -130,7 +116,6 @@ const Stats = () => {
             </ResponsiveContainer>
           </ChartWrapper>
         </ChartCard>
-
       </ContentWrapper>
     </StatsContainer>
   );
