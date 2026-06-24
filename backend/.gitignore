@@ -22,6 +22,7 @@ build/
 
 ### VS Code ###
 .vscode/
+documentation/
 
 ### Gradle ###
 .gradle

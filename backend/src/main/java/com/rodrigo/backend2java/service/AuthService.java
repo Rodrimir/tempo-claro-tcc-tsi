@@ -32,12 +32,14 @@ public class AuthService {
                 // @audit-info [Login(2) — gera JWT assinado com HS256 com expiração de 24h]
                 final var token = jwtService.generateToken(usuario.getEmail());
 
-                // @audit-info [Login(2) — constrói o DTO de resposta com token e dados básicos do usuário]
+                // @audit-info [Login(2) — constrói o DTO de resposta com token e dados do usuário]
                 return AuthResponseDTO.builder()
                                 .token(token)
                                 .user(AuthResponseDTO.UserDTO.builder()
                                                 .name(usuario.getNome())
                                                 .email(usuario.getEmail())
+                                                .fusoHorario(usuario.getFusoHorario())
+                                                .preferenciaIdioma(usuario.getPreferenciaIdioma())
                                                 .build())
                                 .build();
         }
@@ -72,6 +74,8 @@ public class AuthService {
                                 .user(AuthResponseDTO.UserDTO.builder()
                                                 .name(novoUsuario.getNome())
                                                 .email(novoUsuario.getEmail())
+                                                .fusoHorario(novoUsuario.getFusoHorario())
+                                                .preferenciaIdioma(novoUsuario.getPreferenciaIdioma())
                                                 .build())
                                 .build();
         }
