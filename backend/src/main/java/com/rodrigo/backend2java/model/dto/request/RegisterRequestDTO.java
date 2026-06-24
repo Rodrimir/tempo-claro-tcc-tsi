@@ -1,9 +1,10 @@
 package com.rodrigo.backend2java.model.dto.request;
 
+import lombok.Builder;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
 
+// @audit-ok [Cadastro(1REQ) model request —  POST /auth/register]
 @Builder
 public record RegisterRequestDTO(
         @NotBlank(message = "O nome é obrigatório") String nome,

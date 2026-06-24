@@ -1,16 +1,13 @@
 package com.rodrigo.backend2java.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
 import java.util.Date;
+import io.jsonwebtoken.Jwts;
+import javax.crypto.SecretKey;
+import io.jsonwebtoken.Claims;
 import java.util.function.Function;
-
-// @audit-ok [Login (13) / Verificação de Token (9) — service JWT: geração e validação de tokens HS256 com JJWT]
+import io.jsonwebtoken.security.Keys;
+import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class JwtService {
@@ -21,13 +18,14 @@ public class JwtService {
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
 
-    // @audit-ok [Verificação de Token (10) — deriva SecretKey HMAC-SHA256 a partir da chave configurada]
+    // @audit-info [Verificação de Token — deriva SecretKey HMAC-SHA256 a partir da chave configurada]
     private SecretKey getSigningKey() {
         byte[] keyBytes = secretKey.getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // @audit-ok [Login (13) — assina token JWT com subject=email, emitido agora e expira em jwtExpiration ms]
+    // @audit-ok [Login(4) — token de autenticação: POST /auth/login]
+    // @audit-ok [Cadastro(5) — token de autenticação: POST /auth/register]
     public String generateToken(String email) {
         return Jwts.builder()
                 .subject(email)

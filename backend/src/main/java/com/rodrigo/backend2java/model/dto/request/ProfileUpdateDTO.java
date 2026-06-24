@@ -2,6 +2,8 @@ package com.rodrigo.backend2java.model.dto.request;
 
 import lombok.Builder;
 
+// @audit-ok [Profile(1REQ) model request — controller de perfil: PUT /api/profile]
+
 @Builder
 public record ProfileUpdateDTO(
         String nome,

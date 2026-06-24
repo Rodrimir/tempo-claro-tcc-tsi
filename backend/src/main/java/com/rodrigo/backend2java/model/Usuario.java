@@ -1,12 +1,13 @@
 package com.rodrigo.backend2java.model;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import java.util.UUID;
+import lombok.Builder;
+import java.time.OffsetDateTime;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+//@audit-ok [Login(3M) / Cadastro(3M) / Perfil(3M) — entidade Usuario representa a tabela de usuários no banco de dados]
 
 @Data
 @NoArgsConstructor

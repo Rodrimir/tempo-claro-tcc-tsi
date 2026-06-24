@@ -21,7 +21,7 @@ import java.util.UUID;
 // @audit-ok [Dashboard (5) / Criar Hábito (14) / Pré-Tarefa Priming (10) / Execução Timer (18) / Loja Escudo (10) — controller principal de hábitos]
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class HabitoController {
 
