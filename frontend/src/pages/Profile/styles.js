@@ -160,6 +160,49 @@ export const ModalCancelButton = styled.button`
   cursor: pointer;
 `;
 
+// @audit-ok [Excluir Conta — input de senha dentro do modal de confirmação]
+export const ModalInput = styled(Input)`
+  margin-bottom: 24px;
+  text-align: center;
+`;
+
+// @audit-ok [Excluir Conta / Excluir Hábito — botão de confirmação destrutiva (vermelho sólido)]
+export const ModalDangerButton = styled(SubmitButton)`
+  background: ${(props) => props.theme.dangerColor};
+  margin-bottom: 12px;
+  margin-top: 0;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+// @audit-ok [Zona de Perigo — separador da seção de ações destrutivas (excluir hábito / conta)]
+export const DangerZone = styled.div`
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid ${(props) => props.theme.borderColor};
+`;
+
+// @audit-ok [Excluir Hábito / Excluir Conta — botão de ação destrutiva em destaque (contorno vermelho)]
+export const DangerButton = styled.button`
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  color: ${(props) => props.theme.dangerColor};
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 12px;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
 export const SettingsRow = styled.div`
   padding: 16px 0;
   border-bottom: 1px solid ${(props) => props.theme.borderColor};
