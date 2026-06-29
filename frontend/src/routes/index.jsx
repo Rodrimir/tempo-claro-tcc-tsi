@@ -29,7 +29,7 @@ const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* @audit-ok [Login (1) / Cadastro (1) — rota pública de autenticação] */}
+        {/* @audit-ok  / Cadastro (1) — rota pública de autenticação] */}
         <Route path="/login" element={<Login />} />
 
         {/* @audit-ok [Dashboard (1) — rotas protegidas renderizadas dentro do MainLayout com BottomNav] */}

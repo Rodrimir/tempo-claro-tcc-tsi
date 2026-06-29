@@ -4,7 +4,7 @@ import { getAuthToken, clearAuthToken } from '../utils/storage';
 // @audit-ok [Instância Axios — URL base de produção + interceptores de autenticação]
 
 const api = axios.create({
-  baseURL: 'https://tempo-claro-tcc-tsi.onrender.com/api/v1',
+  baseURL: 'https://tempo-claro-tcc-tsi.onrender.com/api',
 });
 
 // @audit-ok [Interceptor de Requisição (6) — injeta Bearer token em todas as chamadas autenticadas]

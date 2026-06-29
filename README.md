@@ -24,7 +24,7 @@ O sistema é composto por três camadas independentes:
 | **Backend** | Java 17 + Spring Boot 3 + Docker | Render |
 | **Banco de Dados** | PostgreSQL | Neon Postgres (AWS) |
 
-**URL de Produção da API:** `https://tempo-claro-tcc-tsi.onrender.com/api/v1`
+**URL de Produção da API:** `https://tempo-claro-tcc-tsi.onrender.com/api`
 
 ---
 
@@ -212,7 +212,7 @@ Content-Type: application/json
 
 **Request:**
 ```http
-POST /api/v1/auth/register
+POST /api/auth/register
 Content-Type: application/json
 
 {
@@ -244,7 +244,7 @@ Content-Type: application/json
 
 **Request:**
 ```http
-POST /api/v1/auth/login
+POST /api/auth/login
 Content-Type: application/json
 
 {
@@ -277,7 +277,7 @@ Content-Type: application/json
 
 **Request:**
 ```http
-GET /api/v1/dashboard
+GET /api/dashboard
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
 
@@ -321,7 +321,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 **Request:**
 ```http
-POST /api/v1/habits
+POST /api/habits
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 Content-Type: application/json
 
@@ -352,7 +352,7 @@ Content-Type: application/json
 
 **Request:**
 ```http
-PUT /api/v1/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6
+PUT /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 Content-Type: application/json
 
@@ -375,7 +375,7 @@ Content-Type: application/json
 
 **Request:**
 ```http
-DELETE /api/v1/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6
+DELETE /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
 
@@ -392,7 +392,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 **Request:**
 ```http
-GET /api/v1/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/priming
+GET /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/priming
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
 
@@ -409,7 +409,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 **Request (conclusão padrão — timer):**
 ```http
-POST /api/v1/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/executions
+POST /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/executions
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 Content-Type: application/json
 
@@ -473,7 +473,7 @@ Content-Type: application/json
 
 **Request:**
 ```http
-POST /api/v1/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/shield
+POST /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/shield
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
 
@@ -495,7 +495,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 **Request (apenas nome e fuso):**
 ```http
-PUT /api/v1/profile
+PUT /api/profile
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 Content-Type: application/json
 
@@ -526,7 +526,7 @@ Content-Type: application/json
 
 **Request:**
 ```http
-GET /api/v1/stats/weekly
+GET /api/stats/weekly
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
 
@@ -696,7 +696,7 @@ HomeScreen monta (1)
   → useEffect → loadData() (2)
     → api.getDashboard() (3)
       → interceptor adiciona Bearer token (4)
-      → GET /api/v1/dashboard (5)
+      → GET /api/dashboard (5)
         → [Backend] JwtFilter valida token (6)
         → [Backend] HabitoController.getDashboard() → email do SecurityContext (7)
         → [Backend] HabitoService.listarDashboard(email) (8)
@@ -734,7 +734,7 @@ BottomNav — botão Play pressionado (1)
 PreTask monta (6)
   → useEffect — se !currentHabit: navigate('/home') (7)
   → api.getPreTaskPriming(currentHabit.id) (8)
-    → GET /api/v1/habits/{id}/priming com Bearer token (9)
+    → GET /api/habits/{id}/priming com Bearer token (9)
       → [Backend] HabitoController.getPriming(id) (10)
       → [Backend] GamificacaoService.obterPriming(id) (11)
         → HabitoRepository.findById() (12)
@@ -767,7 +767,7 @@ ExecutionScreen monta (1)
     → pause() — salva estado final (15)
     → calcula isExtra: overachieveTime >= meta_base * 0.2 (16)
     → api.submitExecution(id, payload) (17)
-      → POST /api/v1/habits/{id}/executions com Bearer token (18)
+      → POST /api/habits/{id}/executions com Bearer token (18)
         → [Backend] HabitoController.executeHabit() (19)
         → [Backend] GamificacaoService.processarExecucao() (20)
           → HistoricoExecucaoRepository.existsByExecutionToken() — idempotência (21)
@@ -793,7 +793,7 @@ ExecutionScreen — botão "Desistir" (1)
     → pause() (6)
     → payload: { execution_token, tipo, valor_realizado: meta_base - timeLeft } (7)
     → api.submitExecution(id, payload) (8)
-      → POST /api/v1/habits/{id}/executions (9)
+      → POST /api/habits/{id}/executions (9)
         → [Backend] GamificacaoService.processarExecucao() (10)
           → diasSeguidos = 0 (reset da ofensiva) (11)
           → StatusHabitoRepository.update(status) (12)
@@ -837,7 +837,7 @@ Stats monta (1)
   → currentHabit do CurrentHabitContext (2)
   → se !currentHabit: renderiza EmptyState (3)
   → setLoading(true) → api.getWeeklyStats() (4)
-    → GET /api/v1/stats/weekly com Bearer token (5)
+    → GET /api/stats/weekly com Bearer token (5)
       → [Backend] StatsController.getWeeklyStats() → retorna [] (6)
   → response.data vazio: setData([]) (7)
   → calcula maxRecord = Math.max(...data.map(d => d.valor)) (8)
@@ -859,7 +859,7 @@ Store monta (1)
   → botão Comprar → handleBuyShield() (7)
     → valida selectedHabitId (8)
     → api.buyShield(selectedHabitId) (9)
-      → POST /api/v1/habits/{id}/shield com Bearer token (10)
+      → POST /api/habits/{id}/shield com Bearer token (10)
         → [Backend] HabitoController.buyShield(id) (11)
         → [Backend] GamificacaoService.comprarEscudo(id) (12)
           → StatusHabitoRepository.findById() (13)
@@ -882,7 +882,7 @@ Profile monta (1)
   → handleUpdate(e) chamado no submit (3)
     → monta payload: { nome, fusoHorario, ...senhas se novaSenha preenchida } (4)
     → api.updateProfile(payload) (5)
-      → PUT /api/v1/profile com Bearer token (6)
+      → PUT /api/profile com Bearer token (6)
         → [Backend] ProfileController.updateProfile() → email do SecurityContext (7)
         → [Backend] UsuarioService.atualizarPerfil() (8)
           → UsuarioRepository.findByEmail() (9)
@@ -912,7 +912,7 @@ CreateHabit monta — step = 1 (1)
       → setIsSubmitting(true) (10)
       → monta payload completo (11)
       → api.createHabit(payload) (12)
-        → POST /api/v1/habits com Bearer token (13)
+        → POST /api/habits com Bearer token (13)
           → [Backend] HabitoController.createHabit() → email do SecurityContext (14)
           → [Backend] HabitoService.criarHabito(email, request) (15)
             → UsuarioRepository.findByEmail() (16)

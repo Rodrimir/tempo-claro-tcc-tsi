@@ -21,8 +21,8 @@ export const ToastProvider = ({ children }) => {
       <ToastContainer>
         {toasts.map(toast => (
           <ToastMessage key={toast.id} $type={toast.type}>
-            {toast.type === 'success' && '✅'}
-            {toast.type === 'error' && '⚠️'}
+            {toast.type === 'success' && 'V'}
+            {toast.type === 'error' && 'X'}
             {toast.message}
           </ToastMessage>
         ))}
