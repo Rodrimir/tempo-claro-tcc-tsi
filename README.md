@@ -195,7 +195,43 @@ CREATE TABLE IF NOT EXISTS status_habitos (
 
 ---
 
-## 5. Backend — Contratos Completos da API
+
+## 5. Pré-requisitos e Execução Local
+
+**Ferramentas necessárias:**
+- JDK 17+
+- Node.js 20+ e NPM
+- Android Studio (apenas para APK)
+
+**1. Backend (Spring Boot + H2 em memória):**
+```bash
+cd backend
+# Windows:
+.\gradlew bootRun
+# Linux/Mac:
+./gradlew bootRun
+```
+API disponível em `http://localhost:8082`
+Console H2 em `http://localhost:8082/h2-console`
+
+**2. Frontend (React + Vite):**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+App disponível em `http://localhost:5173`
+
+**3. APK Android:**
+```bash
+cd frontend
+npm run build
+npx cap sync android
+```
+Após a sincronização, abrir `frontend/android/` no Android Studio e gerar o APK via `Build > Build APK(s)`.
+
+
+## 5.1. Backend — Contratos Completos da API
 
 Todas as rotas exceto `/auth/**` exigem:
 
@@ -206,7 +242,7 @@ Content-Type: application/json
 
 ---
 
-### 5.1. Autenticação
+### 5.2. Autenticação
 
 #### POST /auth/register — Cadastro de novo usuário
 
@@ -271,7 +307,7 @@ Content-Type: application/json
 
 ---
 
-### 5.2. Hábitos
+### 5.3. Hábitos
 
 #### GET /dashboard — Lista todos os hábitos ativos do usuário
 
@@ -386,7 +422,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 ---
 
-### 5.3. Gamificação
+### 5.4. Gamificação
 
 #### GET /habits/{id}/priming — Texto motivacional pré-tarefa
 
@@ -489,7 +525,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 ---
 
-### 5.4. Perfil e Estatísticas
+### 5.5. Perfil e Estatísticas
 
 #### PUT /profile — Atualizar dados do perfil
 
@@ -937,36 +973,70 @@ Cada funcionalidade possui marcações `// @audit-ok` no código-fonte nas posi�
 
 ---
 
-## 9. Pré-requisitos e Execução Local
+## 9. Testando a API com o Postman
 
-**Ferramentas necessárias:**
-- JDK 17+
-- Node.js 20+ e NPM
-- Android Studio (apenas para APK)
+O projeto inclui uma coleção Postman pronta que cobre **todos os endpoints** do backend, com scripts que salvam o token e o `habit_id` automaticamente entre as requisições.
 
-**1. Backend (Spring Boot + H2 em memória):**
-```bash
-cd backend
-# Windows:
-.\gradlew bootRun
-# Linux/Mac:
-./gradlew bootRun
-```
-API disponível em `http://localhost:8082`
-Console H2 em `http://localhost:8082/h2-console`
+**Arquivo:** [backend/src/main/resources/Postman/Tempo Claro.json](backend/src/main/resources/Postman/Tempo%20Claro.json)
 
-**2. Frontend (React + Vite):**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-App disponível em `http://localhost:5173`
+### 9.1. Importar a coleção no Postman
 
-**3. APK Android:**
-```bash
-cd frontend
-npm run build
-npx cap sync android
-```
-Após a sincronização, abrir `frontend/android/` no Android Studio e gerar o APK via `Build > Build APK(s)`.
+1. Abra o **Postman** (desktop ou web).
+2. Clique em **Import** (canto superior esquerdo).
+3. Arraste o arquivo `Tempo Claro.json` para a janela **ou** clique em **files** e selecione:
+   `backend/src/main/resources/Postman/Tempo Claro.json`
+4. Confirme em **Import**. A coleção **"Tempo Claro — API Completa"** aparecerá na barra lateral.
+
+### 9.2. Configurar o ambiente (variáveis)
+
+A coleção usa variáveis (`{{base_url}}`, `{{token}}`, `{{habit_id}}`, `{{execution_token}}`). O `base_url` já vem com um valor padrão na coleção, mas o recomendado é criar um **Environment**:
+
+1. No menu lateral, vá em **Environments** → **+** (novo ambiente).
+2. Nomeie como `Local` e adicione:
+
+   | Variável | Valor inicial |
+   |---|---|
+   | `base_url` | `http://localhost:8082` |
+   | `token` | *(deixe vazio — preenchido automaticamente)* |
+
+3. Selecione o ambiente **Local** no seletor do canto superior direito.
+
+> **Porta local:** o backend sobe em `http://localhost:8082` (`server.port=8082`).
+> **Produção:** troque `base_url` por `https://tempo-claro-tcc-tsi.onrender.com`.
+> O caminho base da API é `/api` (a coleção **não** usa `/v1`).
+
+### 9.3. Fluxo de teste sugerido
+
+O token JWT é salvo automaticamente em `{{token}}` pelos scripts de **Register** e **Login**, e todas as demais requisições já enviam `Authorization: Bearer {{token}}`. Rode nesta ordem:
+
+1. **01 - Auth** → `Register (Cadastro)` — cria a conta e salva o token. *(Retorna 201.)*
+2. **01 - Auth** → `Login` — se já tiver conta, salva o token.
+3. **03 - Hábitos (CRUD)** → `Create Habit` — cria um hábito e salva o `{{habit_id}}`. *(Retorna 201.)*
+4. **02 - Dashboard** → `Get Dashboard` — lista os hábitos (também repõe o `{{habit_id}}`).
+5. **05 - Priming** → `Get Priming Text` — texto motivacional do hábito.
+6. **04 - Execuções** → `Execute Habit — Sucesso / Extra / Falha` — o `execution_token` (UUID) é gerado automaticamente a cada envio.
+7. **07 - Perfil** → `Update Profile` — atualiza nome, fuso ou senha.
+8. **08 - Estatísticas** → `Get Weekly Stats` — retorna `[]` (stub).
+9. **06 - Escudo** → `Buy Shield` — exige **1500 moedas** no hábito (em conta nova retorna `400 Saldo insuficiente`, o que é esperado).
+10. **03 - Hábitos (CRUD)** → `Delete Habit` — desativa o hábito (rode **por último**).
+11. **09 - Cenários de Erro** — testes negativos (token ausente/inválido, senha errada, e-mail duplicado, ID inexistente).
+
+### 9.4. Cobertura da coleção
+
+| Pasta | Método | Endpoint |
+|---|---|---|
+| 01 - Auth | POST | `/api/auth/register` · `/api/auth/login` |
+| 02 - Dashboard | GET | `/api/dashboard` |
+| 03 - Hábitos | POST / PUT / DELETE | `/api/habits` · `/api/habits/{id}` |
+| 04 - Execuções | POST | `/api/habits/{id}/executions` |
+| 05 - Priming | GET | `/api/habits/{id}/priming` |
+| 06 - Escudo | POST | `/api/habits/{id}/shield` |
+| 07 - Perfil | PUT | `/api/profile` |
+| 08 - Estatísticas | GET | `/api/stats/weekly` |
+| 09 - Cenários de Erro | vários | respostas 4xx esperadas |
+
+> **Valores aceitos em `tipo`** (execução): `COMPLETE_PADRAO` (+100 moedas), `COMPLETE_EXTRA` (+150 moedas), `FAIL_TIMEOUT` e `FAIL_BLOQUEIO` (zeram a ofensiva). Qualquer outro valor retorna `400`.
+>
+> **Dica:** use **Run collection** (botão ▶ na coleção) para executar toda a suíte de uma vez e ver os testes passando na aba *Test Results*.
+
+---

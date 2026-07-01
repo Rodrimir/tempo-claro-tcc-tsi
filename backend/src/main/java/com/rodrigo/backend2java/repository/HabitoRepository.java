@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-// @audit-ok [Dashboard (9) / Criar Hábito (18) — repositório de hábitos via JdbcTemplate; queries explícitas sem ORM]
-
 @Repository
 @RequiredArgsConstructor
 public class HabitoRepository {
@@ -34,7 +32,8 @@ public class HabitoRepository {
 
         private final JdbcTemplate jdbcTemplate;
 
-        // @audit-ok [Dashboard (9) — RowMapper mapeia cada linha do ResultSet para a entidade Habito]
+        // @audit-ok [Dashboard — RowMapper mapeia cada linha do ResultSet para a
+        // entidade Habito]
         private final RowMapper<Habito> rowMapper = (rs, rowNum) -> Habito.builder()
                         .id(rs.getObject("id", UUID.class))
                         .usuarioId(rs.getObject("usuario_id", UUID.class))
@@ -52,7 +51,7 @@ public class HabitoRepository {
                         .criadoEm(rs.getObject("criado_em", OffsetDateTime.class))
                         .build();
 
-        // @audit-ok [Dashboard (8) — retorna apenas hábitos com ativo=true do usuário]
+        // @audit-ok [Dashboard — retorna apenas hábitos com ativo=true do usuário]
         public List<Habito> findAllByUsuarioId(UUID usuarioId) {
                 return jdbcTemplate.query(FIND_ALL_BY_USUARIO_ID, rowMapper, usuarioId);
         }
@@ -63,7 +62,8 @@ public class HabitoRepository {
                                 .findFirst();
         }
 
-        // @audit-ok [Criar Hábito (18) — INSERT com todos os campos do hábito; UUID gerado pelo serviço]
+        // @audit-ok [Criar Hábito — INSERT com todos os campos do hábito; UUID gerado
+        // pelo serviço]
         public void save(Habito habito) {
                 jdbcTemplate.update(INSERT_HABITO,
                                 habito.getId() != null ? habito.getId() : UUID.randomUUID(),
@@ -86,7 +86,8 @@ public class HabitoRepository {
                                 habito.getId());
         }
 
-        // @audit-ok [Deletar Hábito — soft delete: seta ativo=false preservando histórico]
+        // @audit-ok [Deletar Hábito — soft delete: seta ativo=false preservando
+        // histórico]
         public void archive(UUID id) {
                 jdbcTemplate.update(ARCHIVE_HABITO, id);
         }

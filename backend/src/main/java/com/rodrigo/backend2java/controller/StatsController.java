@@ -8,13 +8,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 
-// @audit-ok [Estatísticas (6) — controller de stats: GET /stats/weekly retorna dados dos últimos 7 dias (stub)]
 
 @RestController
 @RequestMapping("/api/stats")
 public class StatsController {
 
-    // @audit-ok [Estatísticas (7) — stub: retorna lista vazia até implementação completa do cálculo semanal]
+    // @audit-ok [Estatísticas (1) — stub: retorna lista vazia até implementação completa do cálculo semanal]
     @GetMapping("/weekly")
     public ResponseEntity<List<Object>> getWeeklyStats() {
         return ResponseEntity.ok(new ArrayList<>());
