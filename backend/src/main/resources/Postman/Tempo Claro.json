@@ -1,0 +1,1284 @@
+{
+  "info": {
+    "_postman_id": "ca806bfa-a88f-4e00-b967-6878e7fcc0cc",
+    "name": "Tempo Claro — API Completa",
+    "description": "Coleção completa de requisições para testar o backend do Tempo Claro.\n\n=============================\nCOMO USAR PASSO A PASSO:\n=============================\n\nPASSO 1 — Configure o ambiente:\n  1. Clique em 'Environments' (ícone de olho no canto superior direito)\n  2. Crie um ambiente chamado 'Local'\n  3. Adicione a variável: base_url = http://localhost:8080\n  4. Adicione a variável: token = (deixe vazio por enquanto)\n  5. Selecione o ambiente 'Local'\n\nPASSO 2 — Crie sua conta (Register):\n  1. Abra a pasta '01 - Auth'\n  2. Execute 'Register (Cadastro)'\n  3. O script de teste salva o token automaticamente em {{token}}\n\nPASSO 3 — Ou faça login (Login):\n  1. Se já tem conta, abra '01 - Auth' > 'Login'\n  2. Execute e o token é salvo automaticamente em {{token}}\n\nPASSO 4 — Todas as outras requisições usam {{token}} automaticamente.\n\nORDEM SUGERIDA DE TESTES:\n  1. Register → Login → Get Dashboard\n  2. Create Habit → Get Dashboard → Execute Habit\n  3. Buy Shield → Update Habit → Get Priming\n  4. Update Profile → Get Stats → Delete Habit",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "41794404",
+    "_collection_link": "https://go.postman.co/collection/41794404-ca806bfa-a88f-4e00-b967-6878e7fcc0cc?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "01 - Auth (Sem Token)",
+      "item": [ 
+        {
+          "name": "Register (Cadastro)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Salva o token automaticamente no ambiente",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set('token', jsonData.token);",
+                  "    console.log('Token salvo com sucesso:', jsonData.token.substring(0, 20) + '...');",
+                  "} else {",
+                  "    console.log('ERRO: token não encontrado na resposta');",
+                  "}",
+                  "",
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Resposta tem token', function() {",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "});",
+                  "",
+                  "pm.test('Resposta tem user com nome e email', function() {",
+                  "    pm.expect(jsonData.user).to.have.property('nome');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João da Silva\",\n  \"email\": \"joao.silva@email.com\",\n  \"password\": \"Senha@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Cria uma nova conta de usuário.\n\nCampos obrigatórios:\n- nome: nome completo do usuário\n- email: deve ser um email válido e único\n- password: senha (não pode ser vazio)\n\nRetorna um token JWT que é salvo automaticamente em {{token}}.\n\nErros comuns:\n- 409 Conflict: email já cadastrado\n- 400 Bad Request: campos inválidos"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Salva o token automaticamente no ambiente",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set('token', jsonData.token);",
+                  "    console.log('Token salvo com sucesso:', jsonData.token.substring(0, 20) + '...');",
+                  "} else {",
+                  "    console.log('ERRO: token não encontrado na resposta');",
+                  "}",
+                  "",
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Resposta tem token', function() {",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao.silva@email.com\",\n  \"password\": \"Senha@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica um usuário existente e retorna um JWT.\n\nCampos obrigatórios:\n- email: email cadastrado\n- password: senha correspondente\n\nRetorna um token JWT que é salvo automaticamente em {{token}}.\n\nErros comuns:\n- 401 Unauthorized: email ou senha incorretos\n- 400 Bad Request: campos inválidos ou ausentes"
+          },
+          "response": []
+        }
+      ],
+      "description": "Rotas públicas — não precisam de token JWT"
+    },
+    {
+      "name": "02 - Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard (Listar Hábitos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Resposta é um array', function() {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});",
+                  "",
+                  "// Salva o ID do primeiro hábito para usar nos próximos testes",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.length > 0) {",
+                  "    pm.environment.set('habit_id', jsonData[0].id);",
+                  "    console.log('habit_id salvo:', jsonData[0].id);",
+                  "    console.log('Total de hábitos:', jsonData.length);",
+                  "} else {",
+                  "    console.log('Nenhum hábito encontrado. Crie um primeiro.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard"
+              ]
+            },
+            "description": "Retorna todos os hábitos ativos do usuário logado com dados de progresso.\n\nCampos retornados por hábito:\n- id (UUID)\n- titulo\n- categoria\n- tipo_medida\n- modalidade\n- horario_agendado\n- meta_base\n- meta_frequencia_diaria\n- intervalo_minutos\n- ativo\n- moedas_locais\n- bloqueios_acumulados (escudos disponíveis)\n- dias_seguidos (streak)\n- execucoes_hoje\n- proximo_vencimento\n- bloqueio_usado_hoje\n\nO script de teste salva o ID do primeiro hábito em {{habit_id}}.\n\nErros comuns:\n- 401 Unauthorized: token inválido ou expirado"
+          },
+          "response": []
+        }
+      ],
+      "description": "Listagem de hábitos do usuário autenticado"
+    },
+    {
+      "name": "03 - Hábitos (CRUD)",
+      "item": [
+        {
+          "name": "Create Habit — Binário (Feito/Não feito)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set('habit_id', jsonData.id);",
+                  "    console.log('Hábito criado! ID salvo:', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Meditar 10 minutos\",\n  \"categoria\": \"Saúde Mental\",\n  \"meta_base\": 1,\n  \"tipo_medida\": \"binario\",\n  \"modalidade\": \"diario\",\n  \"meta_frequencia_diaria\": 1,\n  \"horario_agendado\": \"07:00:00\",\n  \"gatilho_ancora\": \"Após acordar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits"
+              ]
+            },
+            "description": "Cria um hábito do tipo BINÁRIO (feito ou não feito).\n\nCampos obrigatórios:\n- titulo: nome do hábito\n- meta_base: valor mínimo (para binário, use 1)\n- tipo_medida: 'binario'\n- modalidade: 'diario', 'semanal', etc.\n\nCampos opcionais:\n- categoria: categoria livre\n- meta_frequencia_diaria: quantas vezes por dia\n- intervalo_minutos: intervalo entre execuções\n- gatilho_ancora: texto do gatilho (ex: 'Após o café')\n- horario_agendado: horário no formato HH:mm:ss\n\nO ID do hábito criado é salvo em {{habit_id}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Habit — Quantitativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set('habit_id', jsonData.id);",
+                  "    console.log('Hábito quantitativo criado! ID:', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Beber água\",\n  \"categoria\": \"Saúde Física\",\n  \"meta_base\": 8,\n  \"tipo_medida\": \"quantitativo\",\n  \"modalidade\": \"diario\",\n  \"meta_frequencia_diaria\": 8,\n  \"intervalo_minutos\": 90,\n  \"horario_agendado\": \"08:00:00\",\n  \"gatilho_ancora\": \"A cada 1h30 de trabalho\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits"
+              ]
+            },
+            "description": "Cria um hábito do tipo QUANTITATIVO (com contagem de execuções).\n\n- tipo_medida: 'quantitativo'\n- meta_base: meta total (ex: 8 copos d'água)\n- meta_frequencia_diaria: vezes por dia\n- intervalo_minutos: quanto esperar entre execuções (ex: 90 minutos)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Habit — Semanal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set('habit_id', jsonData.id);",
+                  "    console.log('Hábito semanal criado! ID:', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Academia\",\n  \"categoria\": \"Exercício Físico\",\n  \"meta_base\": 3,\n  \"tipo_medida\": \"binario\",\n  \"modalidade\": \"semanal\",\n  \"meta_frequencia_diaria\": null,\n  \"intervalo_minutos\": null,\n  \"horario_agendado\": \"18:00:00\",\n  \"gatilho_ancora\": \"Após o trabalho\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits"
+              ]
+            },
+            "description": "Cria um hábito SEMANAL (ex: ir à academia 3x por semana).\n\n- modalidade: 'semanal'\n- meta_base: quantas vezes por semana"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Habit (Atualizar Hábito)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Retorna success true', function() {",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Meditar 15 minutos\",\n  \"categoria\": \"Saúde Mental\",\n  \"meta_base\": 1,\n  \"tipo_medida\": \"binario\",\n  \"modalidade\": \"diario\",\n  \"meta_frequencia_diaria\": 1,\n  \"horario_agendado\": \"08:00:00\",\n  \"gatilho_ancora\": \"Após o café da manhã\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/{{habit_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "{{habit_id}}"
+              ]
+            },
+            "description": "Atualiza um hábito existente pelo ID.\n\nO {{habit_id}} é preenchido automaticamente pelo script de Create Habit ou Get Dashboard.\n\nOs campos do body são os mesmos do Create Habit.\n\nRetorna: {\"success\": true}\n\nErros comuns:\n- 404 Not Found: hábito não encontrado\n- 403 Forbidden: hábito pertence a outro usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Habit (Desativar Hábito)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Retorna success true', function() {",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/{{habit_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "{{habit_id}}"
+              ]
+            },
+            "description": "Realiza um soft delete no hábito (marca como inativo, não apaga do banco).\n\nO {{habit_id}} é preenchido automaticamente.\n\nRetorna: {\"success\": true}\n\nATENÇÃO: Use este endpoint por último nos seus testes, pois desativa o hábito\ne ele não aparecerá mais no dashboard."
+          },
+          "response": []
+        }
+      ],
+      "description": "Criar, atualizar e deletar hábitos"
+    },
+    {
+      "name": "04 - Execuções",
+      "item": [
+        {
+          "name": "Execute Habit — Sucesso (Completar)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Gera um UUID v4 aleatório para o execution_token",
+                  "function uuidv4() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.environment.set('execution_token', uuidv4());",
+                  "console.log('execution_token gerado:', pm.environment.get('execution_token'));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Retorna moedas ganhas', function() {",
+                  "    pm.expect(jsonData).to.have.property('moedas_ganhas');",
+                  "});",
+                  "",
+                  "console.log('Moedas ganhas:', jsonData.moedas_ganhas);",
+                  "console.log('Moedas totais:', jsonData.moedas_totais);",
+                  "console.log('Dias seguidos:', jsonData.dias_seguidos);",
+                  "console.log('Feedback:', jsonData.texto_feedback);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"execution_token\": \"{{execution_token}}\",\n  \"tipo\": \"sucesso\",\n  \"valor_realizado\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/{{habit_id}}/executions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "{{habit_id}}",
+                "executions"
+              ]
+            },
+            "description": "Registra a execução BEM-SUCEDIDA de um hábito.\n\nCampos obrigatórios:\n- execution_token: UUID único por sessão de execução (gerado automaticamente pelo script)\n- tipo: 'sucesso' para completar o hábito\n- valor_realizado: quantidade realizada (para binário: 1, para quantitativo: a quantidade)\n\nRetorna:\n- moedas_ganhas: moedas ganhas nessa execução\n- moedas_totais: total acumulado\n- dias_seguidos: streak atual\n- novo_nivel: nível atingido (se subiu)\n- texto_feedback: mensagem motivacional\n\nNOTA: O execution_token é gerado automaticamente pelo Pre-request Script."
+          },
+          "response": []
+        },
+        {
+          "name": "Execute Habit — Falha",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Gera um UUID v4 aleatório para o execution_token",
+                  "function uuidv4() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.environment.set('execution_token', uuidv4());",
+                  "console.log('execution_token gerado:', pm.environment.get('execution_token'));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "console.log('Resposta da falha:', JSON.stringify(jsonData));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"execution_token\": \"{{execution_token}}\",\n  \"tipo\": \"falha\",\n  \"valor_realizado\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/{{habit_id}}/executions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "{{habit_id}}",
+                "executions"
+              ]
+            },
+            "description": "Registra uma execução com FALHA (hábito não realizado).\n\nCampos:\n- execution_token: UUID único (gerado automaticamente)\n- tipo: 'falha'\n- valor_realizado: 0 (não realizou nada)\n\nQuando ocorre uma falha, o sistema pode penalizar o streak (dias_seguidos).\nSe o usuário tiver escudo (bloqueio), pode usar para proteger o streak."
+          },
+          "response": []
+        },
+        {
+          "name": "Execute Habit — Quantitativo Parcial",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function uuidv4() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.environment.set('execution_token', uuidv4());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "console.log('Resultado execução parcial:', JSON.stringify(jsonData));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"execution_token\": \"{{execution_token}}\",\n  \"tipo\": \"sucesso\",\n  \"valor_realizado\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/{{habit_id}}/executions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "{{habit_id}}",
+                "executions"
+              ]
+            },
+            "description": "Registra execução quantitativa PARCIAL (ex: bebeu 5 copos dos 8 da meta).\n\n- tipo: 'sucesso' (mesmo que parcial, use sucesso para contar)\n- valor_realizado: quantidade efetivamente realizada (ex: 5 de 8)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Registrar execução de um hábito (completar ou falhar)"
+    },
+    {
+      "name": "05 - Priming (Texto Motivacional)",
+      "item": [
+        {
+          "name": "Get Priming Text",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Retorna texto de priming', function() {",
+                  "    pm.expect(jsonData).to.have.property('texto');",
+                  "});",
+                  "",
+                  "console.log('Texto de priming:', jsonData.texto);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/{{habit_id}}/priming",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "{{habit_id}}",
+                "priming"
+              ]
+            },
+            "description": "Retorna um texto motivacional (priming) para o hábito antes da execução.\n\nO texto vem da biblioteca de mensagens motivacionais associada ao hábito.\n\nRetorna:\n- texto: String com a mensagem motivacional\n\nUse este endpoint para exibir ao usuário antes de ele marcar o hábito como concluído."
+          },
+          "response": []
+        }
+      ],
+      "description": "Buscar texto de priming/motivação antes de executar um hábito"
+    },
+    {
+      "name": "06 - Escudo (Shield)",
+      "item": [
+        {
+          "name": "Buy Shield (Comprar Escudo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Compra bem sucedida', function() {",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "console.log('Mensagem:', jsonData.message);",
+                  "console.log('Moedas restantes (se retornado):', jsonData.moedas_restantes);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/{{habit_id}}/shield",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "{{habit_id}}",
+                "shield"
+              ]
+            },
+            "description": "Compra um escudo (bloqueio) para o hábito usando moedas locais.\n\nO escudo protege o streak (dias_seguidos) quando o usuário falha em um dia.\n\nNão requer body.\n\nRetorna:\n- success: true\n- message: 'Escudo comprado!'\n\nErros comuns:\n- 400 Bad Request: moedas insuficientes para comprar o escudo\n- 404 Not Found: hábito não encontrado"
+          },
+          "response": []
+        }
+      ],
+      "description": "Comprar escudo para proteger o streak"
+    },
+    {
+      "name": "07 - Perfil (Profile)",
+      "item": [
+        {
+          "name": "Update Profile — Atualizar Nome",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Retorna success true', function() {",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});",
+                  "",
+                  "console.log('Perfil atualizado com sucesso!');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"fuso_horario\": \"America/Sao_Paulo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profile"
+              ]
+            },
+            "description": "Atualiza o nome e/ou fuso horário do usuário.\n\nTodos os campos são opcionais — envie apenas o que quer atualizar.\n\nCampos disponíveis:\n- nome: novo nome do usuário\n- fuso_horario: timezone válida (ex: 'America/Sao_Paulo', 'America/Manaus', 'America/Recife')\n- senha_atual: obrigatório apenas se for mudar a senha\n- nova_senha: nova senha desejada\n\nRetorna: {\"success\": true}"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile — Trocar Senha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Retorna success true', function() {",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});",
+                  "",
+                  "console.log('Senha atualizada! Faça login novamente com a nova senha.');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha_atual\": \"Senha@123\",\n  \"nova_senha\": \"NovaSenha@456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profile"
+              ]
+            },
+            "description": "Troca a senha do usuário.\n\nCampos obrigatórios para trocar senha:\n- senha_atual: senha atual (para validação)\n- nova_senha: nova senha desejada\n\nErros comuns:\n- 400 Bad Request: senha atual incorreta\n- 401 Unauthorized: token expirado"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile — Completo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Retorna success true', function() {",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João da Silva Completo\",\n  \"fuso_horario\": \"America/Sao_Paulo\",\n  \"senha_atual\": \"NovaSenha@456\",\n  \"nova_senha\": \"Senha@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profile"
+              ]
+            },
+            "description": "Atualiza todos os campos do perfil ao mesmo tempo: nome, fuso horário e senha.\n\nEste exemplo volta a senha para Senha@123 para facilitar os testes."
+          },
+          "response": []
+        }
+      ],
+      "description": "Atualizar dados do perfil do usuário"
+    },
+    {
+      "name": "08 - Estatísticas (Stats)",
+      "item": [
+        {
+          "name": "Get Weekly Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "console.log('Estatísticas semanais:', JSON.stringify(jsonData));",
+                  "console.log('Total de registros:', jsonData.length);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stats/weekly",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stats",
+                "weekly"
+              ]
+            },
+            "description": "Retorna as estatísticas semanais do usuário.\n\nATENÇÃO: Este endpoint atualmente retorna uma lista vazia [] (implementação pendente/stub).\nO status 200 com array vazio é o comportamento esperado por enquanto.\n\nFuturo: deve retornar dados de desempenho semanal por hábito."
+          },
+          "response": []
+        }
+      ],
+      "description": "Consultar estatísticas do usuário"
+    },
+    {
+      "name": "09 - Cenários de Erro",
+      "item": [
+        {
+          "name": "Login — Senha Incorreta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 ou 403', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "});",
+                  "console.log('Status:', pm.response.code, '— Correto para credenciais inválidas');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao.silva@email.com\",\n  \"password\": \"senha_errada_123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Testa o retorno quando as credenciais são inválidas.\nEspera 401 Unauthorized ou 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Dashboard — Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 ou 403', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "});",
+                  "console.log('Status:', pm.response.code, '— Correto para ausência de token');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard"
+              ]
+            },
+            "description": "Testa o retorno quando o token JWT está ausente.\nEspera 401 Unauthorized ou 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Dashboard — Token Inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 ou 403', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "});",
+                  "console.log('Status:', pm.response.code, '— Correto para token inválido');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_01uf}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard"
+              ]
+            },
+            "description": "Testa o retorno quando o token JWT é inválido/adulterado.\nEspera 401 Unauthorized ou 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Habit — ID Inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 ou 500', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([404, 400, 500]);",
+                  "});",
+                  "console.log('Status:', pm.response.code);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/habits/00000000-0000-0000-0000-000000000000/priming",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "habits",
+                "00000000-0000-0000-0000-000000000000",
+                "priming"
+              ]
+            },
+            "description": "Testa o retorno quando um ID de hábito não existe no banco.\nEspera 404 Not Found."
+          },
+          "response": []
+        },
+        {
+          "name": "Register — Email Duplicado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409 Conflict ou 400 Bad Request', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([409, 400]);",
+                  "});",
+                  "console.log('Status:', pm.response.code, '— Email já cadastrado');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro João\",\n  \"email\": \"joao.silva@email.com\",\n  \"password\": \"OutraSenha@789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Testa tentativa de cadastro com email já registrado.\nEspera 409 Conflict."
+          },
+          "response": []
+        }
+      ],
+      "description": "Testa respostas de erro para validar o tratamento de exceções"
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "description": "URL base da API. Altere para o endereço do servidor em produção se necessário."
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "JWT token — preenchido automaticamente após Login ou Register"
+    },
+    {
+      "key": "habit_id",
+      "value": "",
+      "description": "UUID do hábito — preenchido automaticamente após Create Habit ou Get Dashboard"
+    },
+    {
+      "key": "execution_token",
+      "value": "",
+      "description": "UUID único de execução — gerado automaticamente pelo Pre-request Script de Execute Habit"
+    },
+    {
+      "key": "bearer_token_01uf",
+      "secret": true
+    }
+  ]
+}

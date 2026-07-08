@@ -16,8 +16,8 @@ const Fail = () => {
 
   let icon, title, subtitle, bgColor, iconColor;
 
-  // @audit-ok [Falha (4) — seleciona ícone, título e cor baseado no tipo: BLOCK_ACTIVE | FAIL_TIMEOUT | default]
-  if (type === 'BLOCK_ACTIVE') {
+  // @audit-ok [Falha (4) — seleciona ícone, título e cor baseado no tipo: FAIL_BLOQUEIO | FAIL_TIMEOUT | default]
+  if (type === 'FAIL_BLOQUEIO') {
     icon = <ShieldAlert size={80} />;
     title = 'Protegido!';
     subtitle = feedbackMsg || 'Acúmulos protegidos! Sua ofensiva foi salva pelo Escudo.';

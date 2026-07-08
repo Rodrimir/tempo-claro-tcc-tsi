@@ -1,4 +1,7 @@
 import styled from 'styled-components';
+
+// @audit-ok [MainLayout — estilos (styled-components) do layout principal: área rolável + nav fixa]
+
 export const LayoutWrapper = styled.div`
   display: flex;
   flex-direction: column;

@@ -19,7 +19,8 @@ const BottomNav = () => {
   const { currentHabit: activeHabit } = useCurrentHabit();
   const { addToast } = useToast();
 
-  const isCompleted = activeHabit && activeHabit.status === 'COMPLETED';
+  // @audit-ok [Concluir Hoje (F04) — meta diária atingida vira indicador ✓, mas NÃO bloqueia o Play]
+  const isMetaDone = activeHabit && activeHabit.metaConcluidaHoje;
 
   // @audit-ok [Pré-Tarefa Priming (5) — botão Play navega para /pretask iniciando o fluxo de execução]
   const handlePlay = () => {
@@ -27,10 +28,7 @@ const BottomNav = () => {
       addToast('Nenhum hábito selecionado para focar.', 'error');
       return;
     }
-    if (isCompleted) {
-      addToast('Esta tarefa já foi concluída hoje! 🎉', 'success');
-      return;
-    }
+    // @audit-info [Pré-Tarefa Priming (5) — mesmo com a meta atingida, o usuário pode seguir para perseguir o bônus extra (até "Concluir Hoje")]
     navigate('/pretask');
   };
 
@@ -42,11 +40,11 @@ const BottomNav = () => {
       {/* @audit-ok [Execução Timer (1) — botão central Play muda para Check quando hábito já foi concluído hoje] */}
       <PlayButtonWrapper>
         <PlayButton
-          $completed={isCompleted}
+          $completed={isMetaDone}
           onClick={handlePlay}
-          aria-label={isCompleted ? "Tarefa Concluída" : "Começar Hábito Focado"}
+          aria-label={isMetaDone ? "Meta atingida — continuar para bônus" : "Começar Hábito Focado"}
         >
-          {isCompleted ? (
+          {isMetaDone ? (
             <Check size={32} strokeWidth={3} />
           ) : (
             <Play size={28} fill="currentColor" style={{ marginLeft: '4px' }} />

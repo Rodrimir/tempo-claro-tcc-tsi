@@ -1,5 +1,7 @@
 import styled, { keyframes } from 'styled-components';
 
+// @audit-ok [LoadingScreen — estilos (styled-components) da tela de carregamento]
+
 const spin = keyframes`
   from {
     transform: rotate(0deg);

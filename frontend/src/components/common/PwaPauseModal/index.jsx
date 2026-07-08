@@ -9,6 +9,8 @@ import {
   SecondaryButton
 } from './styles';
 
+// @audit-ok [Proteção de Fuga F09 — modal exibido ao retornar ao app: continuar a tarefa pausada ou assumir o timeout]
+
 const PwaPauseModal = ({ onResume, onTimeout }) => {
   return (
     <Overlay>

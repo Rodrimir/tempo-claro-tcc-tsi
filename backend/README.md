@@ -26,7 +26,7 @@ triggers, functions ou qualquer lógica de negócio.
 
 ### Camadas
 `controller (1)` → `service (2)` → `repository (3)`. Toda resposta de erro passa pelo
-[GlobalExceptionHandler](src/main/java/com/rodrigo/backend2java/exception/GlobalExceptionHandler.java),
+[GlobalExceptionHandler](src/main/java/com/rodrigo/backend/exception/GlobalExceptionHandler.java),
 que nunca vaza stack trace.
 
 ### Convenções
@@ -74,21 +74,7 @@ psql -h localhost -U sci -d tempoclaroapp -f src/main/resources/data.sql
 
 ---
 
-## 3. Estrutura do projeto
 
-```
-src/main/java/com/rodrigo/backend2java/
-├── config/        JwtService, JwtFilter, SecurityConfig, LoggingFilter
-├── controller/    Auth, Profile, Habito, Sessao, Stats  (camada 1)
-├── service/       Auth, Usuario, Habito, Gamificacao, Sessao, Stats,
-│                  OfensivaCalculator (regra única de streak)  (camada 2)
-├── repository/    JdbcTemplate puro, uma classe por tabela  (camada 3)
-├── model/         entidades + dto/{request,response}
-└── exception/     GlobalExceptionHandler + exceções tipadas
-src/main/resources/
-├── schema.sql     DDL das 14 tabelas + seed de categorias
-└── data.sql       seed de categorias, avatares e biblioteca de textos
-```
 
 ---
 
@@ -181,7 +167,7 @@ calculados: `saldo`, `escudosDisponiveis`, `ofensiva`, `nivel`, `avatarUrl`.
 
 ---
 
-## 7. Regras de negócio → onde estão no código
+## 7. Regras de negócio no código
 
 | Regra | Implementação |
 |-------|---------------|
@@ -198,65 +184,56 @@ calculados: `saldo`, `escudosDisponiveis`, `ofensiva`, `nivel`, `avatarUrl`.
 - **Recompensa:** 100 (`CREDITO_META`) / 150 se ≥120% (`CREDITO_BONUS`); por parte →
   `CREDITO_SUBATIVIDADE` **proporcional** ao `alvo_parcial`.
 - **Saldo** = `SUM(valor)` no ledger. **Escudos** = `COUNT(DEBITO_ESCUDO) − COUNT(FAIL_BLOQUEIO)`.
-- **Ofensiva** ([OfensivaCalculator](src/main/java/com/rodrigo/backend2java/service/OfensivaCalculator.java)):
+- **Ofensiva** ([OfensivaCalculator](src/main/java/com/rodrigo/backend/service/OfensivaCalculator.java)):
   conta dias `CONCLUIDO` consecutivos; **dia protegido por escudo mantém** a corrente;
   o **dia corrente em andamento não quebra** a sequência (apuração só na virada — 3.3/3.5).
 - **Nível** = `(ofensiva / 10) * 10`; avatar = maior `streak_minimo ≤ ofensiva`.
 - **Antifraude (RNF08):** todo cálculo no servidor; `execution_token` UNIQUE garante idempotência.
 
----
+## 10. Testando a API no Postman
 
-## 8. Conformidade com a especificação (F01–F16)
+A forma mais rápida de exercitar a API é importar uma coleção do Postman e deixar o **token
+JWT ser injetado automaticamente** após o login — evitando colar o `Bearer` em cada requisição.
 
-| F | Funcionalidade | Spec | Backend |
-|---|----------------|------|---------|
-| F01 | Cadastro/Login (JWT) | IMPLEMENTADO | ✅ |
-| F02 | Criar hábito (wizard) | IMPLEMENTADO | ✅ (falta `GET /categories` p/ o wizard) |
-| F03 | Gatilho/âncora | PROPOSTO | ✅ campos prontos; falta frontend |
-| F04 | Dashboard/carrossel | IMPLEMENTADO | ✅ |
-| F05 | Avatar evolutivo | parcial | ⚠️ API retorna só estado `NORMAL` (ver §9) |
-| F06 | Priming pré-tarefa | IMPLEMENTADO | ✅ (com seeds agora reais) |
-| F07/F08 | Execução tempo/quantidade | IMPLEMENTADO | ✅ |
-| F09 | Pausa/timeout de sessão | parcial → | ✅ completo (timeout server-side) |
-| F10 | Desistência + escudo | IMPLEMENTADO | ✅ |
-| F11 | Stats semanal | backend a completar → | ✅ completo |
-| F12 | Loja de escudos | IMPLEMENTADO | ✅ |
-| F13 | Telas sucesso/falha | IMPLEMENTADO | ✅ (com seeds reais) |
-| F14 | Notificações push | PROPOSTO | ⬜ tabela pronta, sem Java |
-| F15 | Widget | PROPOSTO | ⬜ consome `/dashboard` |
-| F16 | Onboarding "Medir Dificuldade" | PROPOSTO | ⬜ tabela pronta, sem Java |
+### 10.1 Importar a coleção
+1. **Postman → Import** (`Ctrl+O`) e selecione o arquivo `*.postman_collection.json`
+   (sugestão: salve a coleção exportada em `backend/documentation/`, ex.:
+   `Tempo_Claro.postman_collection.json`).
+2. Se usar um *Environment* separado, importe também o `*.postman_environment.json`.
 
-**Máquina de estados (§7 da spec):** os 8 estados são derivados (nunca colunas).
-Sessão (`EM_EXECUCAO`/`PAUSADO`/`FINALIZADA`/`TIMEOUT`) e dia (`CONCLUIDO`/`PARCIAL`/`FALHA`)
-são lidos das tabelas de fato; estados de urgência (NORMAL/PREOCUPADO/DESESPERADO) são
-derivados no cliente pelo horário, conforme a spec.
+### 10.2 Variáveis (Environment ou Collection)
+Crie um Environment "Tempo Claro — Local":
 
-**RNF atendidos:** RNF06 (sessão persistida), RNF07 (hash+JWT), RNF08 (cálculo no servidor),
-RNF09 (idempotência), RNF10/RNF11 (separação de camadas, sem lógica no banco).
+| Variável | Valor inicial |
+|----------|---------------|
+| `base_url` | `http://localhost:8090` (porta local; produção usa `8080` — ver §2) |
+| `token` | *(vazio — preenchido automaticamente pelo login)* |
 
----
+Todas as requisições usam a URL no formato `{{base_url}}/api/...`.
 
-## 9. Lacunas conhecidas (divergências da spec)
+### 10.3 Injeção automática do JWT
+1. Na requisição **`POST {{base_url}}/api/auth/login`** (corpo `{ "email": "...", "password": "..." }`),
+   adicione na aba **Scripts → Post-response** (versões antigas: "Tests"):
+   ```js
+   pm.environment.set("token", pm.response.json().token);
+   ```
+   Faça o mesmo em **`/api/auth/register`** (a resposta também devolve `{ token, user }`).
+2. No nível da **coleção** → aba **Authorization** → tipo **Bearer Token** → valor `{{token}}`.
+3. Deixe cada rota protegida com **Authorization = Inherit auth from parent**. Assim, toda
+   chamada (exceto `/api/auth/**`) envia `Authorization: Bearer {{token}}` sem intervenção manual.
 
-1. **F05 multi-estado:** o dashboard consulta avatar só com `estado_expressao='NORMAL'`. O
-   catálogo já está populado com as 6 expressões; falta a API expor o conjunto de assets do
-   nível atual (ou aceitar o estado) para o cliente trocar a expressão por horário.
-2. **Localização parcial (RNF13):** `obterPriming` e `obterTextoFeedback` fixam `"pt-BR"` em
-   vez de `usuario.preferencia_idioma`. Seeds en-US ainda não criados.
-3. **`GET /api/categories` ausente:** o wizard (F02) não tem como listar os 3 moldes com
-   nome/cor/unidade. `CategoriaHabitoRepository` precisa de um `findAll` + controller.
-4. **Validação de molde:** `tipo_medida` não é checado contra a categoria (AGUA→QUANTIDADE,
-   ESTUDO/EXERCICIO→TEMPO).
-5. **Sem testes:** `src/test` vazio (a metodologia da spec cita testes de software).
+### 10.4 Ordem sugerida de execução
+1. `POST /api/auth/register` **ou** `POST /api/auth/login` → grava `{{token}}`.
+2. `GET /api/dashboard` → confirma a autenticação (deve retornar `200`).
+3. `POST /api/habits` → cria um hábito (guarde o `id` retornado).
+4. `GET /api/habits/{id}/priming` → texto motivacional.
+5. `POST /api/habits/{id}/sessions` → inicia o timer (F09).
+6. `POST /api/habits/{id}/executions` → registra execução (envie um `execution_token` UUID novo a cada chamada — idempotência RNF09).
+7. `POST /api/habits/{id}/shield` → compra escudo (precisa de saldo ≥ 1500).
+8. `GET /api/stats/weekly` → estatísticas dos últimos 7 dias.
 
----
-
-## 10. Roadmap (PROPOSTO — fora do TCC imediato)
-
-- **F16 Onboarding:** `PerfilOnboarding` + `POST /api/onboarding` com a lógica de sugestão.
-- **F14 Notificações:** Spring Scheduler lendo horários → grava `notificacoes` e envia push.
-- **F15 Widget** e **F03 Gatilho:** frontend Flutter (backend pronto/N/A).
-- Itens da Seção D do schema (GPS, Pomodoro, micro-hábitos, troféus): colunas/tabelas comentadas.
+> Rotas completas, corpos e respostas estão na **§6 (Referência da API)**. A validação do token
+> a cada requisição segue o fluxo **Verificação de Token** (`FLUXO 3` do README na raiz do repo).
 
 ---
 

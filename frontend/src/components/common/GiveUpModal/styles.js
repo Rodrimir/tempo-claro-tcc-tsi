@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [Desistência F10 — estilos (styled-components) do modal de desistência]
+
 export const Overlay = styled.div`
   position: absolute;
   top: 0;

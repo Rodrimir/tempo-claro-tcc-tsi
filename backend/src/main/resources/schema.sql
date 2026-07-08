@@ -179,3 +179,16 @@ CREATE TABLE IF NOT EXISTS notificacoes (
     lida             BOOLEAN     NOT NULL DEFAULT FALSE,
     CONSTRAINT chk_notif_tipo CHECK (tipo IN ('LEMBRETE','URGENCIA','CONQUISTA'))
 );
+
+-- Seed dos moldes fixos (regra 3.1) — idempotente em reinicializações
+INSERT INTO categorias_habito (codigo, nome, unidade_medida, cor_hex)
+SELECT 'AGUA', 'Água', 'ml', '#2EC4F1'
+WHERE NOT EXISTS (SELECT 1 FROM categorias_habito WHERE codigo = 'AGUA');
+
+INSERT INTO categorias_habito (codigo, nome, unidade_medida, cor_hex)
+SELECT 'ESTUDO', 'Estudo', 'segundos', '#7C5CFC'
+WHERE NOT EXISTS (SELECT 1 FROM categorias_habito WHERE codigo = 'ESTUDO');
+
+INSERT INTO categorias_habito (codigo, nome, unidade_medida, cor_hex)
+SELECT 'EXERCICIO', 'Exercício', 'segundos', '#FF8A3D'
+WHERE NOT EXISTS (SELECT 1 FROM categorias_habito WHERE codigo = 'EXERCICIO');

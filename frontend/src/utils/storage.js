@@ -67,3 +67,20 @@ export const setAuthToken = (token) => {
 export const clearAuthToken = () => {
   localStorage.removeItem('tempoClaro_token');
 };
+
+// @audit-ok [Perfil — persiste o objeto user (name/email/fusoHorario/preferenciaIdioma) retornado por login/register]
+export const setUser = (user) => {
+  const encrypted = encryptData(user);
+  localStorage.setItem('tempoClaro_user', encrypted);
+};
+
+// @audit-ok [Perfil — lê e decripta o objeto user do localStorage]
+export const getUser = () => {
+  const encrypted = localStorage.getItem('tempoClaro_user');
+  return decryptData(encrypted);
+};
+
+// @audit-ok [Perfil — remove o objeto user no logout ou 401]
+export const clearUser = () => {
+  localStorage.removeItem('tempoClaro_user');
+};

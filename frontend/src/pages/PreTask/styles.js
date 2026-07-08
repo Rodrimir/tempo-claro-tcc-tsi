@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [Pré-Tarefa F06 — estilos (styled-components) da tela de priming motivacional]
+
 export const PreTaskContainer = styled.div`
   padding: 24px;
   display: flex;

@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 
+// @audit-ok [BottomNav — estilos (styled-components) da barra de navegação inferior]
+
 export const NavContainer = styled.nav`
   position: fixed;
   bottom: 0;

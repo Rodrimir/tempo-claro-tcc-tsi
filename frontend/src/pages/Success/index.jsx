@@ -23,14 +23,25 @@ const Success = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // @audit-ok [Sucesso (2) — extrai flag de bônus do estado de navegação]
-  const isBonus = location.state?.bonus;
-  // @audit-ok [Sucesso (3) — extrai dados da recompensa retornados pela API de execução]
+  // @audit-ok [Concluir Hoje (F04) — modo "meta diária": encerramento do dia com a recompensa apurada]
+  const isMetaDiaria = location.state?.metaDiaria;
+  // @audit-ok [Sucesso (3) — dados retornados pela API (execução de progresso ou conclusão do dia)]
   const feedback = location.state?.feedback;
 
-  const moedasGanhas = feedback?.moedas_ganhas || (isBonus ? 150 : 100);
-  const diasSeguidos = feedback?.dias_seguidos || 1;
-  const subtitleText = feedback?.texto_feedback || 'A excelência é um hábito.';
+  // @audit-info [Sucesso (3) — economia diferida: a execução não credita moeda (só no fim do dia / Concluir Hoje)]
+  const metaConcluida = feedback?.meta_concluida_hoje;
+  const moedasGanhas = feedback?.moedas_ganhas ?? 0;
+  const diasSeguidos = feedback?.dias_seguidos;
+
+  // @audit-info [Sucesso (3) — celebra quando o dia foi concluído (Concluir Hoje) ou quando a execução fechou a meta diária]
+  const celebrar = isMetaDiaria || metaConcluida;
+  const icone = celebrar ? '🏆' : '✅';
+  const titulo = celebrar ? 'Meta de Hoje Atingida!' : 'Parte Concluída!';
+  const subtitleText = isMetaDiaria
+    ? 'Parabéns, você atingiu sua meta hoje! 🎉'
+    : (metaConcluida
+        ? 'Você bateu sua meta! Toque em "Concluir Hoje" na Home para receber suas moedas.'
+        : 'Continue rumo à sua meta. As moedas são creditadas ao concluir o dia.');
 
   // @audit-ok [Sucesso (4) — gera 50 partículas com posições e durações aleatórias para a animação]
   const particles = useMemo(() => {
@@ -43,7 +54,7 @@ const Success = () => {
   }, []);
 
   return (
-    <SuccessContainer $isBonus={isBonus}>
+    <SuccessContainer $isBonus={celebrar}>
       <ParticlesWrapper>
         {particles.map((p, i) => (
           <Particle key={i} $size={p.size} $left={p.left} $duration={p.duration} $delay={p.delay} />
@@ -51,25 +62,39 @@ const Success = () => {
       </ParticlesWrapper>
 
       <ContentWrapper>
-        {/* @audit-ok [Sucesso (5) — exibe emoji, título e subtítulo diferenciados para conclusão padrão e extra] */}
-        <IconWrapper>{isBonus ? '🌟' : '✨'}</IconWrapper>
-        <Title>{isBonus ? 'Incrível!' : 'Tarefa Concluída!'}</Title>
+        {/* @audit-ok [Sucesso (5) — meta atingida (🏆) × parte concluída (✅); moedas só no fechamento do dia] */}
+        <IconWrapper>{icone}</IconWrapper>
+        <Title>{titulo}</Title>
         <Subtitle>{subtitleText}</Subtitle>
 
+        {/* @audit-ok [Concluir Hoje (F04) — recompensa só aparece quando o dia foi apurado/creditado] */}
         <RewardCard>
-          <Row>
-            <Label>Recompensa</Label>
-            <Value><Coins size={28} /> +{moedasGanhas}</Value>
-          </Row>
-          <Divider />
-          <Row>
-            <Label>Ofensiva Atual</Label>
-            <Value><Flame size={28} /> {diasSeguidos} dias</Value>
-          </Row>
+          {isMetaDiaria && moedasGanhas > 0 ? (
+            <>
+              <Row>
+                <Label>Recompensa</Label>
+                <Value><Coins size={28} /> +{moedasGanhas}</Value>
+              </Row>
+              {diasSeguidos != null && (
+                <>
+                  <Divider />
+                  <Row>
+                    <Label>Ofensiva Atual</Label>
+                    <Value><Flame size={28} /> {diasSeguidos} dias</Value>
+                  </Row>
+                </>
+              )}
+            </>
+          ) : (
+            <Row>
+              <Label>Recompensa do dia</Label>
+              <Value style={{ fontSize: '15px', fontWeight: 600 }}>Creditada ao concluir o dia</Value>
+            </Row>
+          )}
         </RewardCard>
 
         {/* @audit-ok [Sucesso (6) — retorna ao dashboard] */}
-        <BackButton onClick={() => navigate('/home')} $isBonus={isBonus}>
+        <BackButton onClick={() => navigate('/home')} $isBonus={celebrar}>
           VOLTAR PARA A HOME
         </BackButton>
       </ContentWrapper>

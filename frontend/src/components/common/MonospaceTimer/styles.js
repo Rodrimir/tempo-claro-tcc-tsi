@@ -1,5 +1,7 @@
 import styled, { keyframes } from 'styled-components';
 
+// @audit-ok [Execução Tempo F07 — estilos (styled-components) do cronômetro monoespaçado]
+
 export const popIn = keyframes`
   0% { transform: scale(0.8); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }

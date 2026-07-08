@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [LocalHeader — estilos (styled-components) do cabeçalho do hábito focado]
+
 export const HeaderContainer = styled.header`
   display: grid;
   grid-template-columns: 1fr auto 1fr;

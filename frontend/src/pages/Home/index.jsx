@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Check } from 'lucide-react';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
-import { getDashboard } from '../../services/api';
+import { getDashboard, getWeeklyStats, concludeDay } from '../../services/api';
 import solFlutuando from '../../assets/sol_flutuando.webp';
 import luaFlutuando from '../../assets/lua_flutuando.png';
-import gotinhaNormal from '../../assets/gotinha/normal.png';
-import gotinhaFeliz from '../../assets/gotinha/feliz.png';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import LocalHeader from '../../components/layout/LocalHeader';
+import HabitAvatar from '../../components/common/HabitAvatar';
+import { deriveExpression } from '../../utils/avatar';
 import {
   HomeContainer,
   CarouselWrapper,
@@ -34,6 +34,31 @@ import {
 
 // @audit-ok [Dashboard (1) — tela principal com carrossel de hábitos e controle de avatar]
 
+// @audit-ok [Dashboard (12) — helper: seleciona a sub-atividade pendente/mais próxima para ordenar o carrossel]
+const getNextSubActivity = (habit) => {
+  if (!habit.sub_atividades || habit.sub_atividades.length === 0) return null;
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  const sorted = [...habit.sub_atividades].sort((a, b) => {
+    const timeA = a.horario_inicio || "23:59:59";
+    const timeB = b.horario_inicio || "23:59:59";
+    return timeA.localeCompare(timeB);
+  });
+
+  let next = sorted[sorted.length - 1]; // fallback para a última se todas passaram
+  for (const sub of sorted) {
+    if (!sub.horario_inicio) continue;
+    const [h, m] = sub.horario_inicio.split(':').map(Number);
+    const subMinutes = h * 60 + m;
+    if (subMinutes >= currentMinutes - 60) {
+       next = sub;
+       break;
+    }
+  }
+  return next;
+};
+
 const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -47,16 +72,38 @@ const HomeScreen = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // @audit-ok [Dashboard (3) — chama GET /dashboard]
-        const response = await getDashboard();
-        let data = response.data.habits || response.data || [];
+        // @audit-ok [Dashboard (3) — chama GET /dashboard + GET /stats/weekly em paralelo]
+        const [dashRes, statsRes] = await Promise.all([
+          getDashboard(),
+          getWeeklyStats().catch(() => ({ data: [] }))
+        ]);
+        let data = dashRes.data.habits || dashRes.data || [];
+        const stats = Array.isArray(statsRes.data) ? statsRes.data : [];
         if (Array.isArray(data)) {
-          // @audit-ok [Dashboard (13) — ordena: COMPLETED vai ao final, depois por proximo_vencimento]
+          // @audit-ok [Concluir Hoje (F04) — injeta o progresso do dia (último dia do stats/weekly),
+          // pois o /dashboard ainda não devolve valor acumulado × meta do dia]
+          data = data.map(h => {
+            const st = stats.find(s => s.habitoId === h.id);
+            const hoje = st?.dias?.[st.dias.length - 1];
+            const valorTotalDiaHoje = hoje?.valorTotalDia || 0;
+            const metaDoDiaHoje = hoje?.metaDoDia || h.meta_base || 0;
+            const metaConcluidaHoje = hoje
+              ? (hoje.status === 'CONCLUIDO' || (metaDoDiaHoje > 0 && valorTotalDiaHoje >= metaDoDiaHoje))
+              : false;
+            return { ...h, valorTotalDiaHoje, metaDoDiaHoje, metaConcluidaHoje };
+          });
+          // @audit-ok [Dashboard (13) — ordena: meta concluída vai ao final, depois por sub_atividade mais próxima]
           data.sort((a, b) => {
-            if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
-            if (b.status === 'COMPLETED' && a.status !== 'COMPLETED') return -1;
-            if (!a.proximo_vencimento || !b.proximo_vencimento) return 0;
-            return new Date(a.proximo_vencimento) - new Date(b.proximo_vencimento);
+            if (a.metaConcluidaHoje && !b.metaConcluidaHoje) return 1;
+            if (b.metaConcluidaHoje && !a.metaConcluidaHoje) return -1;
+
+            const subA = getNextSubActivity(a);
+            const subB = getNextSubActivity(b);
+
+            const timeA = subA && subA.horario_inicio ? subA.horario_inicio : '23:59:59';
+            const timeB = subB && subB.horario_inicio ? subB.horario_inicio : '23:59:59';
+
+            return timeA.localeCompare(timeB);
           });
           // @audit-ok [Dashboard (14) — armazena hábitos no estado local]
           setLocalHabits(data);
@@ -73,7 +120,16 @@ const HomeScreen = () => {
   // @audit-ok [Dashboard (17) — sincroniza o hábito central do carrossel com o CurrentHabitContext]
   useEffect(() => {
     if (localHabits.length > 0 && localHabits[activeIndex]) {
-      setCurrentHabit(localHabits[activeIndex]);
+      // @audit-info [Dashboard (17) — injeta campos de gamificação com fallback 0 (nomes conforme HabitoResponse)]
+      const habitData = localHabits[activeIndex];
+      setCurrentHabit({
+         ...habitData,
+         saldo: habitData.saldo || 0,
+         escudosDisponiveis: habitData.escudosDisponiveis || 0,
+         ofensiva: habitData.ofensiva || 0,
+         nivel: habitData.nivel || 0,
+         metaDoDia: habitData.meta_base || 1
+      });
     } else {
       setCurrentHabit(null);
     }
@@ -88,42 +144,16 @@ const HomeScreen = () => {
     }
   };
 
-  // @audit-ok [Dashboard (16) — determina a expressão do avatar baseado no tempo restante até o vencimento]
-  const getAvatarExpression = (habit) => {
-    if (habit.status === 'COMPLETED') return 'feliz';
-    if (!habit.proximo_vencimento) return 'normal';
-    const now = new Date();
-    const due = new Date(habit.proximo_vencimento);
-    const diffMin = (due - now) / 60000;
-    if (diffMin < -60) return 'falha';
-    if (diffMin <= 0 && diffMin >= -60) return 'desesperado';
-    if (diffMin > 0 && diffMin <= 120) return 'preocupado';
-    return 'normal';
-  };
-
-  // @audit-ok [Dashboard (15) — retorna o componente visual do avatar (imagem ou emoji)]
-  const getAvatarImage = (habit) => {
-    const expression = getAvatarExpression(habit);
-    const emojis = {
-      'normal': '🌱',
-      'preocupado': '😰',
-      'desesperado': '😱',
-      'feliz': '✨',
-      'falha': '☠️'
-    };
-    const avatarStyle = { position: 'relative', width: '160px', height: '160px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-    const imgStyle = { width: '100%', height: '100%', objectFit: 'contain' };
-
-    if (habit.categoria === 'AGUA') {
-      if (expression === 'normal') return <div style={avatarStyle}><img src={gotinhaNormal} alt="Gotinha" style={imgStyle} /></div>;
-      if (expression === 'feliz') return <div style={avatarStyle}><img src={gotinhaFeliz} alt="Gotinha Feliz" style={imgStyle} /></div>;
+  // @audit-ok [Concluir Hoje (F04) — encerra o dia (best-effort no backend) e vai para a tela de parabéns]
+  const handleConcludeDay = async (habit) => {
+    if (!habit) return;
+    try {
+      const res = await concludeDay(habit.id);
+      navigate('/success', { state: { metaDiaria: true, feedback: res.data } });
+    } catch {
+      // @audit-info [Concluir Hoje (F04) — se o backend falhar, ainda mostra o feedback (recompensa apurada no fim do dia)]
+      navigate('/success', { state: { metaDiaria: true } });
     }
-
-    return (
-      <div style={avatarStyle}>
-        <span style={{ fontSize: '100px', display: 'block' }}>{emojis[expression] || '🌱'}</span>
-      </div>
-    );
   };
 
   if (loading) return <LoadingScreen message="Carregando Hábitos" />;
@@ -133,8 +163,8 @@ const HomeScreen = () => {
       <LocalHeader />
       <CarouselWrapper ref={carouselRef} onScroll={handleScroll}>
         {localHabits.map((habit) => {
-          const expression = getAvatarExpression(habit);
-          const completed = habit.status === 'COMPLETED';
+          const expression = deriveExpression(habit);
+          const completed = expression === 'concluido';
           return (
             <HabitSlide key={habit.id}>
               <SlideInner>
@@ -147,13 +177,15 @@ const HomeScreen = () => {
                 {expression === 'preocupado' && <UrgentBadge>A hora está chegando!</UrgentBadge>}
                 {expression === 'desesperado' && <UrgentBadge style={{ background: 'var(--danger-color)' }}>Faça agora ou perca a ofensiva!</UrgentBadge>}
                 {expression === 'falha' && <UrgentBadge style={{ background: 'var(--danger-color)' }}>Tempo esgotado. Falha!</UrgentBadge>}
-                <AvatarWrapper>{getAvatarImage(habit)}</AvatarWrapper>
+                <AvatarWrapper>
+                  <HabitAvatar key={`${habit.id}-${expression}`} habit={habit} expression={expression} />
+                </AvatarWrapper>
                 <ShadowBlur />
               </SlideInner>
             </HabitSlide>
           );
         })}
-        {localHabits.length < 5 && (
+        {localHabits.length < 2 && (
           <HabitSlide>
             <SlideInner>
               <SunWrapper>
@@ -176,15 +208,19 @@ const HomeScreen = () => {
       </CarouselWrapper>
       <DotsWrapper>
         {localHabits.map((_, i) => <Dot key={i} $active={i === activeIndex} />)}
-        {localHabits.length < 5 && <Dot $active={activeIndex === localHabits.length} />}
+        {localHabits.length < 2 && <Dot $active={activeIndex === localHabits.length} />}
       </DotsWrapper>
       <ActionWrapper>
-        {activeIndex < localHabits.length && localHabits[activeIndex]?.status !== 'COMPLETED' ? (
-          <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>
-            Use o botão Play na barra inferior
-          </div>
-        ) : activeIndex < localHabits.length ? (
-          <DoneButton className="btn"><Check size={24} /> TAREFA FEITA</DoneButton>
+        {activeIndex < localHabits.length ? (
+          localHabits[activeIndex]?.metaConcluidaHoje ? (
+            <DoneButton className="btn" onClick={() => handleConcludeDay(localHabits[activeIndex])}>
+              <Check size={24} /> CONCLUIR HOJE
+            </DoneButton>
+          ) : (
+            <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>
+              Use o botão Play na barra inferior
+            </div>
+          )
         ) : (
           <div style={{ height: '64px' }}></div>
         )}

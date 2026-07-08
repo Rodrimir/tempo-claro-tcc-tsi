@@ -1,6 +1,6 @@
 import { createGlobalStyle } from 'styled-components';
 
-// @audit-ok @Styled Components@
+// @audit-ok [GlobalStyles — variáveis CSS de tema, reset base e moldura mobile (#root)]
 export const GlobalStyle = createGlobalStyle`
   @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
   :root {

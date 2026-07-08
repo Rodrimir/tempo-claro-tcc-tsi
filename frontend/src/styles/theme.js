@@ -1,3 +1,5 @@
+// @audit-ok [Tema — paletas de cores dos temas claro e escuro consumidas pelo ThemeProvider]
+
 export const lightTheme = {
   primaryColor: '#4f46e5',
   primaryLight: '#e0e7ff',

@@ -28,6 +28,7 @@ documentation/
 .gradle
 **/build/
 !src/**/build/
+bin/
 .springBeans
 
 ### Outros ###

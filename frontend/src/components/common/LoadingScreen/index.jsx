@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, SunImage, LoadingText } from './styles';
 import solFlutuando from '../../../assets/sol_flutuando.webp';
 
+// @audit-ok [LoadingScreen — tela de carregamento reutilizável com animação de reticências]
+
 const LoadingScreen = ({ message = "Carregando" }) => {
   const [dots, setDots] = useState('.');
 

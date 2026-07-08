@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
-import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
+import { getDashboard, buyShield as apiBuyShield, getApiErrorMessage } from '../../services/api';
 import LocalHeader from '../../components/layout/LocalHeader';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import { useToast } from '../../contexts/ToastContext';
@@ -54,8 +54,8 @@ const Store = () => {
     loadHabits();
   }, []);
 
-  // @audit-ok [Loja Escudo (4) — filtra apenas hábitos ativos para o select de compra]
-  const activeHabits = habits.filter(h => h.status !== 'ARCHIVED' && h.status !== 'COMPLETED');
+  // @audit-ok [Loja Escudo (4) — o /dashboard já devolve só hábitos ativos]
+  const activeHabits = habits;
 
   // @audit-ok [Loja Escudo (7) — processa compra de escudo para o hábito selecionado]
   const handleBuyShield = async () => {
@@ -72,7 +72,7 @@ const Store = () => {
       setSelectedHabitId('');
       loadHabits();
     } catch (error) {
-      addToast('Erro ao comprar escudo. Moedas insuficientes?', 'error');
+      addToast(getApiErrorMessage(error, 'Erro ao comprar escudo. Moedas insuficientes?'), 'error');
     }
   };
 
@@ -89,7 +89,9 @@ const Store = () => {
         <IconWrapper><ShieldAlert size={32} /></IconWrapper>
         <CardTitle>Comprar Bloqueio (Escudo)</CardTitle>
         <CardText>
-          Custa 1500 moedas locais. Ele será gasto automaticamente às 23:59h caso você falhe na tarefa, salvando sua ofensiva!
+          Custa 1500 moedas. Se você não atingir a <strong>meta diária</strong>, um escudo é consumido
+          automaticamente na apuração do fim do dia para proteger sua ofensiva. Não se aplica à desistência
+          de tarefas/pré-tarefas individuais.
         </CardText>
 
         <FormGroup>
@@ -102,7 +104,7 @@ const Store = () => {
           >
             <option value="" disabled>Selecione um hábito...</option>
             {activeHabits.map(h => (
-              <option key={h.id} value={h.id}>{h.titulo} (Moedas: {h.moedas_locais})</option>
+              <option key={h.id} value={h.id}>{h.titulo} (Moedas: {h.saldo || 0})</option>
             ))}
           </Select>
         </FormGroup>
@@ -115,13 +117,13 @@ const Store = () => {
       <InventorySection>
         <InventoryTitle>Seus Escudos Atuais</InventoryTitle>
         <InventoryList>
-          {habits.filter(h => h.status !== 'ARCHIVED').map(h => (
+          {habits.map(h => (
             <InventoryItem key={h.id}>
               <ItemInfo>
                 <ItemTitle>{h.titulo}</ItemTitle>
-                <ItemSubtitle>Saldo: {h.moedas_locais || 0} moedas</ItemSubtitle>
+                <ItemSubtitle>Saldo: {h.saldo || 0} moedas</ItemSubtitle>
               </ItemInfo>
-              <ItemCount>{h.bloqueios_acumulados || 0} <ShieldCheck size={20} /></ItemCount>
+              <ItemCount>{h.escudosDisponiveis || 0} <ShieldCheck size={20} /></ItemCount>
             </InventoryItem>
           ))}
         </InventoryList>

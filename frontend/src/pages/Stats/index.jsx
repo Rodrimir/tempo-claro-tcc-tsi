@@ -71,12 +71,28 @@ const Stats = () => {
   }
 
   const isTempo = habit.tipo_medida === 'TEMPO';
-  // @audit-ok [Estatísticas (8) — calcula recorde da semana a partir dos dados retornados]
-  const maxRecord = data.length > 0 ? Math.max(...data.map(d => d.valor)) : 0;
+
+  // @audit-ok [Estatísticas (7) — localiza as estatísticas do hábito em foco no array de StatsWeeklyResponse]
+  const habitStats = data.find(s => s.habitoId === habit.id);
+
+  // @audit-ok [Estatísticas (8) — recorde de sessão vem direto do backend (maior valor_realizado)]
+  const maxRecord = habitStats?.recordValor || 0;
+
+  const DIAS_LABEL = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const formatDayLabel = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return DIAS_LABEL[new Date(y, m - 1, d).getDay()];
+  };
+
+  // @audit-ok [Estatísticas (9) — monta os 7 dias (mais antigo → hoje) para o gráfico]
+  const chartData = (habitStats?.dias || []).map(dia => ({
+    name: formatDayLabel(dia.data),
+    valor: dia.valorTotalDia
+  }));
 
   const formatMedida = (valor) => {
     if (isTempo) return `${Math.round(valor / 60)} min`;
-    return `${Math.round(valor)} ${habit.categoria === 'AGUA' ? 'ml' : 'vezes'}`;
+    return `${Math.round(valor)} ${habit.categoriaCodigo === 'AGUA' ? 'ml' : 'vezes'}`;
   };
 
   if (loading) return <LoadingScreen message="Carregando Estatísticas" />;
@@ -91,7 +107,7 @@ const Stats = () => {
           {/* @audit-ok [Estatísticas (10) — exibe dias_seguidos e recorde da semana vindos do hábito e dos dados] */}
           <StatCard>
             <CardHeader><Flame size={16} color="var(--warning-color)" /> Dias Seguidos</CardHeader>
-            <CardValue $large>{habit.dias_seguidos || 0}</CardValue>
+            <CardValue $large>{habit.ofensiva || 0}</CardValue>
           </StatCard>
           <StatCard>
             <CardHeader><Target size={16} color="var(--primary-color)" /> Recorde da Semana</CardHeader>
@@ -104,7 +120,7 @@ const Stats = () => {
           <ChartTitle>Desempenho (Últimos 7 dias)</ChartTitle>
           <ChartWrapper>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
+              <BarChart data={chartData}>
                 <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip
                   cursor={{ fill: 'var(--primary-light)' }}

@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [Estatísticas F11 — estilos (styled-components) da tela de estatísticas semanais]
+
 export const StatsContainer = styled.div`
   padding: 24px;
   padding-bottom: 100px;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ArrowLeft, Ruler, Edit3 } from 'lucide-react';
-import { createHabit } from '../../services/api';
+import { createHabit, getApiErrorMessage } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import {
   Container,
@@ -39,7 +39,7 @@ import {
 
 const MOLDES = [
   { id: 'AGUA', emoji: '💧', titulo: 'Gotinha', desc: 'Mantenha-se hidratado e evolua sua gotinha.' },
-  { id: 'ESTUDAR', emoji: '📚', titulo: 'Livrinho', desc: 'Foco total nos estudos para evoluir seu livro.' },
+  { id: 'ESTUDO', emoji: '📚', titulo: 'Livrinho', desc: 'Foco total nos estudos para evoluir seu livro.' },
   { id: 'EXERCICIO', emoji: '🏋️', titulo: 'Homenzinho', desc: 'Construa disciplina física e evolua seu avatar.' }
 ];
 
@@ -54,7 +54,8 @@ const CreateHabit = () => {
 
   const [formData, setFormData] = useState({
     meta_base: '',
-    aumento_dezena: '',
+    incremento_meta: '',
+    dias_para_aumento: '',
     meta_maxima: '',
     frequencia_semanal: [1, 2, 3, 4, 5],
     vezes_dia: 1,
@@ -83,17 +84,58 @@ const CreateHabit = () => {
     setIsSubmitting(true);
     try {
       // @audit-ok [Criar Hábito (11) — monta payload completo com todos os campos do formulário]
+      // @audit-info [Criar Hábito (11) — Água é medida em ml (sem conversão); Estudo/Exercício em segundos, mas a UI coleta minutos]
+      const isTempo = molde.id !== 'AGUA';
+      const fator = isTempo ? 60 : 1;
+
+      const base = (parseInt(formData.meta_base, 10) || 1) * fator;
+      const vezes = Math.min(Math.max(1, parseInt(formData.vezes_dia, 10) || 1), base);
+      const incrementoMeta = (parseInt(formData.incremento_meta, 10) || 0) * fator;
+      const diasParaAumento = parseInt(formData.dias_para_aumento, 10) || 0;
+      const metaMaximaInput = parseInt(formData.meta_maxima, 10) || 0;
+      const metaMaxima = metaMaximaInput > 0 ? metaMaximaInput * fator : null;
+
+      const horarioValido = formData.horario ? formData.horario : "08:00";
+      const [horasStr, minutosStr] = horarioValido.split(':');
+      let horaAtual = parseInt(horasStr, 10);
+      const minutoAtual = parseInt(minutosStr, 10);
+
+      const espacamentoHoras = Math.max(1, Math.floor(16 / vezes));
+      const alvoBase = Math.max(1, Math.floor(base / vezes));
+      const sub_atividades = [];
+
+      for(let i=0; i<vezes; i++) {
+        const hIn = String(horaAtual).padStart(2, '0');
+        const mIn = String(minutoAtual).padStart(2, '0');
+
+        const proxHora = Math.min(23, horaAtual + espacamentoHoras);
+        const hFim = String(proxHora).padStart(2, '0');
+
+        // @audit-info [Criar Hábito (11) — a soma dos alvo_parcial deve fechar a meta_base: o resto vai na última parte]
+        const alvoParcial = i === vezes - 1 ? base - alvoBase * (vezes - 1) : alvoBase;
+
+        sub_atividades.push({
+           ordem: i + 1,
+           alvo_parcial: alvoParcial,
+           horario_inicio: `${hIn}:${mIn}:00`,
+           horario_fim: `${hFim}:${mIn}:00`
+        });
+
+        horaAtual = proxHora;
+      }
+
       const payload = {
-        categoria: molde.id,
+        categoria_codigo: molde.id,
         titulo: molde.titulo,
-        tipo_medida: molde.id === 'AGUA' ? 'QUANTIDADE' : 'TEMPO',
-        modalidade: 'DIARIA',
-        meta_base: parseInt(formData.meta_base, 10) || 1,
-        aumento_dezena: parseInt(formData.aumento_dezena, 10) || 0,
-        meta_maxima: parseInt(formData.meta_maxima, 10) || 0,
-        frequencia_semanal: formData.frequencia_semanal,
-        meta_frequencia_diaria: parseInt(formData.vezes_dia, 10) || 1,
-        horario_agendado: formData.horario
+        tipo_medida: isTempo ? 'TEMPO' : 'QUANTIDADE',
+        meta_base: base,
+        meta_maxima: metaMaxima,
+        dias_para_aumento: (incrementoMeta > 0 && diasParaAumento > 0) ? diasParaAumento : null,
+        incremento_meta: (incrementoMeta > 0 && diasParaAumento > 0) ? incrementoMeta : null,
+        dias_semana: formData.frequencia_semanal,
+        sub_atividades: sub_atividades,
+        horario_agendado: `${horasStr.padStart(2, '0')}:${minutosStr.padStart(2, '0')}:00`,
+        gatilho_ancora: null
       };
       // @audit-ok [Criar Hábito (12) — envia POST /habits]
       await createHabit(payload);
@@ -101,7 +143,7 @@ const CreateHabit = () => {
       addToast('Hábito criado com sucesso!', 'success');
       navigate('/home');
     } catch (err) {
-      addToast('Erro ao criar hábito. Limite de 5 atingido?', 'error');
+      addToast(getApiErrorMessage(err, 'Erro ao criar hábito. Limite de 2 hábitos ativos atingido?'), 'error');
       setIsSubmitting(false);
     }
   };
@@ -177,7 +219,7 @@ const CreateHabit = () => {
 
             <FormCard>
               <FormGroup>
-                <Label htmlFor="meta-base">Meta Mínima Base (Próx. 10 dias)</Label>
+                <Label htmlFor="meta-base">Meta Mínima Base</Label>
                 <Input
                   id="meta-base"
                   type="number"
@@ -189,26 +231,37 @@ const CreateHabit = () => {
 
               <GridRow>
                 <FormGroup>
-                  <Label htmlFor="aumento">Aumento a cada 10 dias</Label>
+                  <Label htmlFor="incremento">Aumento na Meta</Label>
                   <Input
-                    id="aumento"
+                    id="incremento"
                     type="number"
                     placeholder="+10"
-                    value={formData.aumento_dezena}
-                    onChange={e => setFormData({ ...formData, aumento_dezena: e.target.value })}
+                    value={formData.incremento_meta}
+                    onChange={e => setFormData({ ...formData, incremento_meta: e.target.value })}
                   />
                 </FormGroup>
                 <FormGroup>
-                  <Label htmlFor="meta-maxima">Meta Máxima (Teto)</Label>
+                  <Label htmlFor="dias-aumento">A cada quantos dias?</Label>
                   <Input
-                    id="meta-maxima"
+                    id="dias-aumento"
                     type="number"
-                    placeholder="Limite"
-                    value={formData.meta_maxima}
-                    onChange={e => setFormData({ ...formData, meta_maxima: e.target.value })}
+                    placeholder="Ex: 10"
+                    value={formData.dias_para_aumento}
+                    onChange={e => setFormData({ ...formData, dias_para_aumento: e.target.value })}
                   />
                 </FormGroup>
               </GridRow>
+
+              <FormGroup style={{ marginTop: '16px' }}>
+                <Label htmlFor="meta-maxima">Meta Máxima (Teto)</Label>
+                <Input
+                  id="meta-maxima"
+                  type="number"
+                  placeholder="Limite (opcional)"
+                  value={formData.meta_maxima}
+                  onChange={e => setFormData({ ...formData, meta_maxima: e.target.value })}
+                />
+              </FormGroup>
             </FormCard>
 
             <FormCard>

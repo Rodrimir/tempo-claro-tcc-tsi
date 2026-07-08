@@ -6,28 +6,23 @@ import {
   Subtitle,
   ButtonContainer,
   PrimaryButton,
-  ShieldButton,
   DangerButton
 } from './styles';
 
-const GiveUpModal = ({ bloqueiosAcumulados, handleGiveUp, onCancel }) => {
+// @audit-ok [Desistência — desistir de uma pré-tarefa só perde a porção dela; o escudo protege a META DIÁRIA
+// e é consumido automaticamente no fim do dia (não aqui)]
+const GiveUpModal = ({ handleGiveUp, onCancel }) => {
   return (
     <Overlay>
       <ModalCard>
         <Title>Tem certeza?</Title>
-        <Subtitle>Isso afetará sua consistência diária.</Subtitle>
+        <Subtitle>Você perde a recompensa desta parte. Sua ofensiva só é avaliada no fim do dia.</Subtitle>
         <ButtonContainer>
           <PrimaryButton onClick={onCancel}>
             Voltar e Continuar
           </PrimaryButton>
 
-          {bloqueiosAcumulados > 0 && (
-            <ShieldButton onClick={() => handleGiveUp('BLOCK_ACTIVE')}>
-              🛡️ Usar Escudo ({bloqueiosAcumulados})
-            </ShieldButton>
-          )}
-
-          <DangerButton onClick={() => handleGiveUp('FAIL_VOLUNTARY')}>
+          <DangerButton onClick={() => handleGiveUp('FAIL_TIMEOUT')}>
             Assumir Falha
           </DangerButton>
         </ButtonContainer>

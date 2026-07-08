@@ -1,4 +1,7 @@
 import styled, { keyframes, css } from 'styled-components';
+
+// @audit-ok [Dashboard — estilos (styled-components) da Home: carrossel de foco, card do hábito e avatar]
+
 const float = keyframes`
   0% { transform: translateY(0px); }
   50% { transform: translateY(-8px); }
@@ -41,7 +44,7 @@ export const SlideInner = styled.div`
 `;
 export const HabitCard = styled.div`
   background: ${(props) => props.$completed ? props.theme.successColor : (props.$urgent ? '#fef2f2' : props.theme.primaryLight)};
-  color: ${(props) => props.$completed ? 'white' : props.theme.textPrimary};
+  color: ${(props) => props.$completed ? 'white' : (props.$urgent ? '#0f172a' : props.theme.textPrimary)};
   padding: 16px 24px;
   border-radius: 24px 24px 24px 4px;
   margin-bottom: 32px;

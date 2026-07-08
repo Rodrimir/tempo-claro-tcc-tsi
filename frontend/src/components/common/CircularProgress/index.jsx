@@ -9,6 +9,8 @@ import {
   MetaText
 } from './styles';
 
+// @audit-ok [Execução Quantidade F08 — barra circular de progresso (valor realizado / meta) para hábitos de Água]
+
 const CircularProgress = ({ quantity, meta_base }) => {
   const isQuantityDone = quantity >= meta_base;
   const progressPercent = Math.min((quantity / meta_base) * 100, 100);

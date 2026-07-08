@@ -1,3 +1,5 @@
+// @audit-ok [Falha F13 — estilos (SCSS) da tela de falha]
+
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }

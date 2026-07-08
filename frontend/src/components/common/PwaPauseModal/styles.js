@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [Proteção de Fuga F09 — estilos (styled-components) do modal de retorno ao app]
+
 export const Overlay = styled.div`
   position: absolute;
   top: 0;

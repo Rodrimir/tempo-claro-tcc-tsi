@@ -10,13 +10,16 @@ import {
   PlusIconWrapper
 } from './styles';
 
+// @audit-ok [LocalHeader — cabeçalho do hábito focado: exibe moedas, ofensiva e escudos, com atalho para a Loja]
+
 const LocalHeader = () => {
   const navigate = useNavigate();
+  // @audit-ok [Dashboard (17) — lê os agregados do hábito ativo (saldo/escudos/ofensiva) do CurrentHabitContext]
   const { currentHabit: activeHabit } = useCurrentHabit();
 
-  const moedas = activeHabit ? activeHabit.moedas_locais || 0 : 0;
-  const escudos = activeHabit ? activeHabit.bloqueios_acumulados || 0 : 0;
-  const diasSeguidos = activeHabit ? activeHabit.dias_seguidos || 0 : 0;
+  const moedas = activeHabit ? activeHabit.saldo || 0 : 0;
+  const escudos = activeHabit ? activeHabit.escudosDisponiveis || 0 : 0;
+  const diasSeguidos = activeHabit ? activeHabit.ofensiva || 0 : 0;
 
   return (
     <HeaderContainer>

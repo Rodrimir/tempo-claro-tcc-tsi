@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [Criar Hábito F02 — estilos (styled-components) do wizard de criação de hábito]
+
 export const Container = styled.div`
   padding: 24px;
   padding-bottom: 100px;

@@ -1,5 +1,7 @@
 import styled, { keyframes } from 'styled-components';
 
+// @audit-ok [Login/Cadastro F01 — estilos (styled-components) da tela de autenticação]
+
 const float = keyframes`
   0% { transform: translateY(0px); }
   50% { transform: translateY(-8px); }

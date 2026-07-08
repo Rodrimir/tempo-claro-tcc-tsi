@@ -6,6 +6,8 @@ import {
   BonusBadge
 } from './styles';
 
+// @audit-ok [Execução Tempo F07 — display monoespaçado do cronômetro (regressivo ou contador de bônus/overachieve)]
+
 const MonospaceTimer = ({ isOverachieving, overachieveTime, timeLeft }) => {
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');

@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { ToastContainer, ToastMessage } from '../components/common/Toast/styles';
 
+// @audit-ok [Toast — contexto global de notificações efêmeras (sucesso/erro/default) renderizadas sobre toda a aplicação]
+
 const ToastContext = createContext(null);
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
+  // @audit-info [Toast — enfileira uma mensagem e a remove automaticamente após o tempo de duração]
   const addToast = useCallback((message, type = 'default', duration = 3000) => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, message, type }]);

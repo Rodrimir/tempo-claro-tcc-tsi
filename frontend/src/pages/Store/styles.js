@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [Loja F12 — estilos (styled-components) da tela da loja de escudos]
+
 export const StoreContainer = styled.div`
   padding: 24px;
   padding-bottom: 100px;

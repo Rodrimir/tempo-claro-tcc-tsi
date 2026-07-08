@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+// @audit-ok [Execução Quantidade F08 — estilos (styled-components) da barra circular de progresso]
+
 export const ProgressContainer = styled.div`
   position: relative;
   width: 200px;

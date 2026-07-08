@@ -6,6 +6,8 @@ import { lightTheme, darkTheme } from './styles/theme';
 import { useThemeToggle } from './contexts/ThemeToggleContext';
 import AppRoutes from './routes';
 
+// @audit-ok [Bootstrap — raiz da SPA: injeta o tema (claro/escuro) via ThemeProvider, aplica estilos globais e monta as rotas]
+
 const App = () => {
   const { isDark } = useThemeToggle();
   return (
