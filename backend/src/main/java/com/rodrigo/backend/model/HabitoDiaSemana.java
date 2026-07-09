@@ -4,27 +4,24 @@ import lombok.Data;
 import java.util.UUID;
 import lombok.Builder;
 import jakarta.persistence.Id;
-import java.time.LocalTime;
 import jakarta.persistence.Table;
 import jakarta.persistence.Entity;
+import jakarta.persistence.IdClass;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-// @audit-ok [Criar Hábito(3M) / Dashboard(3M) — entidade SubAtividade: parte da meta diária com janela de horário]
-
 @Entity
-@Table(name = "sub_atividades")
+@Table(name = "habito_dias_semana")
+@IdClass(HabitoDiaSemanaId.class)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubAtividade {
+public class HabitoDiaSemana {
 
     @Id
-    private UUID id;
     private UUID habitoId;
-    private Integer ordem;
-    private Integer alvoParcial;
-    private LocalTime horarioInicio;
-    private LocalTime horarioFim;
+
+    @Id
+    private Integer diaSemana;
 }
