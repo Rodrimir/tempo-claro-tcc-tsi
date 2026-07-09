@@ -8,6 +8,7 @@ import com.rodrigo.backend.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -18,6 +19,7 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
 
     // @audit-ok [Profile(2) — Service de perfil: PUT /api/profile]
+    @Transactional
     public void atualizarPerfil(final String emailContexto, final ProfileUpdateDTO request) {
         final var usuario = usuarioRepository.findByEmail(emailContexto)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
@@ -44,6 +46,7 @@ public class UsuarioService {
     }
 
     // @audit-ok [Excluir Conta(2) — Service de perfil: DELETE /api/profile; exige a senha do usuário antes de remover a conta]
+    @Transactional
     public void excluirConta(final String emailContexto, final AccountDeleteDTO request) {
         final var usuario = usuarioRepository.findByEmail(emailContexto)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));

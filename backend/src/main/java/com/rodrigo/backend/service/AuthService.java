@@ -8,6 +8,7 @@ import com.rodrigo.backend.model.Usuario;
 import com.rodrigo.backend.config.JwtService;
 import com.rodrigo.backend.repository.UsuarioRepository;
 import com.rodrigo.backend.exception.RegraNegocioException;
+import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend.model.dto.request.LoginRequestDTO;
 import com.rodrigo.backend.model.dto.response.AuthResponseDTO;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,6 +48,7 @@ public class AuthService {
 
 
         // @audit-ok [Cadastro(2) — service de autenticação: POST /auth/register]
+        @Transactional
         public AuthResponseDTO cadastrar(final RegisterRequestDTO request) {
                 // @audit-info [Cadastro(2) — garante unicidade de e-mail antes de inserir]
                 if (usuarioRepository.existsByEmail(request.email())) {
@@ -64,7 +66,7 @@ public class AuthService {
                                 .criadoEm(OffsetDateTime.now())
                                 .build();
 
-                // @audit-info [Cadastro(2) — persiste o novo usuário no banco via JdbcTemplate]
+                // @audit-info [Cadastro(2) — persiste o novo usuário no banco via JPA]
                 usuarioRepository.save(novoUsuario);
 
                 // @audit-info [Cadastro(2) — gera JWT e retorna DTO igual ao fluxo de login]
