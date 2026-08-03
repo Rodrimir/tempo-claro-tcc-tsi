@@ -1,13 +1,10 @@
 package com.rodrigo.backend2java.exception;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import com.rodrigo.backend2java.model.dto.response.MessageResponseDTO;
-
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {

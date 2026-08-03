@@ -1,14 +1,10 @@
 package com.rodrigo.backend2java.repository;
-
-import com.rodrigo.backend2java.model.HistoricoExecucao;
-import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
-
 import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.rodrigo.backend2java.model.HistoricoExecucao;
 // @audit-ok [Execução Timer (21) / Execução Timer (25) — repositório de histórico de execuções; chave de idempotência via execution_token UNIQUE]
-
 @Repository
 @RequiredArgsConstructor
 public class HistoricoExecucaoRepository {

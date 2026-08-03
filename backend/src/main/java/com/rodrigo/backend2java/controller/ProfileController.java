@@ -6,9 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import com.rodrigo.backend2java.service.UsuarioService;
 import com.rodrigo.backend2java.model.dto.request.ProfileUpdateDTO;
 import org.springframework.security.core.context.SecurityContextHolder;
-
 // @audit-ok [Profile(1) — controller de perfil: PUT /api/profile]
-
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor

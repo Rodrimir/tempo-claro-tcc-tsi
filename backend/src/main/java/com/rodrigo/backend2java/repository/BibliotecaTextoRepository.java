@@ -1,13 +1,11 @@
 package com.rodrigo.backend2java.repository;
-
-import com.rodrigo.backend2java.model.BibliotecaTexto;
+import java.util.UUID;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
-import java.util.UUID;
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.rodrigo.backend2java.model.BibliotecaTexto;
 
 @Repository
 @RequiredArgsConstructor

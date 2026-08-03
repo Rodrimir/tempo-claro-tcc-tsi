@@ -6,8 +6,10 @@ services:
       POSTGRES_DB: "backend_db"
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "123"
+    # 5433 no host para não conflitar com outros Postgres (postgres-whats usa 5432).
+    # A porta interna continua 5432, então o pgAdmin/backend usam "db:5432".
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,6 +24,8 @@ services:
     ports:
       - "8082:8082"
     environment:
+      # Força o profile LOCAL do Docker (sobrescreve o SPRING_PROFILES_ACTIVE=prod da imagem)
+      - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/backend_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=123

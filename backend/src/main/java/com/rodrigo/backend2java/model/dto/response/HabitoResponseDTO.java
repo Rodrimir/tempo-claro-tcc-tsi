@@ -1,10 +1,8 @@
 package com.rodrigo.backend2java.model.dto.response;
-
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.Builder;
-
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 @Builder
 public record HabitoResponseDTO(
         UUID id,

@@ -1,5 +1,4 @@
 package com.rodrigo.backend2java.model.dto.response;
-
 import lombok.Builder;
 // @audit-ok [Login(1RES) model DTO —  POST /auth/register]
 // @audit-ok [Cadastro(1RES) model DTO —  POST /auth/register]

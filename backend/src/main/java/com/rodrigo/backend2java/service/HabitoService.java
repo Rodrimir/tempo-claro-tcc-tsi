@@ -1,23 +1,19 @@
 package com.rodrigo.backend2java.service;
-
+import java.util.UUID;
+import java.util.List;
+import java.time.OffsetDateTime;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import com.rodrigo.backend2java.model.Habito;
+import org.springframework.stereotype.Service;
 import com.rodrigo.backend2java.model.StatusHabito;
+import com.rodrigo.backend2java.repository.HabitoRepository;
+import com.rodrigo.backend2java.repository.UsuarioRepository;
+import org.springframework.transaction.annotation.Transactional;
+import com.rodrigo.backend2java.repository.StatusHabitoRepository;
 import com.rodrigo.backend2java.model.dto.request.HabitoRequestDTO;
 import com.rodrigo.backend2java.model.dto.response.HabitoResponseDTO;
-import com.rodrigo.backend2java.repository.HabitoRepository;
-import com.rodrigo.backend2java.repository.StatusHabitoRepository;
-import com.rodrigo.backend2java.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 // @audit-ok [Dashboard (7) / Criar Hábito (16) — service de hábitos: CRUD e montagem do HabitoResponseDTO]
-
 @Service
 @RequiredArgsConstructor
 public class HabitoService {

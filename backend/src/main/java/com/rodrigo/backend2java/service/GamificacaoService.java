@@ -1,22 +1,18 @@
 package com.rodrigo.backend2java.service;
-
-import com.rodrigo.backend2java.model.HistoricoExecucao;
-import com.rodrigo.backend2java.model.dto.request.ExecutionRequestDTO;
-import com.rodrigo.backend2java.model.dto.response.ExecutionResponseDTO;
-import com.rodrigo.backend2java.model.dto.response.PrimingResponseDTO;
-import com.rodrigo.backend2java.repository.BibliotecaTextoRepository;
-import com.rodrigo.backend2java.repository.HabitoRepository;
-import com.rodrigo.backend2java.repository.HistoricoExecucaoRepository;
-import com.rodrigo.backend2java.repository.StatusHabitoRepository;
+import java.util.UUID;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.rodrigo.backend2java.model.HistoricoExecucao;
+import com.rodrigo.backend2java.repository.HabitoRepository;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
+import com.rodrigo.backend2java.repository.StatusHabitoRepository;
+import com.rodrigo.backend2java.repository.BibliotecaTextoRepository;
+import com.rodrigo.backend2java.model.dto.request.ExecutionRequestDTO;
+import com.rodrigo.backend2java.model.dto.response.PrimingResponseDTO;
+import com.rodrigo.backend2java.repository.HistoricoExecucaoRepository;
+import com.rodrigo.backend2java.model.dto.response.ExecutionResponseDTO;
 // @audit-ok [Pré-Tarefa Priming (12) / Execução Timer (20) / Loja Escudo (12) — service de gamificação: priming, execução e compra de escudo]
-
 @Service
 @RequiredArgsConstructor
 public class GamificacaoService {

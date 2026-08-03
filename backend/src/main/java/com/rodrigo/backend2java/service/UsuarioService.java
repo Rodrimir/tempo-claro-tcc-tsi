@@ -1,11 +1,9 @@
 package com.rodrigo.backend2java.service;
-
-import com.rodrigo.backend2java.model.dto.request.ProfileUpdateDTO;
-import com.rodrigo.backend2java.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import com.rodrigo.backend2java.repository.UsuarioRepository;
+import com.rodrigo.backend2java.model.dto.request.ProfileUpdateDTO;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 @RequiredArgsConstructor

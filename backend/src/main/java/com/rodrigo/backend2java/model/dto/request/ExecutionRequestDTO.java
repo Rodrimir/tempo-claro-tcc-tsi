@@ -1,10 +1,9 @@
 package com.rodrigo.backend2java.model.dto.request;
-
+import lombok.Builder;
+import java.util.UUID;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.UUID;
-import lombok.Builder;
 
 @Builder
 public record ExecutionRequestDTO(

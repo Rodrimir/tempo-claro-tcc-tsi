@@ -1,16 +1,14 @@
 package com.rodrigo.backend2java.repository;
-
-import com.rodrigo.backend2java.model.Habito;
-import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Repository;
-
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import lombok.RequiredArgsConstructor;
+import com.rodrigo.backend2java.model.Habito;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @Repository
 @RequiredArgsConstructor

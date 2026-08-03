@@ -9,7 +9,6 @@ import com.rodrigo.backend2java.model.dto.request.LoginRequestDTO;
 import com.rodrigo.backend2java.model.dto.response.AuthResponseDTO;
 import com.rodrigo.backend2java.model.dto.request.RegisterRequestDTO;
 
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor

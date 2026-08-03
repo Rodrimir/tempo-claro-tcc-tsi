@@ -1,24 +1,20 @@
 package com.rodrigo.backend2java.controller;
-
-import com.rodrigo.backend2java.model.dto.request.ExecutionRequestDTO;
-import com.rodrigo.backend2java.model.dto.request.HabitoRequestDTO;
-import com.rodrigo.backend2java.model.dto.response.ExecutionResponseDTO;
-import com.rodrigo.backend2java.model.dto.response.HabitoResponseDTO;
-import com.rodrigo.backend2java.model.dto.response.PrimingResponseDTO;
-import com.rodrigo.backend2java.service.GamificacaoService;
-import com.rodrigo.backend2java.service.HabitoService;
+import java.util.Map;
+import java.util.UUID;
+import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-
+import com.rodrigo.backend2java.service.HabitoService;
+import com.rodrigo.backend2java.service.GamificacaoService;
+import com.rodrigo.backend2java.model.dto.request.HabitoRequestDTO;
+import com.rodrigo.backend2java.model.dto.response.HabitoResponseDTO;
+import com.rodrigo.backend2java.model.dto.request.ExecutionRequestDTO;
+import com.rodrigo.backend2java.model.dto.response.PrimingResponseDTO;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.rodrigo.backend2java.model.dto.response.ExecutionResponseDTO;
 
 @RestController
 @RequestMapping("/api")

@@ -1,10 +1,9 @@
 package com.rodrigo.backend2java.model.dto.request;
-
+import lombok.Builder;
+import java.time.LocalTime;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalTime;
-import lombok.Builder;
 
 @Builder
 public record HabitoRequestDTO(

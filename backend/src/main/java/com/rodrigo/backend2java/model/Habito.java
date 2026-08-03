@@ -1,13 +1,11 @@
 package com.rodrigo.backend2java.model;
-
+import lombok.Data;
+import java.util.UUID;
+import lombok.Builder;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.util.UUID;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
 @NoArgsConstructor

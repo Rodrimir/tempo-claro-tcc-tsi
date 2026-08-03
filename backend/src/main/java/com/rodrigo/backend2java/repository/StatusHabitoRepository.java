@@ -1,17 +1,13 @@
 package com.rodrigo.backend2java.repository;
-
-import com.rodrigo.backend2java.model.StatusHabito;
+import java.util.UUID;
+import java.util.Optional;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-
-import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.rodrigo.backend2java.model.StatusHabito;
 // @audit-ok [Dashboard (9) / Execução Timer (24) / Loja Escudo (14) — repositório de status de gamificação por hábito]
-
 @Repository
 @RequiredArgsConstructor
 public class StatusHabitoRepository {
