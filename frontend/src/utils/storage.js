@@ -67,3 +67,22 @@ export const setAuthToken = (token) => {
 export const clearAuthToken = () => {
   localStorage.removeItem('tempoClaro_token');
 };
+
+// @audit-ok [Perfil (17) — persiste o usuário retornado no login/cadastro]
+// O backend devolve { token, user: { name, email } } em AuthResponseDTO, mas esse
+// `user` era descartado — por isso a tela de Perfil exibia 'Usuário' fixo. Como
+// não existe GET /profile, guardar aqui é o que permite mostrar o nome real.
+export const setUserProfile = (profile) => {
+  const encrypted = encryptData(profile);
+  if (encrypted) localStorage.setItem('tempoClaro_user', encrypted);
+};
+
+// @audit-ok [Perfil (18) — lê o usuário persistido]
+export const getUserProfile = () => {
+  const encrypted = localStorage.getItem('tempoClaro_user');
+  return decryptData(encrypted);
+};
+
+export const clearUserProfile = () => {
+  localStorage.removeItem('tempoClaro_user');
+};

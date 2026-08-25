@@ -10,6 +10,13 @@ import {
   DangerButton
 } from './styles';
 
+// @audit-ok [Desistência (4) — tipos aceitos pelo backend em GamificacaoService.processarExecucao]
+// Antes eram enviados 'BLOCK_ACTIVE' e 'FAIL_VOLUNTARY', que não constam entre os
+// tipos válidos: caíam no else e lançavam IllegalArgumentException, então nenhuma
+// desistência chegava a ser registrada.
+const TIPO_ESCUDO = 'FAIL_BLOQUEIO';
+const TIPO_FALHA = 'FAIL_TIMEOUT';
+
 const GiveUpModal = ({ bloqueiosAcumulados, handleGiveUp, onCancel }) => {
   return (
     <Overlay>
@@ -22,12 +29,12 @@ const GiveUpModal = ({ bloqueiosAcumulados, handleGiveUp, onCancel }) => {
           </PrimaryButton>
 
           {bloqueiosAcumulados > 0 && (
-            <ShieldButton onClick={() => handleGiveUp('BLOCK_ACTIVE')}>
+            <ShieldButton onClick={() => handleGiveUp(TIPO_ESCUDO)}>
               🛡️ Usar Escudo ({bloqueiosAcumulados})
             </ShieldButton>
           )}
 
-          <DangerButton onClick={() => handleGiveUp('FAIL_VOLUNTARY')}>
+          <DangerButton onClick={() => handleGiveUp(TIPO_FALHA)}>
             Assumir Falha
           </DangerButton>
         </ButtonContainer>

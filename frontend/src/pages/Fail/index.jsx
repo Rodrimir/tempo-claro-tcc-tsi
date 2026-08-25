@@ -10,14 +10,15 @@ const Fail = () => {
   const location = useLocation();
 
   // @audit-ok [Falha (2) — lê o tipo de falha do estado de navegação]
-  const type = location.state?.type || 'FAIL_VOLUNTARY';
+  // Os valores acompanham os tipos aceitos pelo backend (ver GiveUpModal).
+  const type = location.state?.type || 'FAIL_TIMEOUT';
   // @audit-ok [Falha (3) — lê dados de feedback retornados pela API]
   const feedbackMsg = location.state?.feedback?.texto_feedback;
 
   let icon, title, subtitle, bgColor, iconColor;
 
-  // @audit-ok [Falha (4) — seleciona ícone, título e cor baseado no tipo: BLOCK_ACTIVE | FAIL_TIMEOUT | default]
-  if (type === 'BLOCK_ACTIVE') {
+  // @audit-ok [Falha (4) — seleciona ícone, título e cor baseado no tipo: FAIL_BLOQUEIO | FAIL_TIMEOUT | default]
+  if (type === 'FAIL_BLOQUEIO') {
     icon = <ShieldAlert size={80} />;
     title = 'Protegido!';
     subtitle = feedbackMsg || 'Acúmulos protegidos! Sua ofensiva foi salva pelo Escudo.';

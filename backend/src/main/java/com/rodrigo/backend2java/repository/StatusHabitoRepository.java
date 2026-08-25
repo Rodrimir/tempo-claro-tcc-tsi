@@ -1,6 +1,7 @@
 package com.rodrigo.backend2java.repository;
 import java.util.UUID;
 import java.util.Optional;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.RowMapper;
@@ -16,12 +17,18 @@ public class StatusHabitoRepository {
 
         private static final String INSERT_STATUS = "INSERT INTO status_habitos (habito_id, moedas_locais, bloqueios_acumulados, dias_seguidos, "
                         +
-                        "execucoes_hoje, proximo_vencimento, bloqueio_usado_hoje) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                        "execucoes_hoje, proximo_vencimento, bloqueio_usado_hoje, ultimo_reset) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         private static final String UPDATE_STATUS = "UPDATE status_habitos SET moedas_locais = ?, bloqueios_acumulados = ?, dias_seguidos = ?, "
                         +
-                        "execucoes_hoje = ?, proximo_vencimento = ?, bloqueio_usado_hoje = ? WHERE habito_id = ?";
+                        "execucoes_hoje = ?, proximo_vencimento = ?, bloqueio_usado_hoje = ?, ultimo_reset = ? WHERE habito_id = ?";
+
+        // @audit-ok [Fechamento Diário (3) — zera os contadores diários de um hábito e
+        // marca a data já apurada, no fuso do usuário]
+        private static final String RESET_DIARIO = "UPDATE status_habitos SET execucoes_hoje = 0, bloqueio_usado_hoje = false, "
+                        +
+                        "ultimo_reset = ? WHERE habito_id = ? AND (ultimo_reset IS NULL OR ultimo_reset < ?)";
 
         private final JdbcTemplate jdbcTemplate;
 
@@ -34,6 +41,7 @@ public class StatusHabitoRepository {
                         .execucoesHoje(rs.getInt("execucoes_hoje"))
                         .proximoVencimento(rs.getObject("proximo_vencimento", OffsetDateTime.class))
                         .bloqueioUsadoHoje(rs.getBoolean("bloqueio_usado_hoje"))
+                        .ultimoReset(rs.getObject("ultimo_reset", LocalDate.class))
                         .build();
 
         public Optional<StatusHabito> findById(UUID habitoId) {
@@ -51,7 +59,8 @@ public class StatusHabitoRepository {
                                 status.getDiasSeguidos(),
                                 status.getExecucoesHoje(),
                                 status.getProximoVencimento(),
-                                status.getBloqueioUsadoHoje());
+                                status.getBloqueioUsadoHoje(),
+                                status.getUltimoReset());
         }
 
         // @audit-ok [Execução Timer (24) / Loja Escudo (14) — UPDATE completo de todos os campos de gamificação]
@@ -63,6 +72,17 @@ public class StatusHabitoRepository {
                                 status.getExecucoesHoje(),
                                 status.getProximoVencimento(),
                                 status.getBloqueioUsadoHoje(),
+                                status.getUltimoReset(),
                                 status.getHabitoId());
+        }
+
+        // @audit-ok [Fechamento Diário (3) — reset idempotente: a cláusula
+        // "ultimo_reset < hoje" garante que rodar o job várias vezes no mesmo dia
+        // não zere contadores de execuções já registradas depois da virada]
+        public int resetarDiario(UUID habitoId, LocalDate hojeNoFusoDoUsuario) {
+                return jdbcTemplate.update(RESET_DIARIO,
+                                hojeNoFusoDoUsuario,
+                                habitoId,
+                                hojeNoFusoDoUsuario);
         }
 }

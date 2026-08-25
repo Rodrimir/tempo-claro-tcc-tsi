@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -28,18 +28,28 @@ import {
 // @audit-ok [Perfil (1) — tela de dados do usuário: nome, fuso horário, tema e troca de senha]
 
 const Profile = () => {
-  const { logout } = useAuth();
+  const { logout, user, updateLocalUser } = useAuth();
   const { isDark, toggleTheme } = useThemeToggle();
   const { addToast } = useToast();
 
-  // @audit-ok [Perfil (2) — estado inicial do formulário com valores padrão]
+  // @audit-ok [Perfil (2) — estado inicial do formulário a partir do usuário autenticado]
+  // Antes o nome vinha fixo como 'Usuário'. Agora usa o dado que o backend devolve
+  // em AuthResponseDTO.user no login, persistido pelo AuthContext.
   const [formData, setFormData] = useState({
-    nome: 'Usuário',
+    nome: user?.name || '',
     senhaAtual: '',
     novaSenha: '',
     fusoHorario: 'America/Sao_Paulo'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // O AuthContext resolve o usuário de forma assíncrona na verificação do token,
+  // então o nome pode chegar depois desta tela montar.
+  useEffect(() => {
+    if (user?.name) {
+      setFormData(prev => (prev.nome ? prev : { ...prev, nome: user.name }));
+    }
+  }, [user]);
 
   // @audit-ok [Perfil (3) — processa submissão do formulário de atualização]
   const handleUpdate = async (e) => {
@@ -47,12 +57,20 @@ const Profile = () => {
     setIsSubmitting(true);
     try {
       // @audit-ok [Perfil (4) — monta payload incluindo senhas apenas se novaSenha foi preenchida]
+      // As chaves são snake_case porque é isso que ProfileUpdateDTO declara. Antes
+      // eram enviadas em camelCase (fusoHorario/senhaAtual/novaSenha): o Jackson
+      // não as reconhecia, então fuso e senha nunca chegavam a ser atualizados —
+      // e mesmo assim a tela exibia "Perfil atualizado com sucesso!".
       await updateProfile({
         nome: formData.nome,
-        fusoHorario: formData.fusoHorario,
-        ...(formData.novaSenha && { senhaAtual: formData.senhaAtual, novaSenha: formData.novaSenha })
+        fuso_horario: formData.fusoHorario,
+        ...(formData.novaSenha && {
+          senha_atual: formData.senhaAtual,
+          nova_senha: formData.novaSenha
+        })
       });
       // @audit-ok [Perfil (15) — confirma sucesso e limpa campos de senha]
+      updateLocalUser({ name: formData.nome });
       addToast('Perfil atualizado com sucesso!', 'success');
       // @audit-ok [Perfil (16) — limpa campos de senha após salvar]
       setFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '' }));

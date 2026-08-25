@@ -51,5 +51,14 @@ CREATE TABLE IF NOT EXISTS status_habitos (
     dias_seguidos INT,
     execucoes_hoje INT,
     proximo_vencimento TIMESTAMP WITH TIME ZONE,
-    bloqueio_usado_hoje BOOLEAN
+    bloqueio_usado_hoje BOOLEAN,
+    ultimo_reset DATE
 );
+
+-- Marca o último dia (no fuso do usuário) em que o FechamentoDiarioJob já zerou
+-- os contadores diários deste hábito. Sem essa coluna não há como saber se a
+-- virada de dia já foi apurada, e o reset rodaria repetidamente ou nunca.
+-- ADD COLUMN IF NOT EXISTS mantém o script idempotente: o schema.sql roda a cada
+-- boot (spring.sql.init.mode=always) e precisa atualizar bancos já existentes,
+-- já que o projeto não usa Flyway/Liquibase.
+ALTER TABLE status_habitos ADD COLUMN IF NOT EXISTS ultimo_reset DATE;

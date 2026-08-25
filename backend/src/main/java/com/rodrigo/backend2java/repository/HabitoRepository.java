@@ -16,6 +16,10 @@ public class HabitoRepository {
 
         private static final String FIND_ALL_BY_USUARIO_ID = "SELECT * FROM habitos WHERE usuario_id = ? AND ativo = true";
 
+        // @audit-ok [Fechamento Diário (1) — varre todos os hábitos ativos de todos os
+        // usuários; o job precisa apurar a virada de dia fuso a fuso]
+        private static final String FIND_ALL_ATIVOS = "SELECT * FROM habitos WHERE ativo = true";
+
         private static final String FIND_BY_ID = "SELECT * FROM habitos WHERE id = ?";
 
         private static final String INSERT_HABITO = "INSERT INTO habitos (id, usuario_id, titulo, categoria, gatilho_ancora, tipo_medida, "
@@ -52,6 +56,11 @@ public class HabitoRepository {
         // @audit-ok [Dashboard — retorna apenas hábitos com ativo=true do usuário]
         public List<Habito> findAllByUsuarioId(UUID usuarioId) {
                 return jdbcTemplate.query(FIND_ALL_BY_USUARIO_ID, rowMapper, usuarioId);
+        }
+
+        // @audit-ok [Fechamento Diário (1) — todos os hábitos ativos, de todos os usuários]
+        public List<Habito> findAllAtivos() {
+                return jdbcTemplate.query(FIND_ALL_ATIVOS, rowMapper);
         }
 
         public Optional<Habito> findById(UUID id) {

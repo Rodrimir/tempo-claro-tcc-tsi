@@ -70,8 +70,19 @@ public class GamificacaoService {
                 status.setDiasSeguidos(status.getDiasSeguidos() + 1);
             }
             textoFeedback = "Desempenho excelente!";
-        // @audit-ok [Desistência (9) — FAIL_TIMEOUT/FAIL_BLOQUEIO: zera diasSeguidos]
-        } else if ("FAIL_TIMEOUT".equals(request.tipo()) || "FAIL_BLOQUEIO".equals(request.tipo())) {
+        // @audit-ok [Desistência (9) — FAIL_BLOQUEIO: consome um escudo e PRESERVA a ofensiva]
+        } else if ("FAIL_BLOQUEIO".equals(request.tipo())) {
+            if (status.getBloqueiosAcumulados() <= 0) {
+                throw new RuntimeException("Nenhum escudo disponível para proteger a ofensiva");
+            }
+            if (Boolean.TRUE.equals(status.getBloqueioUsadoHoje())) {
+                throw new RuntimeException("Escudo já utilizado hoje neste hábito");
+            }
+            status.setBloqueiosAcumulados(status.getBloqueiosAcumulados() - 1);
+            status.setBloqueioUsadoHoje(true);
+            textoFeedback = "Ofensiva protegida pelo escudo!";
+        // @audit-ok [Desistência (9) — FAIL_TIMEOUT: zera diasSeguidos]
+        } else if ("FAIL_TIMEOUT".equals(request.tipo())) {
             status.setDiasSeguidos(0);
             textoFeedback = "Ofensiva zerada. Recomece amanhã!";
         } else {
