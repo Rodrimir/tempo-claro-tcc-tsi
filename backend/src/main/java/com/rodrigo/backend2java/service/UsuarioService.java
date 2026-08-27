@@ -1,6 +1,7 @@
 package com.rodrigo.backend2java.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.rodrigo.backend2java.util.ZonaUsuario;
 import com.rodrigo.backend2java.repository.UsuarioRepository;
 import com.rodrigo.backend2java.model.dto.request.ProfileUpdateDTO;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +22,13 @@ public class UsuarioService {
             usuario.setNome(request.nome());
         }
 
+        // @audit-ok [E0.5.4 — só ZoneId.of() via ZonaUsuario.isValido(); um fuso que
+        // não é identificador IANA (ex.: "BRT") vira RuntimeException, que o
+        // GlobalExceptionHandler converte em 400 — nunca chega a ser salvo.]
         if (request.fuso_horario() != null && !request.fuso_horario().isBlank()) {
+            if (!ZonaUsuario.isValido(request.fuso_horario())) {
+                throw new RuntimeException("Fuso horário inválido: " + request.fuso_horario());
+            }
             usuario.setFusoHorario(request.fuso_horario());
         }
 

@@ -121,14 +121,38 @@ const Profile = () => {
 
         <FormGroup>
           <Label htmlFor="profile-fuso">Fuso Horário</Label>
+          {/* @audit-ok [Perfil — E0.5.4: o value de cada option já é o identificador
+              IANA (contrato exigido pelo backend, ver ZonaUsuario.isValido). O rótulo
+              amigável com abreviação (ex.: "BRT") existe só para exibição — nunca é
+              enviado à API. Lista de fusos do Brasil completa (16 zonas oficiais do
+              tzdata para o país), não só Brasília.] */}
           <Select
             id="profile-fuso"
             value={formData.fusoHorario}
             onChange={e => setFormData({ ...formData, fusoHorario: e.target.value })}
           >
-            <option value="America/Sao_Paulo">Brasília (BRT)</option>
-            <option value="America/New_York">Nova York (EST)</option>
-            <option value="Europe/London">Londres (GMT)</option>
+            <optgroup label="Brasil">
+              <option value="America/Noronha">Fernando de Noronha (FNT, UTC-2)</option>
+              <option value="America/Belem">Belém (BRT, UTC-3)</option>
+              <option value="America/Fortaleza">Fortaleza (BRT, UTC-3)</option>
+              <option value="America/Recife">Recife (BRT, UTC-3)</option>
+              <option value="America/Araguaina">Araguaína (BRT, UTC-3)</option>
+              <option value="America/Maceio">Maceió (BRT, UTC-3)</option>
+              <option value="America/Bahia">Salvador (BRT, UTC-3)</option>
+              <option value="America/Sao_Paulo">Brasília (BRT, UTC-3)</option>
+              <option value="America/Santarem">Santarém (AMT, UTC-4)</option>
+              <option value="America/Campo_Grande">Campo Grande (AMT, UTC-4)</option>
+              <option value="America/Cuiaba">Cuiabá (AMT, UTC-4)</option>
+              <option value="America/Porto_Velho">Porto Velho (AMT, UTC-4)</option>
+              <option value="America/Boa_Vista">Boa Vista (AMT, UTC-4)</option>
+              <option value="America/Manaus">Manaus (AMT, UTC-4)</option>
+              <option value="America/Eirunepe">Eirunepé (ACT, UTC-5)</option>
+              <option value="America/Rio_Branco">Rio Branco (ACT, UTC-5)</option>
+            </optgroup>
+            <optgroup label="Outros">
+              <option value="America/New_York">Nova York (EST)</option>
+              <option value="Europe/London">Londres (GMT)</option>
+            </optgroup>
           </Select>
         </FormGroup>
 

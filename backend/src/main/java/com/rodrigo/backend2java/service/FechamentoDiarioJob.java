@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import com.rodrigo.backend2java.model.Usuario;
+import com.rodrigo.backend2java.util.ZonaUsuario;
 import com.rodrigo.backend2java.repository.HabitoRepository;
 import com.rodrigo.backend2java.repository.StatusHabitoRepository;
 import com.rodrigo.backend2java.repository.UsuarioRepository;
@@ -34,8 +34,6 @@ public class FechamentoDiarioJob {
 
     private static final Logger log = LoggerFactory.getLogger(FechamentoDiarioJob.class);
 
-    private static final String FUSO_PADRAO = "America/Sao_Paulo";
-
     private final HabitoRepository habitoRepository;
     private final UsuarioRepository usuarioRepository;
     private final StatusHabitoRepository statusHabitoRepository;
@@ -55,10 +53,13 @@ public class FechamentoDiarioJob {
 
         for (final var habito : habitos) {
             try {
-                // @audit-ok [Fechamento Diário (2) — resolve o fuso do dono do hábito]
+                // @audit-ok [Fechamento Diário (2) — resolve o fuso do dono do hábito.
+                // E0.5.4: a resolução (incluindo fallback para fuso inválido/ausente)
+                // agora é responsabilidade única de ZonaUsuario.resolver — este job não
+                // chama ZoneId.of diretamente.]
                 final var zona = fusoPorUsuario.computeIfAbsent(
                         habito.getUsuarioId(),
-                        id -> resolverFuso(usuarioRepository.findById(id).orElse(null)));
+                        id -> ZonaUsuario.resolver(usuarioRepository.findById(id).orElse(null)));
 
                 final var hoje = LocalDate.now(zona);
 
@@ -73,20 +74,6 @@ public class FechamentoDiarioJob {
 
         if (resetados > 0) {
             log.info("Fechamento diário: {} hábito(s) tiveram os contadores diários zerados.", resetados);
-        }
-    }
-
-    // Usuário sem fuso cadastrado cai no padrão do projeto, o mesmo default de
-    // Usuario.fusoHorario. Um fuso inválido no banco também não pode derrubar o job.
-    private ZoneId resolverFuso(final Usuario usuario) {
-        final var fuso = usuario != null && usuario.getFusoHorario() != null && !usuario.getFusoHorario().isBlank()
-                ? usuario.getFusoHorario()
-                : FUSO_PADRAO;
-        try {
-            return ZoneId.of(fuso);
-        } catch (final Exception e) {
-            log.warn("Fuso inválido '{}' — usando {}.", fuso, FUSO_PADRAO);
-            return ZoneId.of(FUSO_PADRAO);
         }
     }
 }
