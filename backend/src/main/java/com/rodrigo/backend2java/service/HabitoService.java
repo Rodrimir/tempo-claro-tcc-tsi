@@ -18,19 +18,27 @@ import com.rodrigo.backend2java.model.dto.response.HabitoResponseDTO;
 @RequiredArgsConstructor
 public class HabitoService {
 
+        /**
+         * RF03 — o usuário pode manter no máximo 2 hábitos ativos simultâneos.
+         * O foco isolado (RNF02) é a premissa do app: mais de dois hábitos em
+         * paralelo recria a lista de tarefas que o Tempo Claro existe para evitar.
+         */
+        private static final int LIMITE_HABITOS_ATIVOS = 2;
+
         private final HabitoRepository habitoRepository;
         private final StatusHabitoRepository statusHabitoRepository;
         private final UsuarioRepository usuarioRepository;
 
         @Transactional
         public HabitoResponseDTO criarHabito(final String emailContexto, final HabitoRequestDTO request) {
-                // @audit-ok [Criar Hábito (17) — busca usuário e valida limite de 5 hábitos ativos]
+                // @audit-ok [Criar Hábito (17) — busca usuário e valida limite de 2 hábitos ativos (RF03)]
                 final var usuario = usuarioRepository.findByEmail(emailContexto)
                                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
                 final var habitosAtivos = habitoRepository.findAllByUsuarioId(usuario.getId());
-                if (habitosAtivos.size() >= 5) {
-                        throw new RuntimeException("Limite de 5 hábitos ativos atingido");
+                if (habitosAtivos.size() >= LIMITE_HABITOS_ATIVOS) {
+                        throw new RuntimeException(
+                                        "Limite de " + LIMITE_HABITOS_ATIVOS + " hábitos ativos atingido");
                 }
 
                 final var habitoId = UUID.randomUUID();

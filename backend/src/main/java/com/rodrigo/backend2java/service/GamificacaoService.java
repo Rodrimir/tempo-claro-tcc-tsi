@@ -101,7 +101,7 @@ public class GamificacaoService {
                 .dataHoraExecucao(OffsetDateTime.now())
                 .valorRealizado(request.valor_realizado())
                 .moedasGanhas(moedasGanhas)
-                .tipoSucesso(request.tipo())
+                .tipoSucesso(mapearTipoSucesso(request.tipo()))
                 .build();
 
         historicoRepository.save(historico);
@@ -114,6 +114,23 @@ public class GamificacaoService {
                 .novo_nivel(status.getDiasSeguidos())
                 .texto_feedback(textoFeedback)
                 .build();
+    }
+
+    // @audit-ok [Schema v2.1 — achado fora do escopo original da E0.5.3, mas
+    // necessário para a persistência não quebrar: o CHECK ck_his_tipo da
+    // tabela historico_execucoes só aceita COMPLETE_PADRAO, COMPLETE_EXTRA,
+    // DESISTENCIA, PROTEGIDO_ESCUDO e PROTEGIDO_AUTOMATICO. O vocabulário de
+    // ExecutionRequestDTO.tipo() (usado antes desta tarefa como valor direto
+    // de tipoSucesso) inclui FAIL_BLOQUEIO e FAIL_TIMEOUT, que violariam esse
+    // CHECK. Esta tradução é o mínimo para o INSERT continuar funcionando —
+    // PROTEGIDO_AUTOMATICO fica reservado para o escudo automático da meia-
+    // noite (D2/E4.3), que não passa por aqui.
+    private String mapearTipoSucesso(final String tipoRequisicao) {
+        return switch (tipoRequisicao) {
+            case "FAIL_BLOQUEIO" -> "PROTEGIDO_ESCUDO";
+            case "FAIL_TIMEOUT" -> "DESISTENCIA";
+            default -> tipoRequisicao; // COMPLETE_PADRAO / COMPLETE_EXTRA já batem com o CHECK
+        };
     }
 
     @Transactional

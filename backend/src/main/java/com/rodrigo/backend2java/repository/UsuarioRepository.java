@@ -8,33 +8,42 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+// @audit-ok [Schema v2.1 — tabela usuarios agora usa prefixo usu_*. Nomes de
+// campo do model Usuario.java e dos DTOs não mudam, só as strings SQL e o
+// RowMapper. usu_tema e usu_atualizado_em (novas colunas, ambas com DEFAULT)
+// não têm campo correspondente no model ainda — ficam com o valor padrão do
+// banco até alguma tarefa futura precisar delas.]
 @Repository
 @RequiredArgsConstructor
 public class UsuarioRepository {
 
-        private static final String FIND_BY_ID = "SELECT * FROM usuarios WHERE id = ?";
+        private static final String FIND_BY_ID = "SELECT * FROM usuarios WHERE usu_id = ?";
 
-        private static final String FIND_BY_EMAIL = "SELECT * FROM usuarios WHERE email = ?";
+        private static final String FIND_BY_EMAIL = "SELECT * FROM usuarios WHERE usu_email = ?";
 
-        private static final String COUNT_BY_EMAIL = "SELECT COUNT(1) FROM usuarios WHERE email = ?";
+        private static final String COUNT_BY_EMAIL = "SELECT COUNT(1) FROM usuarios WHERE usu_email = ?";
 
-        private static final String INSERT_USUARIO = "INSERT INTO usuarios (id, nome, email, senha_hash, fuso_horario, preferencia_idioma, criado_em) "
+        private static final String INSERT_USUARIO = "INSERT INTO usuarios (usu_id, usu_nome, usu_email, usu_senha_hash, usu_fuso_horario, usu_preferencia_idioma, usu_criado_em) "
                         +
                         "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        private static final String UPDATE_USUARIO = "UPDATE usuarios SET nome = ?, email = ?, senha_hash = ?, fuso_horario = ?, preferencia_idioma = ? WHERE id = ?";
+        // usu_atualizado_em é atualizado aqui via CURRENT_TIMESTAMP — não precisa de
+        // campo Java, a coluna existe justamente para isso.
+        private static final String UPDATE_USUARIO = "UPDATE usuarios SET usu_nome = ?, usu_email = ?, usu_senha_hash = ?, usu_fuso_horario = ?, "
+                        +
+                        "usu_preferencia_idioma = ?, usu_atualizado_em = CURRENT_TIMESTAMP WHERE usu_id = ?";
 
         private final JdbcTemplate jdbcTemplate;
 
         // @audit-info [RowMapper mapeia o ResultSet para a entidade Usuario]
         private final RowMapper<Usuario> rowMapper = (rs, rowNum) -> Usuario.builder()
-                        .id(rs.getObject("id", UUID.class))
-                        .nome(rs.getString("nome"))
-                        .email(rs.getString("email"))
-                        .senhaHash(rs.getString("senha_hash"))
-                        .fusoHorario(rs.getString("fuso_horario"))
-                        .preferenciaIdioma(rs.getString("preferencia_idioma"))
-                        .criadoEm(rs.getObject("criado_em", OffsetDateTime.class))
+                        .id(rs.getObject("usu_id", UUID.class))
+                        .nome(rs.getString("usu_nome"))
+                        .email(rs.getString("usu_email"))
+                        .senhaHash(rs.getString("usu_senha_hash"))
+                        .fusoHorario(rs.getString("usu_fuso_horario"))
+                        .preferenciaIdioma(rs.getString("usu_preferencia_idioma"))
+                        .criadoEm(rs.getObject("usu_criado_em", OffsetDateTime.class))
                         .build();
 
         public Optional<Usuario> findById(UUID id) {
