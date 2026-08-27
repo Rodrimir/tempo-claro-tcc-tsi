@@ -10,12 +10,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.rodrigo.backend2java.model.Habito;
 import com.rodrigo.backend2java.model.Usuario;
-import com.rodrigo.backend2java.model.StatusHabito;
 import com.rodrigo.backend2java.model.dto.request.HabitoRequestDTO;
+import com.rodrigo.backend2java.model.dto.response.HabitoResponseDTO;
 import com.rodrigo.backend2java.repository.HabitoRepository;
 import com.rodrigo.backend2java.repository.UsuarioRepository;
+import com.rodrigo.backend2java.repository.HabitoHojeRepository;
 import com.rodrigo.backend2java.repository.StatusHabitoRepository;
 import com.rodrigo.backend2java.repository.SubAtividadeRepository;
 
@@ -42,10 +42,12 @@ class HabitoServiceSubAtividadeTest {
     private UsuarioRepository usuarioRepository;
     @Mock
     private SubAtividadeRepository subAtividadeRepository;
+    @Mock
+    private HabitoHojeRepository habitoHojeRepository;
 
     private HabitoService novoHabitoService() {
         return new HabitoService(habitoRepository, statusHabitoRepository, usuarioRepository,
-                subAtividadeRepository);
+                subAtividadeRepository, habitoHojeRepository);
     }
 
     // @audit-ok [Caso pedido no plano (E0.5.5): hábito de 2100 ml em 3 vezes ao
@@ -115,10 +117,10 @@ class HabitoServiceSubAtividadeTest {
         final var usuario = Usuario.builder().id(UUID.randomUUID()).email("teste@teste.com").build();
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.of(usuario));
         when(habitoRepository.findAllByUsuarioId(any())).thenReturn(List.of());
-        when(habitoRepository.findById(any()))
-                .thenReturn(Optional.of(Habito.builder().id(UUID.randomUUID()).ativo(true).build()));
-        when(statusHabitoRepository.findById(any()))
-                .thenReturn(Optional.of(StatusHabito.builder().habitoId(UUID.randomUUID()).build()));
+        // E1.1: buscarDetalhadoPorId agora lê vw_habito_hoje via HabitoHojeRepository,
+        // não mais HabitoRepository/StatusHabitoRepository — só esse mock importa aqui.
+        when(habitoHojeRepository.findByHabitoId(any()))
+                .thenReturn(Optional.of(HabitoResponseDTO.builder().build()));
 
         final var request = HabitoRequestDTO.builder()
                 .titulo("Beber água")

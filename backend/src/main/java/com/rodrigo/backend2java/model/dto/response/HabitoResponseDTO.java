@@ -20,5 +20,9 @@ public record HabitoResponseDTO(
         Integer dias_seguidos,
         Integer execucoes_hoje,
         OffsetDateTime proximo_vencimento,
-        Boolean bloqueio_usado_hoje) {
+        Boolean bloqueio_usado_hoje,
+        // @audit-ok [E1.1 — COMPLETED/PENDING, direto de vw_habito_hoje.status_hoje.
+        // Campo novo, adicionado no fim do record para não mexer na ordem dos 16
+        // campos existentes.]
+        String status) {
 }

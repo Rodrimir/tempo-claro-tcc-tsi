@@ -282,6 +282,14 @@ CREATE INDEX IF NOT EXISTS ix_dis_usuario
 -- 10. VIEW DE DERIVAÇÃO — estado do hábito hoje
 -- Existe para que o campo "status" do DTO (tarefa E1.1) tenha uma fonte única,
 -- em vez de a regra ser reescrita em cada consulta.
+--
+-- E1.1: virou a fonte ÚNICA de HabitoResponseDTO inteiro (HabitoHojeRepository
+-- lê direto daqui), não só do campo status — por isso hab_tipo_medida,
+-- hab_modalidade e sta_bloqueio_usado_hoje foram adicionados ao final do
+-- SELECT (a view já não tinha esses três, que o DTO sempre teve). Acrescentar
+-- no FIM da lista, sem mexer na ordem das colunas existentes, é o que permite
+-- o CREATE OR REPLACE VIEW continuar idempotente a cada boot sem precisar de
+-- DROP VIEW antes.
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW vw_habito_hoje AS
 SELECT
@@ -301,7 +309,10 @@ SELECT
     CASE
         WHEN s.sta_execucoes_hoje >= COALESCE(sub.total_ocorrencias, 1)
         THEN 'COMPLETED' ELSE 'PENDING'
-    END AS status_hoje
+    END AS status_hoje,
+    h.hab_tipo_medida,
+    h.hab_modalidade,
+    s.sta_bloqueio_usado_hoje
 FROM habitos h
 JOIN status_habitos s ON s.sta_habito_id = h.hab_id
 LEFT JOIN (

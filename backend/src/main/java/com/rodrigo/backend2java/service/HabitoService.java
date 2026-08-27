@@ -13,6 +13,7 @@ import com.rodrigo.backend2java.model.SubAtividade;
 import com.rodrigo.backend2java.repository.HabitoRepository;
 import com.rodrigo.backend2java.repository.UsuarioRepository;
 import org.springframework.transaction.annotation.Transactional;
+import com.rodrigo.backend2java.repository.HabitoHojeRepository;
 import com.rodrigo.backend2java.repository.StatusHabitoRepository;
 import com.rodrigo.backend2java.repository.SubAtividadeRepository;
 import com.rodrigo.backend2java.model.dto.request.HabitoRequestDTO;
@@ -39,6 +40,7 @@ public class HabitoService {
         private final StatusHabitoRepository statusHabitoRepository;
         private final UsuarioRepository usuarioRepository;
         private final SubAtividadeRepository subAtividadeRepository;
+        private final HabitoHojeRepository habitoHojeRepository;
 
         @Transactional
         public HabitoResponseDTO criarHabito(final String emailContexto, final HabitoRequestDTO request) {
@@ -111,32 +113,14 @@ public class HabitoService {
                                 .collect(Collectors.toList());
         }
 
-        // @audit-ok [Dashboard (9) — JOIN lógico entre habitos e status_habitos para montar HabitoResponseDTO]
+        // @audit-ok [Dashboard (9) / E1.1 — antes fazia o JOIN lógico em Java entre
+        // Habito e StatusHabito; agora lê vw_habito_hoje inteira de uma vez só
+        // (HabitoHojeRepository), que já traz status/meta_frequencia_diaria
+        // derivados no banco. Não reescreve a regra de COMPLETED/PENDING em Java —
+        // só consome o que a view já calculou.]
         public HabitoResponseDTO buscarDetalhadoPorId(final UUID habitoId) {
-                final var habito = habitoRepository.findById(habitoId)
+                return habitoHojeRepository.findByHabitoId(habitoId)
                                 .orElseThrow(() -> new RuntimeException("Hábito não encontrado"));
-
-                final var status = statusHabitoRepository.findById(habitoId)
-                                .orElseThrow(() -> new RuntimeException("Status do Hábito não encontrado"));
-
-                return HabitoResponseDTO.builder()
-                                .id(habito.getId())
-                                .titulo(habito.getTitulo())
-                                .categoria(habito.getCategoria())
-                                .tipo_medida(habito.getTipoMedida())
-                                .modalidade(habito.getModalidade())
-                                .horario_agendado(habito.getHorarioAgendado())
-                                .meta_base(habito.getMetaBase())
-                                .meta_frequencia_diaria(habito.getMetaFrequenciaDiaria())
-                                .intervalo_minutos(habito.getIntervaloMinutos())
-                                .ativo(habito.getAtivo())
-                                .moedas_locais(status.getMoedasLocais())
-                                .bloqueios_acumulados(status.getBloqueiosAcumulados())
-                                .dias_seguidos(status.getDiasSeguidos())
-                                .execucoes_hoje(status.getExecucoesHoje())
-                                .proximo_vencimento(status.getProximoVencimento())
-                                .bloqueio_usado_hoje(status.getBloqueioUsadoHoje())
-                                .build();
         }
 
         @Transactional
