@@ -1,7 +1,6 @@
 package com.rodrigo.backend2java.controller;
 import java.util.Map;
 import java.util.UUID;
-import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,6 +12,7 @@ import com.rodrigo.backend2java.model.dto.request.HabitoRequestDTO;
 import com.rodrigo.backend2java.model.dto.response.HabitoResponseDTO;
 import com.rodrigo.backend2java.model.dto.request.ExecutionRequestDTO;
 import com.rodrigo.backend2java.model.dto.response.PrimingResponseDTO;
+import com.rodrigo.backend2java.model.dto.response.DashboardResponseDTO;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.rodrigo.backend2java.model.dto.response.ExecutionResponseDTO;
 
@@ -25,10 +25,16 @@ public class HabitoController {
     private final GamificacaoService gamificacaoService;
 
     // @audit-ok [Dashboard (1) — extrai email do SecurityContext e busca todos os hábitos do usuário]
+    // @audit-ok [E1.3 — resposta envelopada em DashboardResponseDTO (antes era
+    // a lista de hábitos crua) para expor limite_habitos_ativos junto, e o
+    // front nunca precisar repetir o número do limite por conta própria.]
     @GetMapping("/dashboard")
-    public ResponseEntity<List<HabitoResponseDTO>> getDashboard() {
+    public ResponseEntity<DashboardResponseDTO> getDashboard() {
         final var emailContexto = SecurityContextHolder.getContext().getAuthentication().getName();
-        return ResponseEntity.ok(habitoService.listarDashboard(emailContexto));
+        return ResponseEntity.ok(DashboardResponseDTO.builder()
+                .habits(habitoService.listarDashboard(emailContexto))
+                .limite_habitos_ativos(HabitoService.LIMITE_HABITOS_ATIVOS)
+                .build());
     }
 
     // @audit-ok [Criar Hábito (1) — cria novo hábito com status inicial zerado para o usuário autenticado]

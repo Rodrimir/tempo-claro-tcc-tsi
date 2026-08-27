@@ -10,6 +10,20 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
   const [overachieveTime, setOverachieveTime] = useState(0);
   const timerRef = useRef(null);
   const stateRef = useRef({ timeLeft: initialSeconds, isOverachieving: false, overachieveTime: 0 });
+  // @audit-ok [E1.2 — corrige bug pré-existente: executionToken começa vazio e
+  // é preenchido logo após a montagem (ver Execution/index.jsx). Antes dessa
+  // correção, pause() tinha executionToken como dependência do useCallback,
+  // então ganhava uma identidade NOVA nesse exato instante. Isso disparava o
+  // cleanup do efeito de visibilitychange (que depende de [pause, resume,
+  // isTimer]) — e o cleanup dele chama clearTimer(), que usa o MESMO
+  // timerRef.current do efeito do cronômetro. Resultado: o setInterval do
+  // cronômetro era morto segundos depois de criado, e nada o recriava — o
+  // timer congelava no valor inicial para SEMPRE, mesmo sem reload nenhum.
+  // Usar um ref em vez de dependência mantém pause() com identidade estável.
+  const executionTokenRef = useRef(executionToken);
+  useEffect(() => {
+    executionTokenRef.current = executionToken;
+  }, [executionToken]);
 
   useEffect(() => {
     stateRef.current = { timeLeft, isOverachieving, overachieveTime };
@@ -26,8 +40,8 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     clearTimer();
     // @audit-ok [Execução Timer (7) — salva timeLeft, isOverachieving e overachieveTime encriptados]
     const { timeLeft: tl, isOverachieving: iso, overachieveTime: ot } = stateRef.current;
-    saveExecutionState(habitId, executionToken, { timeLeft: tl, isOverachieving: iso, overachieveTime: ot }, Date.now());
-  }, [habitId, executionToken, isTimer]);
+    saveExecutionState(habitId, executionTokenRef.current, { timeLeft: tl, isOverachieving: iso, overachieveTime: ot }, Date.now());
+  }, [habitId, isTimer]);
 
   // @audit-ok [Execução Timer (8) — retoma do localStorage compensando o tempo que passou em background]
   const resume = useCallback(() => {

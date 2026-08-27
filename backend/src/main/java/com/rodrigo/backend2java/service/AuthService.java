@@ -37,6 +37,7 @@ public class AuthService {
                                 .user(AuthResponseDTO.UserDTO.builder()
                                                 .name(usuario.getNome())
                                                 .email(usuario.getEmail())
+                                                .fuso_horario(usuario.getFusoHorario())
                                                 .build())
                                 .build();
         }
@@ -71,6 +72,7 @@ public class AuthService {
                                 .user(AuthResponseDTO.UserDTO.builder()
                                                 .name(novoUsuario.getNome())
                                                 .email(novoUsuario.getEmail())
+                                                .fuso_horario(novoUsuario.getFusoHorario())
                                                 .build())
                                 .build();
         }

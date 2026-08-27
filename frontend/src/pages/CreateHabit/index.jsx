@@ -101,7 +101,12 @@ const CreateHabit = () => {
       addToast('Hábito criado com sucesso!', 'success');
       navigate('/home');
     } catch (err) {
-      addToast('Erro ao criar hábito. Limite de 5 atingido?', 'error');
+      // @audit-ok [E1.3 — usa a mensagem real do backend (RuntimeException vira
+      // 400 com o limite de verdade embutido, ver GlobalExceptionHandler), em
+      // vez de um literal fixo aqui. Assim o número nunca precisa ser mantido
+      // em dois lugares — e continua certo se o limite mudar de novo no futuro.]
+      const mensagem = err.response?.data?.message || 'Erro ao criar hábito. Tente novamente.';
+      addToast(mensagem, 'error');
       setIsSubmitting(false);
     }
   };

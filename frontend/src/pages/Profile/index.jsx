@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
-import { updateProfile } from '../../services/api';
+import { updateProfile, getMe } from '../../services/api';
 import { Shield, ShieldAlert, Moon, Sun, Globe } from 'lucide-react';
 import {
   ProfileContainer,
@@ -27,35 +27,82 @@ import {
 
 // @audit-ok [Perfil (1) — tela de dados do usuário: nome, fuso horário, tema e troca de senha]
 
+// @audit-ok [E1.4 — mesmo mínimo validado no backend (UsuarioService), para a
+// mensagem de erro aparecer sem precisar de round-trip à API.]
+const TAMANHO_MINIMO_SENHA = 8;
+
 const Profile = () => {
   const { logout, user, updateLocalUser } = useAuth();
   const { isDark, toggleTheme } = useThemeToggle();
   const { addToast } = useToast();
 
   // @audit-ok [Perfil (2) — estado inicial do formulário a partir do usuário autenticado]
-  // Antes o nome vinha fixo como 'Usuário'. Agora usa o dado que o backend devolve
-  // em AuthResponseDTO.user no login, persistido pelo AuthContext.
+  // nome/fusoHorario aqui são só o placeholder até GET /me responder (abaixo) —
+  // nunca a fonte de verdade. fusoHorario começava fixo em 'America/Sao_Paulo'
+  // e NUNCA era atualizado com o valor real: por isso o seletor sempre mostrava
+  // Brasília, e salvar qualquer outra coisa (ex.: só o nome) reenviava esse
+  // default e sobrescrevia o fuso de verdade que o usuário já tinha salvo.
   const [formData, setFormData] = useState({
     nome: user?.name || '',
     senhaAtual: '',
     novaSenha: '',
+    confirmarNovaSenha: '',
     fusoHorario: 'America/Sao_Paulo'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // O AuthContext resolve o usuário de forma assíncrona na verificação do token,
-  // então o nome pode chegar depois desta tela montar.
+  // @audit-ok [E1.5 (item 3) — carrega os dados reais de GET /me ao montar, não
+  // o que ficou em cache desde o login (AuthResponseDTO só tem nome/email/fuso
+  // do momento do login — pode estar desatualizado numa sessão longa). É esta
+  // chamada que corrige o fuso_horario exibido/reenviado no formulário.]
   useEffect(() => {
-    if (user?.name) {
-      setFormData(prev => (prev.nome ? prev : { ...prev, nome: user.name }));
-    }
-  }, [user]);
+    getMe()
+      .then(res => {
+        setFormData(prev => ({
+          ...prev,
+          nome: res.data.nome ?? prev.nome,
+          fusoHorario: res.data.fuso_horario || 'America/Sao_Paulo'
+        }));
+      })
+      .catch(() => {
+        // GET /me falhou — mantém nome do AuthContext e o fuso padrão como
+        // estavam; handleUpdate segue funcionando normalmente.
+      });
+  }, []);
 
   // @audit-ok [Perfil (3) — processa submissão do formulário de atualização]
   const handleUpdate = async (e) => {
     e.preventDefault();
+
+    // @audit-ok [E1.4 — falso sucesso: antes, preencher só "Senha Atual" (com
+    // "Nova Senha" vazia) enviava um payload SEM nenhuma das duas senhas —
+    // "formData.novaSenha &&" no spread abaixo nem olhava senhaAtual — e o
+    // usuário recebia "Perfil atualizado com sucesso!" achando que trocou a
+    // senha. Bloqueia os dois preenchimentos parciais antes de chamar a API.]
+    if (formData.senhaAtual && !formData.novaSenha) {
+      addToast('Preencha a nova senha para concluir a alteração.', 'error');
+      return;
+    }
+    if (formData.novaSenha && !formData.senhaAtual) {
+      addToast('Informe a senha atual para alterar a senha.', 'error');
+      return;
+    }
+    // @audit-ok [E1.4 (item 3/4) — só valida confirmação/comprimento quando o
+    // usuário está de fato tentando trocar a senha (novaSenha preenchida)]
+    if (formData.novaSenha) {
+      if (formData.novaSenha.length < TAMANHO_MINIMO_SENHA) {
+        addToast(`A nova senha deve ter pelo menos ${TAMANHO_MINIMO_SENHA} caracteres.`, 'error');
+        return;
+      }
+      if (formData.novaSenha !== formData.confirmarNovaSenha) {
+        addToast('A confirmação não corresponde à nova senha.', 'error');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
+      const trocandoSenha = Boolean(formData.novaSenha);
       // @audit-ok [Perfil (4) — monta payload incluindo senhas apenas se novaSenha foi preenchida]
       // As chaves são snake_case porque é isso que ProfileUpdateDTO declara. Antes
       // eram enviadas em camelCase (fusoHorario/senhaAtual/novaSenha): o Jackson
@@ -64,19 +111,24 @@ const Profile = () => {
       await updateProfile({
         nome: formData.nome,
         fuso_horario: formData.fusoHorario,
-        ...(formData.novaSenha && {
+        ...(trocandoSenha && {
           senha_atual: formData.senhaAtual,
           nova_senha: formData.novaSenha
         })
       });
       // @audit-ok [Perfil (15) — confirma sucesso e limpa campos de senha]
       updateLocalUser({ name: formData.nome });
-      addToast('Perfil atualizado com sucesso!', 'success');
+      // @audit-ok [E1.4 (item 5) — distingue a mensagem: "Senha alterada" só
+      // quando de fato havia troca de senha no payload enviado]
+      addToast(trocandoSenha ? 'Senha alterada com sucesso!' : 'Perfil atualizado com sucesso!', 'success');
       // @audit-ok [Perfil (16) — limpa campos de senha após salvar]
-      setFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '' }));
+      setFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '', confirmarNovaSenha: '' }));
     } catch (err) {
       console.error("Erro ao atualizar perfil", err);
-      addToast('Erro ao atualizar perfil. Verifique seus dados.', 'error');
+      // @audit-ok [E1.4 — usa a mensagem real do backend (ex.: "Senha atual
+      // incorreta") em vez de um texto genérico que esconde o motivo real]
+      const mensagem = err.response?.data?.message || 'Erro ao atualizar perfil. Verifique seus dados.';
+      addToast(mensagem, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -173,6 +225,17 @@ const Profile = () => {
             type="password"
             value={formData.novaSenha}
             onChange={e => setFormData({ ...formData, novaSenha: e.target.value })}
+          />
+        </FormGroup>
+
+        {/* @audit-ok [E1.4 (item 3) — confirmação da nova senha] */}
+        <FormGroup>
+          <Label htmlFor="profile-confirmar-nova-senha">Confirmar Nova Senha</Label>
+          <Input
+            id="profile-confirmar-nova-senha"
+            type="password"
+            value={formData.confirmarNovaSenha}
+            onChange={e => setFormData({ ...formData, confirmarNovaSenha: e.target.value })}
           />
         </FormGroup>
 

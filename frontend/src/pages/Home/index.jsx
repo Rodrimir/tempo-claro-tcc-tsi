@@ -42,6 +42,10 @@ const HomeScreen = () => {
   const { setCurrentHabit } = useCurrentHabit();
   const { isDark } = useThemeToggle();
   const [localHabits, setLocalHabits] = useState([]);
+  // @audit-ok [E1.3 — limite de hábitos ativos (RF03), lido de
+  // limite_habitos_ativos no envelope de GET /dashboard. O "2" aqui é só o
+  // fallback de exibição antes da 1ª resposta chegar, nunca a fonte da regra.]
+  const [limiteHabitos, setLimiteHabitos] = useState(2);
 
   // @audit-ok [Dashboard (2) — busca lista de hábitos ao montar a tela]
   useEffect(() => {
@@ -50,6 +54,10 @@ const HomeScreen = () => {
         // @audit-ok [Dashboard (3) — chama GET /dashboard]
         const response = await getDashboard();
         let data = response.data.habits || response.data || [];
+        // @audit-ok [E1.3 — guarda o limite vindo do servidor, se presente]
+        if (typeof response.data.limite_habitos_ativos === 'number') {
+          setLimiteHabitos(response.data.limite_habitos_ativos);
+        }
         if (Array.isArray(data)) {
           // @audit-ok [Dashboard (13) — ordena: COMPLETED vai ao final, depois por proximo_vencimento]
           data.sort((a, b) => {
@@ -153,7 +161,8 @@ const HomeScreen = () => {
             </HabitSlide>
           );
         })}
-        {localHabits.length < 5 && (
+        {/* @audit-ok [E1.3 — RF03: só oferece criar hábito novo abaixo do limite] */}
+        {localHabits.length < limiteHabitos && (
           <HabitSlide>
             <SlideInner>
               <SunWrapper>
@@ -176,7 +185,7 @@ const HomeScreen = () => {
       </CarouselWrapper>
       <DotsWrapper>
         {localHabits.map((_, i) => <Dot key={i} $active={i === activeIndex} />)}
-        {localHabits.length < 5 && <Dot $active={activeIndex === localHabits.length} />}
+        {localHabits.length < limiteHabitos && <Dot $active={activeIndex === localHabits.length} />}
       </DotsWrapper>
       <ActionWrapper>
         {activeIndex < localHabits.length && localHabits[activeIndex]?.status !== 'COMPLETED' ? (

@@ -27,8 +27,12 @@ public class HabitoService {
          * RF03 — o usuário pode manter no máximo 2 hábitos ativos simultâneos.
          * O foco isolado (RNF02) é a premissa do app: mais de dois hábitos em
          * paralelo recria a lista de tarefas que o Tempo Claro existe para evitar.
+         *
+         * @audit-ok [E1.3 — público de propósito: HabitoController expõe este
+         * valor em GET /api/dashboard (DashboardResponseDTO.limite_habitos_ativos)
+         * para o front nunca precisar repetir o número por conta própria.]
          */
-        private static final int LIMITE_HABITOS_ATIVOS = 2;
+        public static final int LIMITE_HABITOS_ATIVOS = 2;
 
         // ck_sub_ordem do schema v2.1 permite sub_ordem só entre 1 e 12.
         private static final int MAX_VEZES_AO_DIA = 12;

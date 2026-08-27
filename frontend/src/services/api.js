@@ -49,6 +49,10 @@ export const buyShield = async (id) => api.post(`/habits/${id}/shield`);
 // @audit-ok [Perfil (5) — PUT /profile]
 export const updateProfile = async (data) => api.put('/profile', data);
 
+// @audit-ok [E1.5 (item 1) — GET /me, fonte de verdade do perfil (inclui
+// fuso_horario), consultada pela tela de Perfil ao montar]
+export const getMe = async () => api.get('/me');
+
 // @audit-ok [Criar Hábito (12) — POST /habits]
 export const createHabit = async (data) => api.post('/habits', data);
 

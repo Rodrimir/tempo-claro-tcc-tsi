@@ -51,6 +51,29 @@ export const isWithinTolerance = (lastTimestamp) => {
   return diff < 3600000;
 };
 
+// @audit-ok [E1.2 — guarda só o ID do hábito em execução, em sessionStorage
+// (escopo da aba, some ao fechá-la). É diferente de saveExecutionState acima:
+// aquela guarda o tempo decorrido de UM hábito específico (localStorage,
+// sobrevive a fechar a aba); esta guarda QUAL hábito está em execução agora,
+// para a tela /execute conseguir se recuperar de um F5 — sem isso não há
+// como nem saber qual chave tempoClaro_exec_* consultar depois de recarregar.]
+export const saveExecutingHabitId = (habitId) => {
+  const encrypted = encryptData(habitId);
+  if (encrypted) sessionStorage.setItem('tempoClaro_execucao_habito_id', encrypted);
+};
+
+export const loadExecutingHabitId = () => {
+  const encrypted = sessionStorage.getItem('tempoClaro_execucao_habito_id');
+  return decryptData(encrypted);
+};
+
+// @audit-ok [E1.2 — limpa junto com clearExecutionState (conclusão/desistência),
+// senão um acesso futuro a /execute sem hábito no contexto recuperaria um
+// hábito já finalizado.]
+export const clearExecutingHabitId = () => {
+  sessionStorage.removeItem('tempoClaro_execucao_habito_id');
+};
+
 // @audit-ok [Verificação de Token (3) — lê e decripta JWT do localStorage]
 export const getAuthToken = () => {
   const encrypted = localStorage.getItem('tempoClaro_token');
