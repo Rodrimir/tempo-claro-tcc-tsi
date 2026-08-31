@@ -28,8 +28,13 @@ export const ToastContainer = styled.div`
   }
 `;
 
+// @audit-ok [E3.4 — era var(--danger-color)/var(--success-color): com o
+// texto branco por cima, essa dupla caía tão baixo quanto 1,92:1 no tema
+// escuro (successColor lá é pastel de propósito, pensado pra ser texto/ícone
+// sobre fundo escuro, não fundo sólido com texto branco). Troca pros tokens
+// *-strong, com margem confortável nos dois temas.]
 export const ToastMessage = styled.div`
-  background: ${(props) => props.$type === 'error' ? 'var(--danger-color)' : (props.$type === 'success' ? 'var(--success-color)' : 'var(--bg-surface)')};
+  background: ${(props) => props.$type === 'error' ? 'var(--danger-strong)' : (props.$type === 'success' ? 'var(--success-strong)' : 'var(--bg-surface)')};
   color: ${(props) => props.$type === 'default' ? 'var(--text-primary)' : 'white'};
   padding: 16px 24px;
   border-radius: 12px;
@@ -41,8 +46,9 @@ export const ToastMessage = styled.div`
   align-items: center;
   gap: 12px;
   pointer-events: auto;
+  cursor: pointer;
   animation: ${slideIn} 0.3s ease-out forwards;
-  
+
   &.fading {
     animation: ${fadeOut} 0.3s ease-out forwards;
   }

@@ -49,11 +49,20 @@ export const StepTitle = styled.h2`
   margin-bottom: 16px;
 `;
 
+// @audit-ok [E3.5 — padding lateral era fixo em 24px, cancelado pela margem
+// negativa (-24px) usada pra sangrar o container até a borda da tela; sobrava
+// pouco espaço real pra um card de 280px centralizar via scroll-snap-align:
+// center (precisa de ~(largura da tela - largura do card)/2 de cada lado — em
+// torno de 55-100px num viewport de 390-480px, não 24px). Card cortado na
+// borda era esse déficit. calc(50% - 140px) = metade do container menos
+// metade do card (280/2), deixando o card ativo perfeitamente centralizado
+// com os vizinhos espiando pelas bordas; max(24px, ...) evita padding zerado
+// num viewport hipotético menor que o próprio card.]
 export const MoldeScrollContainer = styled.div`
   display: flex;
   overflow-x: auto;
   gap: 16px;
-  padding: 16px 24px;
+  padding: 16px max(24px, calc(50% - 140px));
   margin: 0 -24px;
   scroll-snap-type: x mandatory;
   &::-webkit-scrollbar {
@@ -61,7 +70,10 @@ export const MoldeScrollContainer = styled.div`
   }
 `;
 
-export const MoldeCard = styled.div`
+// @audit-ok [E3.5 — era styled.div com onClick só de mouse/toque, sem
+// role/tabIndex/onKeyDown. Virou styled.button: foco e ativação por
+// Enter/Espaço vêm de graça da semântica nativa, sem precisar simular.]
+export const MoldeCard = styled.button`
   min-width: 280px;
   background: ${(props) => props.$active ? 'var(--primary-light)' : 'var(--bg-surface)'};
   border: 2px solid ${(props) => props.$active ? 'var(--primary-color)' : 'transparent'};
@@ -74,6 +86,13 @@ export const MoldeCard = styled.div`
   cursor: pointer;
   scroll-snap-align: center;
   transition: all 0.2s;
+  font-family: inherit;
+  appearance: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
 `;
 
 export const MoldeEmoji = styled.span`
@@ -92,12 +111,14 @@ export const MoldeDesc = styled.p`
   color: var(--text-secondary);
 `;
 
+// @audit-ok [E3.4 — primaryColor era pastel de propósito no tema escuro;
+// com texto branco por cima (preenchimento sólido), precisa do primary-strong.]
 export const NextButton = styled.button`
   width: 100%;
   margin-top: 24px;
   padding: 20px;
   border-radius: 9999px;
-  background: var(--primary-color);
+  background: var(--primary-strong);
   color: white;
   font-weight: 700;
   font-size: 18px;
@@ -126,6 +147,21 @@ export const OptionCard = styled.div`
   align-items: center;
   gap: 16px;
   cursor: pointer;
+`;
+
+// @audit-ok [E2.6 (item 1) — variante não-clicável de OptionCard: borda
+// tracejada e opacidade reduzida sinalizam "não é uma opção de verdade" à
+// primeira vista, sem precisar de texto extra explicando.]
+export const StaticOptionCard = styled.div`
+  padding: 24px;
+  background: var(--bg-surface);
+  border-radius: 16px;
+  border: 1px dashed var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0.6;
+  cursor: default;
 `;
 
 export const OptionIconWrapper = styled.div`
@@ -171,15 +207,25 @@ export const Label = styled.label`
   margin-bottom: 8px;
 `;
 
+// @audit-ok [E2.6 (item 3) — prop $error acrescenta a borda vermelha quando o
+// campo tem uma mensagem pendente em errors[campo] (ver index.jsx).]
 export const Input = styled.input`
   width: 100%;
   padding: 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid ${(props) => props.$error ? 'var(--danger-color)' : 'var(--border-color)'};
   border-radius: 12px;
   font-size: 16px;
   background: var(--bg-primary);
   color: var(--text-primary);
   outline: none;
+`;
+
+// @audit-ok [E2.6 (item 3) — mensagem de erro por campo, não mais um toast
+// genérico de "falha de rede" pra problema de validação.]
+export const ErrorText = styled.p`
+  color: var(--danger-color);
+  font-size: 12px;
+  margin-top: 6px;
 `;
 
 export const GridRow = styled.div`
@@ -188,29 +234,78 @@ export const GridRow = styled.div`
   gap: 12px;
 `;
 
+// @audit-ok [E2.8 (item 1) — um bloco por ocorrência quando "Vezes ao Dia" > 1;
+// borda separa visualmente cada ocorrência dentro do mesmo FormCard.]
+export const OcorrenciaRow = styled.div`
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color);
+
+  &:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+`;
+
+// @audit-ok [E2.8 (item 2) — alvo calculado ao vivo, recalculado a cada
+// mudança de meta ou de vezes ao dia (ver calcularAlvos em index.jsx).]
+export const OcorrenciaAlvo = styled.p`
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--primary-color);
+  margin-bottom: 8px;
+`;
+
 export const WeekDaysContainer = styled.div`
   display: flex;
   gap: 8px;
   justify-content: space-between;
 `;
 
+// @audit-ok [E2.4 (item 4) — era um círculo de 36px pensado pra 1 letra
+// (D S T Q Q S S, que repetia 3 letras e confundia). Com o rótulo virando
+// 3 letras (DOM SEG TER...), deixou de ser círculo e ganhou padding
+// horizontal em vez de largura fixa.]
 export const DayButton = styled.button`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  min-width: 40px;
+  height: 32px;
+  padding: 0 4px;
+  border-radius: 10px;
   border: none;
-  background: ${(props) => props.$active ? 'var(--primary-color)' : 'var(--bg-primary)'};
+  background: ${(props) => props.$active ? 'var(--primary-strong)' : 'var(--bg-primary)'};
   color: ${(props) => props.$active ? 'white' : 'var(--text-secondary)'};
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
   cursor: pointer;
 `;
 
+// @audit-ok [E2.6 (item 5) — Passo 4: card de revisão antes da confirmação
+// final, único ponto de checagem já que o questionário automático (D4) não
+// existe pra cumprir esse papel.]
+export const ReviewCard = styled.div`
+  background: var(--bg-surface);
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+`;
+
+export const ReviewText = styled.p`
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+
+  strong {
+    color: var(--primary-color);
+  }
+`;
+
+// @audit-ok [E3.4 — mesmo motivo do NextButton acima ("Confirmar e Criar
+// Hábito", o botão final do assistente).]
 export const SubmitButton = styled.button`
   width: 100%;
   padding: 20px;
   border-radius: 9999px;
-  background: var(--primary-color);
+  background: var(--primary-strong);
   color: white;
   font-weight: 700;
   font-size: 18px;

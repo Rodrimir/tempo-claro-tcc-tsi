@@ -23,6 +23,11 @@ public class Usuario {
     @Builder.Default
     private String preferenciaIdioma = "pt-BR";
 
+    // @audit-ok [E3.4 (item 2) — espelha o DEFAULT 'sistema' da coluna
+    // usu_tema (CHECK ck_usu_tema em 'claro'/'escuro'/'sistema').]
+    @Builder.Default
+    private String tema = "sistema";
+
     @Builder.Default
     private OffsetDateTime criadoEm = OffsetDateTime.now();
 }

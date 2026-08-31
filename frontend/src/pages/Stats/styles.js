@@ -56,6 +56,14 @@ export const CardValue = styled.div`
   font-weight: 800;
 `;
 
+// @audit-ok [E2.2 — legenda pequena abaixo do valor, usada no card de
+// Constância Semanal ("X de 7 dias com a meta cumprida")]
+export const CardSubtext = styled.div`
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 4px;
+`;
+
 export const ChartCard = styled.div`
   background: var(--bg-surface);
   padding: 20px;
@@ -106,4 +114,21 @@ export const EmptyText = styled.p`
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.5;
+`;
+
+// @audit-ok [E1.8 (item 1) — reaproveita o mesmo EmptyStateContainer/EmptyIconWrapper
+// para o estado de ERRO (ícone de aviso em vez de lupa), não só para "nenhum
+// hábito em foco".]
+// @audit-ok [E3.4 — primaryColor era pastel de propósito no tema escuro;
+// com texto branco por cima (preenchimento sólido), precisa do primary-strong.]
+export const RetryButton = styled.button`
+  margin-top: 20px;
+  padding: 16px 32px;
+  font-weight: 700;
+  border-radius: 100px;
+  box-shadow: 0 10px 20px rgba(79,70,229,0.3);
+  border: none;
+  background: var(--primary-strong);
+  color: white;
+  cursor: pointer;
 `;

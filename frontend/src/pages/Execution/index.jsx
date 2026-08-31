@@ -8,7 +8,6 @@ import { saveExecutingHabitId, loadExecutingHabitId, clearExecutingHabitId } fro
 import CircularProgress from '../../components/common/CircularProgress';
 import MonospaceTimer from '../../components/common/MonospaceTimer';
 import GiveUpModal from '../../components/common/GiveUpModal';
-import PwaPauseModal from '../../components/common/PwaPauseModal';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import {
   ExecutionContainer,
@@ -102,8 +101,29 @@ const ExecutionActive = ({ habit }) => {
   const { addToast } = useToast();
   const [executionToken, setExecutionToken] = useState('');
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
-  const [showPwaModal, setShowPwaModal] = useState(false);
+  // @audit-ok [E3.3 (item 4) — PwaPauseModal removido: setShowPwaModal(true)
+  // nunca existiu em lugar nenhum do código (só false, dentro dos próprios
+  // callbacks do modal que nunca disparavam). useTimer.js já pausa/retoma
+  // sozinho no visibilitychange (E1.2) — resume() acontece sem perguntar
+  // nada ao usuário, então o modal nunca tinha como aparecer de verdade.]
   const [quantity, setQuantity] = useState(0);
+
+  // @audit-ok [E2.8 (item 3) — a meta desta EXECUÇÃO é o alvo da ocorrência
+  // atual (sub_alvo), não mais sempre o meta_base do dia inteiro. Pra hábito
+  // de 1x/dia os dois são sempre iguais (a única ocorrência tem alvo =
+  // meta_base ÷ 1), então nada muda pra nenhum hábito de 1x/dia — só passa a
+  // valer de verdade pra hábito de N vezes ao dia, que antes da E2.8 não tinha
+  // como saber "quanto falta SÓ desta vez". Fallback pra meta_base cobre
+  // hábitos sem sub_atividade ainda (não deveria acontecer, mas não quebra).]
+  const metaOcorrenciaAtual = habit.alvo_ocorrencia_atual ?? habit.meta_base;
+
+  // @audit-ok [E2.7 (item 1) — passo proporcional à meta, não mais fixo em 50.
+  // 50 fixo fazia um hábito de "10 flexões" passar de 0% a 500% no primeiro
+  // toque, e um hábito de 2000ml precisar de 40 toques pra completar.
+  // max(1, ...) evita passo 0 em metas pequenas (ex.: meta=5 arredondaria pra 0).
+  // E2.8: agora sobre metaOcorrenciaAtual — um hábito de 2100ml em 3x tem
+  // passo baseado em 700, não nos 2100 do dia inteiro.]
+  const passo = Math.max(1, Math.round(metaOcorrenciaAtual / 10));
 
   // @audit-ok [Execução Timer (2) — gera token único de idempotência para esta sessão de execução]
   useEffect(() => {
@@ -120,7 +140,7 @@ const ExecutionActive = ({ habit }) => {
     resume,
     clearTimerState
   } = useTimer(
-    habit.tipo_medida === 'TEMPO' ? habit.meta_base : 0,
+    habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual : 0,
     habit.id,
     executionToken,
     habit.tipo_medida === 'TEMPO'
@@ -137,22 +157,28 @@ const ExecutionActive = ({ habit }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executionToken]);
 
-  const isQuantityDone = quantity >= habit.meta_base;
+  const isQuantityDone = quantity >= metaOcorrenciaAtual;
 
-  // @audit-ok [Execução Timer (14) — processa conclusão: calcula bônus, envia para API e navega para sucesso]
+  // @audit-ok [E1.6 — RF22/RNF08: o cliente não decide mais padrão vs extra.
+  // Antes calculava isExtra aqui e mandava tipo: 'COMPLETE_EXTRA'/'COMPLETE_PADRAO'
+  // — um cliente adulterado podia sempre mandar EXTRA e ganhar 150 moedas sem
+  // ter feito por merecer. Agora só manda o que de fato aconteceu
+  // (valor_realizado); GamificacaoService.processarExecucao recalcula o bônus
+  // no servidor e devolve moedas_ganhas/bonus prontos.]
   const handleComplete = async () => {
     try {
       // @audit-ok [Execução Timer (15) — pausa o timer antes de enviar]
       pause();
-      // @audit-ok [Execução Timer (16) — determina se merece bônus: ultrapassou 20% da meta]
-      const isExtra = habit.tipo_medida === 'TEMPO'
-        ? isOverachieving && overachieveTime >= (habit.meta_base * 0.2)
-        : quantity >= (habit.meta_base * 1.2);
 
+      // @audit-ok [E1.6 (item 4) — payload só com execution_token e valor_realizado.
+      // E2.8: valor_realizado passa a ser sobre a ocorrência atual
+      // (metaOcorrenciaAtual), não o meta_base do dia — StatsService (E2.2) já
+      // SOMA valor_realizado por dia entre várias execuções, então isso é
+      // exatamente o que faz um dia de 3 execuções de 700 aparecer como 2100
+      // no gráfico, em vez de exigir uma execução só valendo o dia inteiro.]
       const payload = {
         execution_token: executionToken,
-        tipo: isExtra ? 'COMPLETE_EXTRA' : 'COMPLETE_PADRAO',
-        valor_realizado: habit.tipo_medida === 'TEMPO' ? (habit.meta_base + overachieveTime) : quantity
+        valor_realizado: habit.tipo_medida === 'TEMPO' ? (metaOcorrenciaAtual + overachieveTime) : quantity
       };
 
       // @audit-ok [Execução Timer (17) — envia POST /habits/{id}/executions]
@@ -161,8 +187,9 @@ const ExecutionActive = ({ habit }) => {
       clearTimerState();
       // @audit-ok [E1.2 — limpa também o ponteiro de "hábito em execução"]
       clearExecutingHabitId();
-      // @audit-ok [Execução Timer (28) — navega para tela de sucesso passando dados da recompensa]
-      navigate('/success', { state: { bonus: isExtra, feedback: res.data } });
+      // @audit-ok [Execução Timer (28) / E1.6 (item 5) — a tela de Sucesso lê
+      // "bonus" exclusivamente de res.data (decidido pelo servidor)]
+      navigate('/success', { state: { feedback: res.data } });
     } catch (err) {
       addToast('Erro ao registrar conclusão. Tente novamente.', 'error');
     }
@@ -177,7 +204,7 @@ const ExecutionActive = ({ habit }) => {
       const payload = {
         execution_token: executionToken,
         tipo: type,
-        valor_realizado: habit.tipo_medida === 'TEMPO' ? (habit.meta_base - timeLeft) : quantity
+        valor_realizado: habit.tipo_medida === 'TEMPO' ? (metaOcorrenciaAtual - timeLeft) : quantity
       };
       // @audit-ok [Desistência (8) — envia POST /habits/{id}/executions com tipo FAIL]
       const res = await submitExecution(habit.id, payload);
@@ -197,19 +224,29 @@ const ExecutionActive = ({ habit }) => {
       <HeaderWrapper>
         <HeaderLabel>Focando em</HeaderLabel>
         <HeaderTitle>{habit.titulo}</HeaderTitle>
+        {/* @audit-ok [E2.8 (item 3) — "2 de 3 hoje" também na execução, não só
+            no card do Home; só aparece pra hábito de mais de 1x/dia.] */}
+        {habit.meta_frequencia_diaria > 1 && (
+          <HeaderLabel>{habit.execucoes_hoje || 0} de {habit.meta_frequencia_diaria} hoje</HeaderLabel>
+        )}
       </HeaderWrapper>
 
       <ContentWrapper>
         {habit.tipo_medida === 'TEMPO' ? (
           <MonospaceTimer isOverachieving={isOverachieving} overachieveTime={overachieveTime} timeLeft={timeLeft} />
         ) : (
-          <CircularProgress quantity={quantity} meta_base={habit.meta_base} />
+          // @audit-ok [E2.7 (item 3) — onQuantityChange habilita a edição manual
+          // tocando no número central; sem esta prop o componente continuaria
+          // só de leitura (ver CircularProgress/index.jsx).]
+          <CircularProgress quantity={quantity} meta_base={metaOcorrenciaAtual} onQuantityChange={setQuantity} />
         )}
 
+        {/* @audit-ok [E2.7 (item 2) — rótulo mostra o passo real (-200/+200,
+            -1/+1...), nunca mais "50" fixo.] */}
         {habit.tipo_medida === 'QUANTIDADE' && (
           <ControlsWrapper>
-            <SubButton onClick={() => setQuantity(Math.max(0, quantity - 50))}>-50</SubButton>
-            <AddButton onClick={() => setQuantity(quantity + 50)}>+50</AddButton>
+            <SubButton onClick={() => setQuantity(Math.max(0, quantity - passo))}>-{passo}</SubButton>
+            <AddButton onClick={() => setQuantity(quantity + passo)}>+{passo}</AddButton>
           </ControlsWrapper>
         )}
       </ContentWrapper>
@@ -232,13 +269,6 @@ const ExecutionActive = ({ habit }) => {
           bloqueiosAcumulados={habit.bloqueios_acumulados}
           handleGiveUp={handleGiveUp}
           onCancel={() => { setShowGiveUpModal(false); resume(); }}
-        />
-      )}
-
-      {showPwaModal && (
-        <PwaPauseModal
-          onResume={() => { setShowPwaModal(false); resume(); }}
-          onTimeout={() => { setShowPwaModal(false); handleGiveUp('FAIL_TIMEOUT'); }}
         />
       )}
     </ExecutionContainer>

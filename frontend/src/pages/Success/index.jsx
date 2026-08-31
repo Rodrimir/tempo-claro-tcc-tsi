@@ -23,12 +23,16 @@ const Success = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // @audit-ok [Sucesso (2) — extrai flag de bônus do estado de navegação]
-  const isBonus = location.state?.bonus;
   // @audit-ok [Sucesso (3) — extrai dados da recompensa retornados pela API de execução]
   const feedback = location.state?.feedback;
-
-  const moedasGanhas = feedback?.moedas_ganhas || (isBonus ? 150 : 100);
+  // @audit-ok [E1.6 (item 5) — "bonus" vem exclusivamente do servidor
+  // (GamificacaoService.processarExecucao já decidiu e devolveu isso). Antes
+  // vinha calculado pelo Execution.jsx e chegava via location.state.bonus, e
+  // moedasGanhas tinha (isBonus ? 150 : 100) como reserva local — exatamente
+  // os literais que RF22/RNF08 proíbem no cliente. Sem "bonus" no feedback,
+  // não há como fingir extra: cai em false.]
+  const isBonus = Boolean(feedback?.bonus);
+  const moedasGanhas = feedback?.moedas_ganhas ?? 0;
   const diasSeguidos = feedback?.dias_seguidos || 1;
   const subtitleText = feedback?.texto_feedback || 'A excelência é um hábito.';
 

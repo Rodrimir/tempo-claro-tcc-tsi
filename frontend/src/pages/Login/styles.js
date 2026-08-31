@@ -113,7 +113,7 @@ export const SubmitButton = styled.button`
   width: 100%;
   padding: 16px;
   border-radius: 12px;
-  background: ${({ theme, disabled }) => (disabled ? theme.primaryLight : theme.primaryColor)};
+  background: ${({ theme, disabled }) => (disabled ? theme.primaryLight : theme.primaryStrong)};
   color: ${({ theme, disabled }) => (disabled ? theme.primaryColor : 'white')};
   font-weight: 700;
   font-size: 16px;
@@ -134,31 +134,6 @@ export const Spinner = styled.div`
   border-top-color: transparent;
   border-radius: 50%;
   animation: ${spin} 1s linear infinite;
-`;
-
-export const Divider = styled.div`
-  text-align: center;
-  color: ${({ theme }) => theme.textSecondary};
-  font-size: 14px;
-  margin: 16px 0;
-  font-weight: 600;
-`;
-
-export const GoogleButton = styled.button`
-  width: 100%;
-  padding: 16px;
-  font-size: 16px;
-  background: ${({ theme }) => theme.bgSurface};
-  border: 2px solid ${({ theme }) => theme.borderColor};
-  color: ${({ theme }) => theme.textPrimary};
-  font-weight: 600;
-  border-radius: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.3s ease;
 `;
 
 export const SettingsModalOverlay = styled.div`
@@ -209,24 +184,34 @@ export const SettingsRow = styled.div`
   }
 `;
 
-export const ToggleSwitch = styled.div`
-  width: 40px;
-  height: 24px;
-  background: ${({ theme, $active }) => ($active ? theme.primaryColor : theme.borderColor)};
+// @audit-ok [E3.4 (item 2/4) — substitui o antigo ToggleSwitch binário (só
+// claro/escuro, sem estado 'sistema' e sem foco de teclado). São botões
+// nativos de verdade: Tab e Enter/Espaço funcionam sem nenhuma cablagem
+// extra de teclado.]
+export const ThemeSegmentedControl = styled.div`
+  display: flex;
+  background: ${({ theme }) => theme.borderColor};
   border-radius: 12px;
-  position: relative;
-  transition: background 0.3s;
-  
-  .dot {
-    width: 20px;
-    height: 20px;
-    background: white;
-    border-radius: 50%;
-    position: absolute;
-    left: ${({ $active }) => ($active ? '18px' : '2px')};
-    top: 2px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    transition: left 0.3s;
+  padding: 3px;
+  gap: 2px;
+`;
+
+export const ThemeOptionButton = styled.button`
+  padding: 6px 12px;
+  border-radius: 9px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ theme, $active }) => ($active ? theme.bgSurface : 'transparent')};
+  color: ${({ theme, $active }) => ($active ? theme.primaryColor : theme.textSecondary)};
+  box-shadow: ${({ $active }) => ($active ? '0 1px 3px rgba(0,0,0,0.15)' : 'none')};
+  transition: all 0.2s ease;
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.primaryColor};
+    outline-offset: 2px;
   }
 `;
 

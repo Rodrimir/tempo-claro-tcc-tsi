@@ -13,5 +13,8 @@ public record UsuarioResponseDTO(
         String nome,
         String email,
         String fuso_horario,
-        String preferencia_idioma) {
+        String preferencia_idioma,
+        // @audit-ok [E3.4 (item 2) — mesmo motivo do fuso_horario acima: fonte
+        // de verdade que a tela de Perfil consulta ao montar.]
+        String tema) {
 }

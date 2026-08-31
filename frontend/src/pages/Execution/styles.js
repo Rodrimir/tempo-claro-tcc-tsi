@@ -58,12 +58,13 @@ export const SubButton = styled.button`
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 `;
 
+// @audit-ok [E3.4 — mesmo motivo do CompleteButton acima, mas com primaryColor.]
 export const AddButton = styled.button`
   width: 64px;
   height: 64px;
   border-radius: 50%;
   border: none;
-  background: var(--primary-color);
+  background: var(--primary-strong);
   font-size: 24px;
   font-weight: 700;
   color: white;
@@ -85,11 +86,14 @@ export const CompleteButtonWrapper = styled.div`
   width: 100%;
 `;
 
+// @audit-ok [E3.4 — successColor era pastel de propósito no tema escuro;
+// com texto branco por cima (preenchimento sólido do botão), precisa do
+// token *-strong.]
 export const CompleteButton = styled.button`
   width: 100%;
   padding: 20px;
   border-radius: 9999px;
-  background: var(--success-color);
+  background: var(--success-strong);
   color: white;
   font-weight: 700;
   font-size: 18px;

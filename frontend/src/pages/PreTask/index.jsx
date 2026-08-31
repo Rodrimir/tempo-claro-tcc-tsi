@@ -8,6 +8,8 @@ import {
   BackButtonWrapper,
   BackButton,
   ContentWrapper,
+  HabitName,
+  GatilhoText,
   QuoteText,
   ActionWrapper,
   ReadyButton
@@ -46,6 +48,14 @@ const PreTask = () => {
       </BackButtonWrapper>
 
       <ContentWrapper>
+        {/* @audit-ok [E4.1 (item 4) — nome do hábito, antes ausente desta
+            tela por completo.] */}
+        <HabitName>{currentHabit?.titulo}</HabitName>
+        {/* @audit-ok [E4.1 (item 3) — gatilho_ancora é opcional; sem ele,
+            pula direto para a frase motivacional, como já era.] */}
+        {currentHabit?.gatilho_ancora && (
+          <GatilhoText>⚓ {currentHabit.gatilho_ancora}</GatilhoText>
+        )}
         <Quote size={48} style={{ marginBottom: '24px', opacity: 0.5 }} />
         <QuoteText>{text}</QuoteText>
       </ContentWrapper>

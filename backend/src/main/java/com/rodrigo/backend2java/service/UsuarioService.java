@@ -1,4 +1,5 @@
 package com.rodrigo.backend2java.service;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.rodrigo.backend2java.util.ZonaUsuario;
@@ -17,6 +18,11 @@ public class UsuarioService {
     // curta que o formulário permitiria.]
     private static final int TAMANHO_MINIMO_SENHA = 8;
 
+    // @audit-ok [E3.4 (item 2) — mesmo CHECK ck_usu_tema do schema v2.1.
+    // Validado aqui, não com @Pattern no DTO, pra seguir o mesmo estilo que
+    // fuso_horario/ZonaUsuario já usa neste service.]
+    private static final Set<String> TEMAS_VALIDOS = Set.of("claro", "escuro", "sistema");
+
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -32,6 +38,7 @@ public class UsuarioService {
                 .email(usuario.getEmail())
                 .fuso_horario(usuario.getFusoHorario())
                 .preferencia_idioma(usuario.getPreferenciaIdioma())
+                .tema(usuario.getTema())
                 .build();
     }
 
@@ -52,6 +59,18 @@ public class UsuarioService {
                 throw new RuntimeException("Fuso horário inválido: " + request.fuso_horario());
             }
             usuario.setFusoHorario(request.fuso_horario());
+        }
+
+        // @audit-ok [E3.4 (item 2) — mesmo padrão do bloco de fuso_horario
+        // acima: valor fora de 'claro'/'escuro'/'sistema' vira RuntimeException
+        // (400 legível via GlobalExceptionHandler) antes de chegar perto do
+        // banco — o CHECK ck_usu_tema fica como backstop, não como o caminho
+        // normal de validação.]
+        if (request.tema() != null && !request.tema().isBlank()) {
+            if (!TEMAS_VALIDOS.contains(request.tema())) {
+                throw new RuntimeException("Tema inválido: " + request.tema());
+            }
+            usuario.setTema(request.tema());
         }
 
         // @audit-ok [E1.4 — mesmo bug do front, espelhado na API: enviar só

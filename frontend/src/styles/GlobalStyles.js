@@ -13,6 +13,12 @@ export const GlobalStyle = createGlobalStyle`
     --success-color: ${(props) => props.theme.successColor};
     --warning-color: ${(props) => props.theme.warningColor};
     --danger-color: ${(props) => props.theme.dangerColor};
+    --danger-light: ${(props) => props.theme.dangerLight};
+    --primary-strong: ${(props) => props.theme.primaryStrong};
+    --success-strong: ${(props) => props.theme.successStrong};
+    --warning-strong: ${(props) => props.theme.warningStrong};
+    --danger-strong: ${(props) => props.theme.dangerStrong};
+    --bonus-strong: ${(props) => props.theme.bonusStrong};
     --border-color: ${(props) => props.theme.borderColor};
   }
   * {
@@ -22,12 +28,17 @@ export const GlobalStyle = createGlobalStyle`
   }
   body {
     font-family: 'Lexend', sans-serif;
-    background-color: ${(props) => props.theme.bgPrimary === '#0f172a' ? '#000000' : '#d8f3fd'};
-    background-image: ${(props) => props.theme.bgPrimary === '#0f172a'
+    /* @audit-ok [E3.4 — era "props.theme.bgPrimary === '#0f172a'": o
+       bgPrimary de verdade do tema escuro é #020617 (#0f172a é o bgSurface),
+       então essa comparação nunca batia e o fundo pontilhado claro aparecia
+       por trás do app mesmo no escuro. Trocado por um campo isDark explícito
+       no tema pra não depender de manter uma string em sincronia à mão.] */
+    background-color: ${(props) => props.theme.isDark ? '#000000' : '#d8f3fd'};
+    background-image: ${(props) => props.theme.isDark
     ? 'none'
     : 'radial-gradient(#89d4f6 3px, transparent 4px), radial-gradient(#89d4f6 2px, transparent 3px)'};
-    background-size: ${(props) => props.theme.bgPrimary === '#0f172a' ? 'auto' : '40px 40px, 60px 60px'};
-    background-position: ${(props) => props.theme.bgPrimary === '#0f172a' ? '0 0' : '0 0, 20px 20px'};
+    background-size: ${(props) => props.theme.isDark ? 'auto' : '40px 40px, 60px 60px'};
+    background-position: ${(props) => props.theme.isDark ? '0 0' : '0 0, 20px 20px'};
     color: ${(props) => props.theme.textPrimary};
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.3s ease, color 0.3s ease;

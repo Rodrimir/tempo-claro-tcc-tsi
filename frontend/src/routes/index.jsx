@@ -38,7 +38,10 @@ const AppRoutes = () => {
           <Route path="/home" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/create" element={<CreateHabit />} />
-          <Route path="/stats/:period?" element={<Stats />} />
+          {/* @audit-ok [E3.3 (item 5) — :period? removido: Stats.jsx nunca leu
+              esse parâmetro (nenhum seletor de período foi implementado), e
+              nenhuma navegação no app manda um valor pra ele.] */}
+          <Route path="/stats" element={<Stats />} />
           <Route path="/store" element={<Store />} />
         </Route>
 

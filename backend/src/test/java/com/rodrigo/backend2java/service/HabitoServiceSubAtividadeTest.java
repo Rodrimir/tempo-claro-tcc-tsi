@@ -44,10 +44,12 @@ class HabitoServiceSubAtividadeTest {
     private SubAtividadeRepository subAtividadeRepository;
     @Mock
     private HabitoHojeRepository habitoHojeRepository;
+    @Mock
+    private ProximoVencimentoService proximoVencimentoService;
 
     private HabitoService novoHabitoService() {
         return new HabitoService(habitoRepository, statusHabitoRepository, usuarioRepository,
-                subAtividadeRepository, habitoHojeRepository);
+                subAtividadeRepository, habitoHojeRepository, proximoVencimentoService);
     }
 
     // @audit-ok [Caso pedido no plano (E0.5.5): hábito de 2100 ml em 3 vezes ao
@@ -70,18 +72,22 @@ class HabitoServiceSubAtividadeTest {
 
     // @audit-ok [Item 2 — "jogando o resto na última ocorrência". O caso de
     // 2100/3 acima não testa isso sozinho (resto = 0); 10 em 3 vezes prova a
-    // regra: 3, 3 e 4 (o resto de 1 cai na 3ª).]
+    // regra: 3, 3 e 4 (o resto de 1 cai na 3ª).
+    // E2.6 (item 6): passou a exigir horário explícito com mais de 1x/dia —
+    // este teste ganhou LocalTime.of(8,0) pra continuar válido; a cobertura de
+    // "horário nulo cai em 23:59" migrou pra
+    // semHorarioInformado_comUmaOcorrencia_usaPadrao2359 (só é permitido com
+    // vezesAoDia=1 agora).]
     @Test
     void metaComResto_jogaSobraNaUltimaOcorrencia() {
         final var habitoService = novoHabitoService();
         final var habitoId = UUID.randomUUID();
 
-        final var subAtividades = habitoService.gerarSubAtividades(habitoId, 10, 3, null);
+        final var subAtividades = habitoService.gerarSubAtividades(habitoId, 10, 3, LocalTime.of(8, 0));
 
         assertEquals(List.of(3, 3, 4), subAtividades.stream().map(s -> s.getAlvo()).toList());
         assertEquals(10, subAtividades.stream().mapToInt(s -> s.getAlvo()).sum());
-        // horarioAgendado nulo cai no padrão 23:59 (item 1)
-        assertEquals(LocalTime.of(23, 59), subAtividades.get(0).getHorarioInicio());
+        assertEquals(LocalTime.of(8, 0), subAtividades.get(0).getHorarioInicio());
     }
 
     // @audit-ok [Item 1 — hábito sem "vezes ao dia" informado gera 1 única
@@ -98,6 +104,32 @@ class HabitoServiceSubAtividadeTest {
         assertEquals(8, subAtividades.get(0).getAlvo());
     }
 
+    // @audit-ok [Item 1 — horário nulo cai no padrão 23:59, mas só é permitido
+    // quando há 1 única ocorrência ao dia (ver teste seguinte pra quando não é).]
+    @Test
+    void semHorarioInformado_comUmaOcorrencia_usaPadrao2359() {
+        final var habitoService = novoHabitoService();
+        final var habitoId = UUID.randomUUID();
+
+        final var subAtividades = habitoService.gerarSubAtividades(habitoId, 8, 1, null);
+
+        assertEquals(LocalTime.of(23, 59), subAtividades.get(0).getHorarioInicio());
+    }
+
+    // @audit-ok [E2.6 (item 6) — regra nova: com mais de 1 vez ao dia, todas as
+    // ocorrências compartilham o mesmo horário (E0.5.5 ainda não diferencia
+    // horário por ocorrência), então deixar em branco faria todas caírem em
+    // 23:59 sem o usuário ter escolhido isso. O servidor passa a exigir o
+    // mesmo que o formulário (CreateHabit.jsx) já exige.]
+    @Test
+    void maisDeUmaVezAoDia_semHorario_rejeitaAntesDeGerar() {
+        final var habitoService = novoHabitoService();
+        final var habitoId = UUID.randomUUID();
+
+        assertThrows(RuntimeException.class,
+                () -> habitoService.gerarSubAtividades(habitoId, 10, 3, null));
+    }
+
     // @audit-ok [Item 3 — não dá para repartir uma meta de 2 em 3 ocorrências
     // sem alguma ficar com sub_alvo = 0, o que violaria ck_sub_alvo (>= 1) no
     // banco. O service rejeita antes de chegar a violar o schema.]
@@ -107,7 +139,7 @@ class HabitoServiceSubAtividadeTest {
         final var habitoId = UUID.randomUUID();
 
         assertThrows(RuntimeException.class,
-                () -> habitoService.gerarSubAtividades(habitoId, 2, 3, null));
+                () -> habitoService.gerarSubAtividades(habitoId, 2, 3, LocalTime.of(8, 0)));
     }
 
     // @audit-ok [Item 1, fim a fim: criar um hábito de fato persiste as
@@ -129,6 +161,9 @@ class HabitoServiceSubAtividadeTest {
                 .modalidade("DIARIA")
                 .meta_base(2100)
                 .meta_frequencia_diaria(3)
+                // @audit-ok [E2.6 (item 6) — obrigatório agora que
+                // meta_frequencia_diaria > 1; sem isso gerarSubAtividades rejeita.]
+                .horario_agendado(LocalTime.of(8, 0))
                 .build();
 
         novoHabitoService().criarHabito("teste@teste.com", request);

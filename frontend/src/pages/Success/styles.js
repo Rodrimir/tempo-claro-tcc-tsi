@@ -16,7 +16,12 @@ export const SuccessContainer = styled.div`
   overflow: hidden;
   height: 100vh;
   // @audit-info : ajustado para diferenciar o bonus
-  background: ${(props) => props.$isBonus ? '#0ea5e9' : 'var(--success-color)'};
+  // @audit-ok [E3.4 — era '#0ea5e9' fixo (mesmo tom nos dois temas, sem
+  // token) e var(--success-color): com o texto branco por cima, essa dupla
+  // dava 2,77:1 e 2,54:1/1,92:1 de contraste, bem abaixo de 4,5:1. Trocado
+  // pelos tokens *-strong, pensados pra esse papel (preenchimento sólido com
+  // texto branco) e verificados ≥5,4:1 nos dois temas.]
+  background: ${(props) => props.$isBonus ? 'var(--bonus-strong)' : 'var(--success-strong)'};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -116,7 +121,7 @@ export const BackButton = styled.button`
   padding: 20px;
   border-radius: 9999px;
   background: white;
-  color: ${(props) => props.$isBonus ? '#0ea5e9' : 'var(--success-color)'};
+  color: ${(props) => props.$isBonus ? 'var(--bonus-strong)' : 'var(--success-strong)'};
   font-weight: 800;
   font-size: 18px;
   border: none;

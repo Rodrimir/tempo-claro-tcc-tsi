@@ -38,6 +38,7 @@ public class AuthService {
                                                 .name(usuario.getNome())
                                                 .email(usuario.getEmail())
                                                 .fuso_horario(usuario.getFusoHorario())
+                                                .tema(usuario.getTema())
                                                 .build())
                                 .build();
         }
@@ -73,6 +74,7 @@ public class AuthService {
                                                 .name(novoUsuario.getNome())
                                                 .email(novoUsuario.getEmail())
                                                 .fuso_horario(novoUsuario.getFusoHorario())
+                                                .tema(novoUsuario.getTema())
                                                 .build())
                                 .build();
         }

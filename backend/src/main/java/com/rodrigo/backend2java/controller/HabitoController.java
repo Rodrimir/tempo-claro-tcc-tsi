@@ -44,10 +44,12 @@ public class HabitoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(habitoService.criarHabito(emailContexto, request));
     }
 
-    // @audit-ok [Atualizar Hábito (1) — atualiza título e meta_base de um hábito existente]
+    // @audit-ok [Atualizar Hábito (1) — atualiza um hábito existente.
+    // E2.9 (item 4) — ganhou @Valid: antes era o único @RequestBody de
+    // HabitoRequestDTO sem validação nenhuma, inconsistente com createHabit.]
     @PutMapping("/habits/{id}")
     public ResponseEntity<Map<String, Boolean>> updateHabit(@PathVariable final UUID id,
-            @RequestBody final HabitoRequestDTO request) {
+            @Valid @RequestBody final HabitoRequestDTO request) {
         habitoService.atualizarHabito(id, request);
         return ResponseEntity.ok(Map.of("success", true));
     }

@@ -312,7 +312,20 @@ SELECT
     END AS status_hoje,
     h.hab_tipo_medida,
     h.hab_modalidade,
-    s.sta_bloqueio_usado_hoje
+    s.sta_bloqueio_usado_hoje,
+    -- @audit-ok [E2.3 — acrescentadas no fim da lista de colunas de propósito:
+    -- CREATE OR REPLACE VIEW não permite remover/reordenar colunas já
+    -- existentes, só adicionar no fim (mesma regra já seguida na E1.1).]
+    h.hab_meta_maxima,
+    h.hab_incremento,
+    h.hab_dias_incremento,
+    -- @audit-ok [E2.4 — idem: acrescentada no fim, mesma regra do CREATE OR
+    -- REPLACE VIEW já seguida na E1.1 e na E2.3.]
+    h.hab_frequencia_semanal,
+    -- @audit-ok [E4.1 — idem: acrescentada no fim, mesma regra já seguida
+    -- acima. Coluna existe desde sempre (hab_gatilho_ancora), só nunca tinha
+    -- sido lida por nenhum consumidor de vw_habito_hoje.]
+    h.hab_gatilho_ancora
 FROM habitos h
 JOIN status_habitos s ON s.sta_habito_id = h.hab_id
 LEFT JOIN (

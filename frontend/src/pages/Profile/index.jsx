@@ -3,12 +3,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
 import { updateProfile, getMe } from '../../services/api';
-import { Shield, ShieldAlert, Moon, Sun, Globe } from 'lucide-react';
+import { Moon, Sun, Globe, Monitor } from 'lucide-react';
 import {
   ProfileContainer,
   Title,
-  BannerText,
-  BannerAction,
   FormContainer,
   SectionTitle,
   FormGroup,
@@ -17,12 +15,9 @@ import {
   Select,
   SubmitButton,
   LogoutButton,
-  ModalText,
-  ModalSelect,
-  ModalBuyButton,
-  ModalCancelButton,
   SettingsRow,
-  ToggleSwitch
+  ThemeSegmentedControl,
+  ThemeOptionButton
 } from './styles';
 
 // @audit-ok [Perfil (1) — tela de dados do usuário: nome, fuso horário, tema e troca de senha]
@@ -33,7 +28,7 @@ const TAMANHO_MINIMO_SENHA = 8;
 
 const Profile = () => {
   const { logout, user, updateLocalUser } = useAuth();
-  const { isDark, toggleTheme } = useThemeToggle();
+  const { isDark, tema, setTema } = useThemeToggle();
   const { addToast } = useToast();
 
   // @audit-ok [Perfil (2) — estado inicial do formulário a partir do usuário autenticado]
@@ -63,12 +58,21 @@ const Profile = () => {
           nome: res.data.nome ?? prev.nome,
           fusoHorario: res.data.fuso_horario || 'America/Sao_Paulo'
         }));
+        // @audit-ok [E3.4 (item 2) — mesmo motivo do fuso_horario acima: o
+        // usu_tema salvo no backend é a fonte de verdade; sincroniza aqui
+        // caso divirja do que está no localStorage deste dispositivo (ex.:
+        // usuário mudou o tema em outro aparelho).]
+        if (res.data.tema) {
+          setTema(res.data.tema);
+        }
       })
       .catch(() => {
         // GET /me falhou — mantém nome do AuthContext e o fuso padrão como
         // estavam; handleUpdate segue funcionando normalmente.
       });
-  }, []);
+    // setTema é estável (useCallback em ThemeToggleContext) — seguro listar
+    // sem recriar o efeito a cada render.
+  }, [setTema]);
 
   // @audit-ok [Perfil (3) — processa submissão do formulário de atualização]
   const handleUpdate = async (e) => {
@@ -111,6 +115,7 @@ const Profile = () => {
       await updateProfile({
         nome: formData.nome,
         fuso_horario: formData.fusoHorario,
+        tema,
         ...(trocandoSenha && {
           senha_atual: formData.senhaAtual,
           nova_senha: formData.novaSenha
@@ -150,12 +155,40 @@ const Profile = () => {
           </div>
         </SettingsRow>
 
-        <SettingsRow $clickable onClick={toggleTheme} role="button" aria-label="Alternar Tema Escuro">
+        <SettingsRow>
           <div className="label">
             {isDark ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
-            Tema Escuro
+            Tema
           </div>
-          <ToggleSwitch $active={isDark}><div className="dot" /></ToggleSwitch>
+          <ThemeSegmentedControl role="group" aria-label="Escolher tema">
+            <ThemeOptionButton
+              type="button"
+              $active={tema === 'claro'}
+              aria-pressed={tema === 'claro'}
+              aria-label="Tema claro"
+              onClick={() => setTema('claro')}
+            >
+              <Sun size={16} aria-hidden="true" />
+            </ThemeOptionButton>
+            <ThemeOptionButton
+              type="button"
+              $active={tema === 'escuro'}
+              aria-pressed={tema === 'escuro'}
+              aria-label="Tema escuro"
+              onClick={() => setTema('escuro')}
+            >
+              <Moon size={16} aria-hidden="true" />
+            </ThemeOptionButton>
+            <ThemeOptionButton
+              type="button"
+              $active={tema === 'sistema'}
+              aria-pressed={tema === 'sistema'}
+              aria-label="Tema do sistema"
+              onClick={() => setTema('sistema')}
+            >
+              <Monitor size={16} aria-hidden="true" />
+            </ThemeOptionButton>
+          </ThemeSegmentedControl>
         </SettingsRow>
 
         <div style={{ marginTop: '24px' }}></div>

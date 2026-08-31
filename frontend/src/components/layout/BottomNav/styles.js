@@ -24,7 +24,10 @@ export const PlayButton = styled.button`
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: ${(props) => props.$completed ? 'var(--success-color)' : 'var(--primary-color)'};
+  // @audit-ok [E3.4 — successColor/primaryColor eram pastel de propósito no
+  // tema escuro; com texto branco por cima aqui (preenchimento sólido do
+  // botão Play), precisam dos tokens *-strong.]
+  background-color: ${(props) => props.$completed ? 'var(--success-strong)' : 'var(--primary-strong)'};
   color: white;
   display: flex;
   justify-content: center;

@@ -42,11 +42,15 @@ export const ButtonContainer = styled.div`
   gap: 12px;
 `;
 
+// @audit-ok [E3.4 — successColor/warningColor eram pastel de propósito no
+// tema escuro (papel de texto/ícone sobre fundo escuro); com texto branco por
+// cima como preenchimento sólido, davam 1,92:1/1,67:1. Tokens *-strong têm
+// esse papel especificamente.]
 export const PrimaryButton = styled.button`
   width: 100%;
   padding: 16px;
   border-radius: 12px;
-  background: var(--success-color);
+  background: var(--success-strong);
   color: white;
   font-weight: 700;
   font-size: 18px;
@@ -58,7 +62,7 @@ export const PrimaryButton = styled.button`
 export const ShieldButton = styled.button`
   padding: 16px;
   border-radius: 12px;
-  background: var(--warning-color);
+  background: var(--warning-strong);
   color: white;
   font-weight: 700;
   font-size: 16px;

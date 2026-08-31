@@ -74,11 +74,13 @@ export const Select = styled.select`
   outline: none;
 `;
 
+// @audit-ok [E3.4 — primaryColor era pastel de propósito no tema escuro;
+// com texto branco por cima (preenchimento sólido), precisa do primary-strong.]
 export const BuyButton = styled.button`
   width: 100%;
   padding: 16px;
   border-radius: 12px;
-  background: var(--primary-color);
+  background: var(--primary-strong);
   color: white;
   font-weight: 700;
   font-size: 18px;
@@ -125,6 +127,55 @@ export const ItemTitle = styled.div`
 export const ItemSubtitle = styled.div`
   font-size: 12px;
   color: var(--text-secondary);
+`;
+
+// @audit-ok [E3.1 (item 2) — mesmo padrão visual de EmptyStateContainer já
+// usado em Home.jsx/Stats.jsx, replicado aqui: essa tela nunca tinha nenhum
+// estado vazio dedicado antes desta tarefa.]
+export const EmptyStateContainer = styled.div`
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+`;
+
+export const EmptyIconWrapper = styled.div`
+  background: var(--bg-surface);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--text-secondary);
+`;
+
+export const EmptyTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+`;
+
+export const EmptyText = styled.p`
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+`;
+
+// @audit-ok [E3.1 (item 4) — inventário "vazio" no sentido de ninguém ter
+// escudo nenhum ainda (não é lista literalmente sem linhas — os hábitos
+// existem). Texto explicativo dentro do próprio InventorySection, sem
+// substituir a tela inteira como o estado de "sem hábitos" faz.]
+export const InventoryEmptyText = styled.p`
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  padding: 16px 0;
 `;
 
 export const ItemCount = styled.div`

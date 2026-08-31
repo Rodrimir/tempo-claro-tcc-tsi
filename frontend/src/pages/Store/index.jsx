@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Store as StoreIcon } from 'lucide-react';
 import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
 import LocalHeader from '../../components/layout/LocalHeader';
 import LoadingScreen from '../../components/common/LoadingScreen';
@@ -23,7 +23,12 @@ import {
   ItemInfo,
   ItemTitle,
   ItemSubtitle,
-  ItemCount
+  ItemCount,
+  EmptyStateContainer,
+  EmptyIconWrapper,
+  EmptyTitle,
+  EmptyText,
+  InventoryEmptyText
 } from './styles';
 
 // @audit-ok [Loja Escudo (1) — tela de compra de escudos protetores com moedas locais]
@@ -78,18 +83,48 @@ const Store = () => {
 
   if (loading) return <LoadingScreen message="Carregando Loja" />;
 
+  // @audit-ok [E3.1 (item 2) — antes desta tarefa, 0 hábitos deixava o
+  // <Select> sem nenhuma opção e "Seus Escudos Atuais" com a lista em branco,
+  // sem explicação nenhuma. Vira uma tela dedicada, igual ao padrão já usado
+  // em Home.jsx/Stats.jsx pra "nada aqui ainda".]
+  if (habits.length === 0) {
+    return (
+      <StoreContainer>
+        <Title>Loja do Hábito</Title>
+        <EmptyStateContainer>
+          <EmptyIconWrapper><StoreIcon size={32} /></EmptyIconWrapper>
+          <EmptyTitle>Nada pra comprar ainda</EmptyTitle>
+          <EmptyText>Crie um hábito para começar a ganhar moedas.</EmptyText>
+        </EmptyStateContainer>
+      </StoreContainer>
+    );
+  }
+
+  // @audit-ok [E3.1 (item 4) — "inventário vazio" aqui não é a lista sem
+  // linhas (os hábitos existem) — é ninguém ter nenhum escudo comprado ainda.
+  // Mostrar 3 linhas "0 🛡️" sem contexto não é uma explicação.]
+  const inventarioHabits = habits.filter(h => h.status !== 'ARCHIVED');
+  const nenhumEscudoAinda = inventarioHabits.every(h => (h.bloqueios_acumulados || 0) === 0);
+
   return (
     <StoreContainer>
-      <Title>Loja Local</Title>
+      {/* @audit-ok [E1.7 — D2: escudo automático às 23:59 ainda não existe
+          (fica pra E4.3). O texto antigo prometia esse comportamento; até a
+          E4.3 entrar, o único jeito de usar o escudo é escolher "Usar Escudo"
+          no modal de desistência (GiveUpModal) — ver
+          GamificacaoService.processarExecucao, ramo FAIL_BLOQUEIO.] */}
+      <Title>Loja do Hábito</Title>
       <Subtitle>
-        Gaste suas moedas ganhas com disciplina para comprar proteção contra imprevistos.
+        As moedas mostradas aqui pertencem só ao hábito selecionado — cada hábito
+        tem seu próprio saldo, não existe uma carteira única da conta.
       </Subtitle>
 
       <BuyCard>
         <IconWrapper><ShieldAlert size={32} /></IconWrapper>
         <CardTitle>Comprar Bloqueio (Escudo)</CardTitle>
         <CardText>
-          Custa 1500 moedas locais. Ele será gasto automaticamente às 23:59h caso você falhe na tarefa, salvando sua ofensiva!
+          Custa 1500 moedas deste hábito. Use o escudo ao desistir de uma tarefa
+          para não perder sua ofensiva. Limite de um escudo por dia por hábito.
         </CardText>
 
         <FormGroup>
@@ -107,24 +142,38 @@ const Store = () => {
           </Select>
         </FormGroup>
 
+        {/* @audit-ok [E3.4 — warningColor (pensado pra texto/ícone sobre
+            bg-surface) já dava 2,93:1 aqui mesmo antes desta tarefa, contra o
+            preenchimento roxo do botão — piorou pra 1,25:1 depois de
+            escurecer warningColor no tema claro para o papel de texto branco
+            em outro lugar. Como emoji normalmente ignora `color` do CSS (glifo
+            colorido próprio), o risco prático é baixo, mas simplifica pra
+            branco (igual ao resto do texto do botão) pra não depender de mais
+            nenhum token aqui.] */}
         <BuyButton onClick={handleBuyShield}>
-          Comprar (1500 <span style={{ color: 'var(--warning-color)' }}>🪙</span>)
+          Comprar (1500 <span style={{ color: 'white' }}>🪙</span>)
         </BuyButton>
       </BuyCard>
 
       <InventorySection>
         <InventoryTitle>Seus Escudos Atuais</InventoryTitle>
-        <InventoryList>
-          {habits.filter(h => h.status !== 'ARCHIVED').map(h => (
-            <InventoryItem key={h.id}>
-              <ItemInfo>
-                <ItemTitle>{h.titulo}</ItemTitle>
-                <ItemSubtitle>Saldo: {h.moedas_locais || 0} moedas</ItemSubtitle>
-              </ItemInfo>
-              <ItemCount>{h.bloqueios_acumulados || 0} <ShieldCheck size={20} /></ItemCount>
-            </InventoryItem>
-          ))}
-        </InventoryList>
+        {nenhumEscudoAinda ? (
+          <InventoryEmptyText>
+            Você ainda não tem nenhum escudo. Compre um acima para proteger sua ofensiva.
+          </InventoryEmptyText>
+        ) : (
+          <InventoryList>
+            {inventarioHabits.map(h => (
+              <InventoryItem key={h.id}>
+                <ItemInfo>
+                  <ItemTitle>{h.titulo}</ItemTitle>
+                  <ItemSubtitle>Saldo: {h.moedas_locais || 0} moedas</ItemSubtitle>
+                </ItemInfo>
+                <ItemCount>{h.bloqueios_acumulados || 0} <ShieldCheck size={20} /></ItemCount>
+              </InventoryItem>
+            ))}
+          </InventoryList>
+        )}
       </InventorySection>
     </StoreContainer>
   );

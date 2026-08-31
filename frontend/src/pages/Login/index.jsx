@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Globe, Moon, Sun } from 'lucide-react';
+import { Menu, Globe, Moon, Sun, Monitor } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
@@ -25,12 +25,11 @@ import {
   Input,
   SubmitButton,
   Spinner,
-  Divider,
-  GoogleButton,
   SettingsModalOverlay,
   SettingsModalContent,
   SettingsRow,
-  ToggleSwitch,
+  ThemeSegmentedControl,
+  ThemeOptionButton,
   LanguageButton,
   SettingsCloseButton
 } from './styles';
@@ -38,7 +37,7 @@ import {
 // @audit-ok [Login (1) / Cadastro (1) — tela de entrada com abas de Login e Criar Conta]
 
 const Login = () => {
-  const { isDark, toggleTheme } = useThemeToggle();
+  const { isDark, tema, setTema } = useThemeToggle();
   const { login, register } = useAuth();
   const { isSubmitting, executeAuth } = useLogin(login, register);
   const { addToast } = useToast();
@@ -166,12 +165,40 @@ const Login = () => {
               <div className="label"><Globe size={20} /> Idioma</div>
               <LanguageButton>🇧🇷 PT</LanguageButton>
             </SettingsRow>
-            <SettingsRow $clickable onClick={toggleTheme}>
+            <SettingsRow>
               <div className="label">
-                {isDark ? <Moon size={20} /> : <Sun size={20} />}
-                Tema Escuro
+                {isDark ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
+                Tema
               </div>
-              <ToggleSwitch $active={isDark}><div className="dot" /></ToggleSwitch>
+              <ThemeSegmentedControl role="group" aria-label="Escolher tema">
+                <ThemeOptionButton
+                  type="button"
+                  $active={tema === 'claro'}
+                  aria-pressed={tema === 'claro'}
+                  aria-label="Tema claro"
+                  onClick={() => setTema('claro')}
+                >
+                  <Sun size={16} aria-hidden="true" />
+                </ThemeOptionButton>
+                <ThemeOptionButton
+                  type="button"
+                  $active={tema === 'escuro'}
+                  aria-pressed={tema === 'escuro'}
+                  aria-label="Tema escuro"
+                  onClick={() => setTema('escuro')}
+                >
+                  <Moon size={16} aria-hidden="true" />
+                </ThemeOptionButton>
+                <ThemeOptionButton
+                  type="button"
+                  $active={tema === 'sistema'}
+                  aria-pressed={tema === 'sistema'}
+                  aria-label="Tema do sistema"
+                  onClick={() => setTema('sistema')}
+                >
+                  <Monitor size={16} aria-hidden="true" />
+                </ThemeOptionButton>
+              </ThemeSegmentedControl>
             </SettingsRow>
             <SettingsCloseButton onClick={() => setShowSettings(false)}>Fechar</SettingsCloseButton>
           </SettingsModalContent>

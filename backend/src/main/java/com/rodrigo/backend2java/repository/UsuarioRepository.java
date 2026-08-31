@@ -10,9 +10,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 // @audit-ok [Schema v2.1 — tabela usuarios agora usa prefixo usu_*. Nomes de
 // campo do model Usuario.java e dos DTOs não mudam, só as strings SQL e o
-// RowMapper. usu_tema e usu_atualizado_em (novas colunas, ambas com DEFAULT)
-// não têm campo correspondente no model ainda — ficam com o valor padrão do
-// banco até alguma tarefa futura precisar delas.]
+// RowMapper.]
+// @audit-ok [E3.4 — usu_tema ganhou campo correspondente no model (ver
+// Usuario.java). usu_atualizado_em continua sem campo Java — a coluna existe
+// só para o CURRENT_TIMESTAMP do UPDATE abaixo, não precisa ida-e-volta.]
 @Repository
 @RequiredArgsConstructor
 public class UsuarioRepository {
@@ -23,15 +24,15 @@ public class UsuarioRepository {
 
         private static final String COUNT_BY_EMAIL = "SELECT COUNT(1) FROM usuarios WHERE usu_email = ?";
 
-        private static final String INSERT_USUARIO = "INSERT INTO usuarios (usu_id, usu_nome, usu_email, usu_senha_hash, usu_fuso_horario, usu_preferencia_idioma, usu_criado_em) "
+        private static final String INSERT_USUARIO = "INSERT INTO usuarios (usu_id, usu_nome, usu_email, usu_senha_hash, usu_fuso_horario, usu_preferencia_idioma, usu_tema, usu_criado_em) "
                         +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         // usu_atualizado_em é atualizado aqui via CURRENT_TIMESTAMP — não precisa de
         // campo Java, a coluna existe justamente para isso.
         private static final String UPDATE_USUARIO = "UPDATE usuarios SET usu_nome = ?, usu_email = ?, usu_senha_hash = ?, usu_fuso_horario = ?, "
                         +
-                        "usu_preferencia_idioma = ?, usu_atualizado_em = CURRENT_TIMESTAMP WHERE usu_id = ?";
+                        "usu_preferencia_idioma = ?, usu_tema = ?, usu_atualizado_em = CURRENT_TIMESTAMP WHERE usu_id = ?";
 
         private final JdbcTemplate jdbcTemplate;
 
@@ -43,6 +44,7 @@ public class UsuarioRepository {
                         .senhaHash(rs.getString("usu_senha_hash"))
                         .fusoHorario(rs.getString("usu_fuso_horario"))
                         .preferenciaIdioma(rs.getString("usu_preferencia_idioma"))
+                        .tema(rs.getString("usu_tema"))
                         .criadoEm(rs.getObject("usu_criado_em", OffsetDateTime.class))
                         .build();
 
@@ -75,6 +77,7 @@ public class UsuarioRepository {
                                 usuario.getSenhaHash(),
                                 usuario.getFusoHorario(),
                                 usuario.getPreferenciaIdioma(),
+                                usuario.getTema(),
                                 usuario.getCriadoEm());
         }
 
@@ -86,6 +89,7 @@ public class UsuarioRepository {
                                 usuario.getSenhaHash(),
                                 usuario.getFusoHorario(),
                                 usuario.getPreferenciaIdioma(),
+                                usuario.getTema(),
                                 usuario.getId());
         }
 }

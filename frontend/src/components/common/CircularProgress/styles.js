@@ -38,10 +38,35 @@ export const TextContainer = styled.div`
   text-align: center;
 `;
 
+// @audit-ok [E2.7 (item 3) — $editavel só existe pra dar a dica visual de
+// "isto é clicável" quando onQuantityChange foi passado; sem callback, o
+// número continua com a aparência de sempre (cursor padrão).]
 export const QuantityText = styled.div`
   font-size: 32px;
   font-weight: 800;
   color: ${(props) => props.theme.textPrimary};
+  cursor: ${(props) => props.$editavel ? 'pointer' : 'inherit'};
+`;
+
+// @audit-ok [E2.7 (item 3) — substitui QuantityText enquanto o usuário digita
+// o valor manualmente.]
+export const QuantityInput = styled.input`
+  font-size: 32px;
+  font-weight: 800;
+  font-family: inherit;
+  color: ${(props) => props.theme.textPrimary};
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid ${(props) => props.theme.primaryColor};
+  text-align: center;
+  width: 100px;
+  outline: none;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 `;
 
 export const MetaText = styled.div`
