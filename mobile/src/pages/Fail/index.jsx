@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useExecutionResult } from '../../contexts/ExecutionResultContext';
@@ -19,6 +20,7 @@ import {
 
 const Fail = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { executionResult } = useExecutionResult();
   const flutuando = useFloat(4000, 10);
@@ -55,7 +57,7 @@ const Fail = () => {
   }
 
   return (
-    <FailContainer $bgColor={bgColor}>
+    <FailContainer $bgColor={bgColor} style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <ContentWrapper>
         <IconWrapper style={flutuando}>{icon}</IconWrapper>
         <Title>{title}</Title>

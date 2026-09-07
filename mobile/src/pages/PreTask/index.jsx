@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { getPreTaskPriming } from '../../services/api';
@@ -18,6 +19,7 @@ import {
 
 const PreTask = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [text, setText] = useState('Carregando...');
   const { currentHabit } = useCurrentHabit();
 
@@ -40,8 +42,8 @@ const PreTask = () => {
   }
 
   return (
-    <PreTaskContainer>
-      <BackButtonWrapper>
+    <PreTaskContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
+      <BackButtonWrapper style={{ top: insets.top + 24 }}>
         <BackButton onPress={() => router.push('/home')} accessibilityLabel="Voltar para a Home">
           <Feather name="arrow-left" size={32} color="white" />
         </BackButton>

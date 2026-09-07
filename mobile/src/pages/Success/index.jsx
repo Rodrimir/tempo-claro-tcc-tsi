@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useSharedValue,
@@ -65,6 +66,7 @@ function Particle({ size, left, duration, delay }) {
 
 const Success = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { executionResult } = useExecutionResult();
 
   const feedback = executionResult?.feedback;
@@ -91,7 +93,7 @@ const Success = () => {
   }, []);
 
   return (
-    <SuccessContainer $isBonus={isBonus}>
+    <SuccessContainer $isBonus={isBonus} style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <ParticlesWrapper>
         {particles.map((p, i) => (
           <Particle key={i} size={p.size} left={p.left} duration={p.duration} delay={p.delay} />

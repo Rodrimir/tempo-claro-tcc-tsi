@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal, View, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Feather } from '@expo/vector-icons';
@@ -41,6 +42,7 @@ import {
 
 const Profile = () => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { logout, user, updateLocalUser } = useAuth();
   const { isDark, tema, setTema } = useThemeToggle();
   const { addToast } = useToast();
@@ -100,7 +102,7 @@ const Profile = () => {
   };
 
   return (
-    <ProfileContainer>
+    <ProfileContainer $insetTop={insets.top}>
       <Title>Seu Perfil</Title>
 
       <FormContainer>

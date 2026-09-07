@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
@@ -41,6 +42,7 @@ import {
 
 const Store = () => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { addToast } = useToast();
   const [selectedHabitId, setSelectedHabitId] = useState('');
   const [habits, setHabits] = useState([]);
@@ -87,7 +89,7 @@ const Store = () => {
 
   if (habits.length === 0) {
     return (
-      <StoreContainer>
+      <StoreContainer $insetTop={insets.top}>
         <Title>Loja do Hábito</Title>
         <EmptyStateContainer>
           <EmptyIconWrapper>

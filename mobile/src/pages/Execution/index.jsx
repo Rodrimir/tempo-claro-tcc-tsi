@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Crypto from 'expo-crypto';
 import { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTimer } from '../../hooks/useTimer';
@@ -86,6 +87,7 @@ const ExecutionScreen = () => {
 
 const ExecutionActive = ({ habit }) => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { addToast } = useToast();
   const { setExecutionResult } = useExecutionResult();
   const [executionToken, setExecutionToken] = useState('');
@@ -164,7 +166,7 @@ const ExecutionActive = ({ habit }) => {
   };
 
   return (
-    <ExecutionContainer>
+    <ExecutionContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <HeaderWrapper>
         <HeaderLabel>Focando em</HeaderLabel>
         <HeaderTitle>{habit.titulo}</HeaderTitle>

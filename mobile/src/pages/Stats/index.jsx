@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View } from 'react-native';
 import { Svg, Rect } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import LoadingScreen from '../../components/common/LoadingScreen';
@@ -73,6 +74,7 @@ function GraficoBarras({ dias, theme }) {
 
 const Stats = () => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { currentHabit: habit } = useCurrentHabit();
   const { addToast } = useToast();
   const [dias, setDias] = useState([]);
@@ -156,7 +158,7 @@ const Stats = () => {
   const semExecucoes = dias.every((dia) => dia.execucoes === 0 && !dia.parcial);
   if (semExecucoes) {
     return (
-      <StatsContainer>
+      <StatsContainer style={{ paddingTop: insets.top + 24 }}>
         <Title>Dados do Hábito</Title>
         <HabitTitle>{habit.titulo}</HabitTitle>
         <EmptyStateContainer>

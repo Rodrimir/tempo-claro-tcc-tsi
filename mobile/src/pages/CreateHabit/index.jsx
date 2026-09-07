@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { createHabit, updateHabit } from '../../services/api';
@@ -108,6 +109,7 @@ function formDataInicial(editHabit, moldeInicial) {
 const CreateHabit = () => {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { modo } = useLocalSearchParams();
   const { currentHabit } = useCurrentHabit();
   const { addToast } = useToast();
@@ -288,7 +290,7 @@ const CreateHabit = () => {
     formData.frequencia_semanal.length === 7 ? 'todos os dias' : formData.frequencia_semanal.map((i) => DIAS_SEMANA[i]).join(', ');
 
   return (
-    <Container>
+    <Container $insetTop={insets.top}>
       <Header>
         {step > (isEditMode ? 3 : 1) ? (
           <BackButton onPress={handleBack} accessibilityLabel="Voltar">

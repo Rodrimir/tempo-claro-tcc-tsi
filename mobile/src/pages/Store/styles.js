@@ -3,7 +3,7 @@ import { Pressable } from 'react-native';
 import { fonts } from '../../styles/fonts';
 
 export const StoreContainer = styled.ScrollView.attrs((props) => ({
-  contentContainerStyle: { padding: 24, paddingBottom: 100, flexGrow: 1 },
+  contentContainerStyle: { padding: 24, paddingTop: 24 + (props.$insetTop || 0), paddingBottom: 100, flexGrow: 1 },
 }))`
   flex: 1;
   background-color: ${(props) => props.theme.bgPrimary};

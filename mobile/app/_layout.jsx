@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from 'styled-components/native';
 import {
   useFonts,
@@ -53,6 +55,7 @@ function ThemedApp() {
   const { isDark } = useThemeToggle();
   return (
     <ThemeProvider theme={isDark ? darkTheme : lightTheme}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ToastProvider>
         <AuthGuard />
       </ToastProvider>
@@ -79,14 +82,16 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <CurrentHabitProvider>
-        <ExecutionResultProvider>
-          <ThemeToggleProvider>
-            <ThemedApp />
-          </ThemeToggleProvider>
-        </ExecutionResultProvider>
-      </CurrentHabitProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <CurrentHabitProvider>
+          <ExecutionResultProvider>
+            <ThemeToggleProvider>
+              <ThemedApp />
+            </ThemeToggleProvider>
+          </ExecutionResultProvider>
+        </CurrentHabitProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

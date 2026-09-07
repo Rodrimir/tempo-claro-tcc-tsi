@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler, Modal, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Feather } from '@expo/vector-icons';
@@ -60,6 +61,7 @@ const Login = () => {
   const { addToast } = useToast();
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -106,8 +108,12 @@ const Login = () => {
   };
 
   return (
-    <LoginContainer>
-      <MenuBtn onPress={() => setShowSettings(true)} accessibilityLabel="Abrir configurações">
+    <LoginContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
+      <MenuBtn
+        style={{ top: insets.top + 24 }}
+        onPress={() => setShowSettings(true)}
+        accessibilityLabel="Abrir configurações"
+      >
         <Feather name="menu" size={28} color={theme.textPrimary} />
       </MenuBtn>
 

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useTheme } from 'styled-components/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCurrentHabit } from '../../../contexts/CurrentHabitContext';
 import {
@@ -20,6 +21,7 @@ import {
 const LocalHeader = () => {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { currentHabit: activeHabit } = useCurrentHabit();
 
   const moedas = activeHabit ? (activeHabit.moedas_locais ?? 0) : '—';
@@ -27,7 +29,7 @@ const LocalHeader = () => {
   const diasSeguidos = activeHabit ? (activeHabit.dias_seguidos ?? 0) : '—';
 
   return (
-    <HeaderContainer>
+    <HeaderContainer style={{ paddingTop: insets.top + 12 }}>
       <HabitNameRow>
         {activeHabit ? `Focando em ${activeHabit.titulo}` : 'Selecione um hábito'}
       </HabitNameRow>
