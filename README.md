@@ -49,13 +49,24 @@ desenvolvedor.
 
 ## 2. Arquitetura e Infraestrutura
 
-O sistema tem três camadas independentes, cada uma hospedada separadamente:
+O sistema tem duas camadas de apresentação e duas de infraestrutura compartilhada, cada uma
+hospedada separadamente:
 
 | Camada | Stack | Hospedagem | URL |
 |---|---|---|---|
-| **Frontend** | React 19 + Vite 8 + styled-components 6 + Capacitor 8 (Android) | Vercel | — |
+| **Frontend web** | React 19 + Vite 8 + styled-components 6 + Capacitor 8 (Android) | Vercel | — |
+| **App Android nativo** (`mobile/`) | React Native 0.86 + Expo SDK 57 + expo-router + styled-components/native | Local (build gerado, ainda não distribuído) | — |
 | **Backend** | Java 17 + **Spring Boot 4.0.3** + Gradle 9.3.1 + Docker | Render | `https://tempo-claro-tcc-tsi.onrender.com/api` |
 | **Banco** | PostgreSQL 16 | Neon (AWS `sa-east-1`) | — |
+
+**Por que existem duas pastas de frontend.** `frontend/` é o app web original (React + Vite),
+empacotado em Android via Capacitor — um WebView, não um app nativo (ver §11.5). `mobile/` é a
+mesma camada de apresentação **reescrita do zero em React Native + Expo**, consumindo a mesma API
+REST sem nenhuma alteração no backend. A migração (`PLANO_MIGRACAO_EXPO.md`) portou as dez telas,
+os componentes comuns e o cronômetro com paridade de comportamento — código completo (M0 a M5.2),
+mas o teste em aparelho físico e a comparação lado a lado com o app web (M5.3/M5.4) ainda estão
+pendentes, então `mobile/` não substituiu `frontend/` como versão de referência. Detalhes de
+diretórios, matriz de substituição e limitações preservadas de propósito em `mobile/README.md`.
 
 ### Decisões de arquitetura
 
@@ -1898,20 +1909,29 @@ Ainda sem uso em código, sem mudança desde a versão anterior:
 
 ### 11.5. Sobre a arquitetura mobile
 
-O aplicativo Android é um **WebView** empacotado pelo Capacitor, não um aplicativo nativo. Como
-`capacitor.plugins.json` está vazio, o app não tem acesso a recursos nativos. As duas consequências
-mais concretas:
+O `frontend/` empacotado pelo Capacitor é um **WebView**, não um aplicativo nativo — e essa
+limitação motivou a migração para `mobile/` (React Native + Expo, `PLANO_MIGRACAO_EXPO.md`). Esta
+seção descrevia, numa versão anterior, os dois problemas que essa arquitetura WebView carregava.
+Com a migração feita (código completo, teste físico ainda pendente — ver §2), o retrato muda para
+cada um dos dois pontos:
 
-- **O cronômetro não sobrevive em segundo plano de forma nativa.** O `useTimer` contorna isso
-  compensando o tempo decorrido via `visibilitychange`, mas o comportamento depende de o WebView
-  ser preservado pelo sistema.
-- **Não há notificações locais.** O aplicativo não consegue avisar o usuário sobre um prazo se
-  estiver fechado — uma limitação relevante para um app cuja proposta é o cumprimento de hábitos
-  no prazo.
+- **Cronômetro em segundo plano — resolvido no app nativo.** O `frontend/` (WebView) compensa o
+  tempo decorrido escutando `visibilitychange`, o que só funciona enquanto o sistema mantém o
+  WebView vivo. O `mobile/` reescreveu `useTimer` sobre um **deadline absoluto** (`Date.now() +
+  segundos`, não mais um decremento por tick) com `AppState` do React Native no lugar de
+  `visibilitychange`: `pause`/`resume` só persistem e releem esse instante fixo, sem aritmética de
+  "quanto tempo passou". Cobre inclusive o caso que o WebView não tinha como tratar — o processo
+  sendo **morto** pelo sistema em segundo plano, não só pausado: ao reabrir, o hook confere o
+  estado salvo antes de reativar o cronômetro, dentro da mesma tolerância de 1 hora que já existia.
+- **Notificações locais — ainda não implementadas, mas agora possíveis.** A migração **remove a
+  barreira técnica** (o `capacitor.plugins.json` vazio do WebView não dava acesso a nenhum recurso
+  nativo; o Expo tem `expo-notifications` disponível) — mas nenhuma tarefa da migração implementou
+  notificações de fato. O app `mobile/` continua sem avisar o usuário sobre um prazo com o app
+  fechado, exatamente como o `frontend/`. É trabalho futuro genuíno, não mais bloqueado por
+  arquitetura.
 
-Migrar para React Native ou nativo resolveria os dois pontos, ao custo de reescrever a camada de
-apresentação. O backend não precisaria de nenhuma alteração, por ser REST puro e agnóstico de
-cliente.
+O backend não precisou de nenhuma alteração para viabilizar isso — é REST puro e agnóstico de
+cliente, e a migração inteira trocou só a camada de apresentação.
 
 ---
 
