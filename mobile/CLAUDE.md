@@ -184,6 +184,32 @@ de verdade desde antes desta sessão de migração, e as quatro expressões (`no
 `desesperado`/`falha`) funcionam. Portado o comportamento REAL de `Home/index.jsx` (que já inclui
 `isDiaProgramado`, day-de-folga etc.), não a suposição desatualizada do prompt.
 
+## `useTimer`: deadline absoluto, e um bug do web corrigido na leitura
+
+O web decrementa `timeLeft` a cada tick (`prev - 1`) e persiste o TRIO `{timeLeft, isOverachieving,
+overachieveTime}` num snapshot. `mobile/src/hooks/useTimer.js` guarda só um número — o DEADLINE
+absoluto (`Date.now() + segundos`) — e deriva `timeLeft`/`isOverachieving`/`overachieveTime`
+comparando esse deadline contra `Date.now()` a cada tick. Isso torna `pause`/`resume` triviais: o
+deadline não muda com pausa (é um instante fixo no tempo), só precisa ser persistido e relido —
+nenhuma aritmética de "quanto tempo passou" é necessária, ao contrário do `timeDiff` que o web
+calcula à mão.
+
+**Bug do web encontrado ao portar, não introduzido aqui:** o `resume()` original faz `return`
+antes de `setIsActive(true)` quando a tolerância de 1h expira — ou seja, **o cronômetro não
+reativa sozinho** depois de uma pausa longa demais; fica parado até alguém chamar `start()`
+de novo. Replicado fielmente (`resume` e a checagem de montagem só ativam quando a tolerância
+passa) — não é uma correção desta migração, é o comportamento real que já existia.
+
+**Corrida do mount (item 5 da tarefa):** RN pode matar o processo com o app em segundo plano e
+recriar tudo do zero quando reaberto — cenário sem equivalente direto no web (que só perde estado
+com F5 explícito, nunca sozinho). O primeiro `useEffect` do hook checa `AsyncStorage` ANTES de
+ativar o timer pela primeira vez; só depois desse `await` resolver é que o listener do `AppState` é
+registrado (via a flag `pronto`), pra não competir com essa checagem inicial.
+
+`navigator.vibrate([100, 50, 100])` virou `Haptics.notificationAsync(NotificationFeedbackType.
+Success)` — não é o mesmo padrão de vibração (a API do RN não expõe um padrão customizado tão
+diretamente), é a extensão semanticamente mais próxima ("algo importante aconteceu").
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
