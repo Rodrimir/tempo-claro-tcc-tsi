@@ -978,6 +978,10 @@ E ATUALIZE o README.md da raiz:
 
 ---
 
+Concluído
+
+---
+
 ### ☐ M6.2 — Ajuste na monografia `M` ⭐
 
 **Por quê:** o texto descreve Vite, Capacitor e WebView. Isso deixa de ser verdade — e §11.5 já era um argumento pronto a favor da mudança.
