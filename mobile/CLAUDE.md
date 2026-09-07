@@ -138,6 +138,16 @@ sempre com `tema = 'sistema'` e só troca para o valor persistido (se houver `'c
 explícito) depois que a leitura assíncrona resolve, um frame ou dois depois do primeiro render.
 Diferença real e aceitável, não um bug a esconder.
 
+## Achado: `--warning-light` não existe no web
+
+`frontend/src/components/layout/LocalHeader/styles.js` referencia `var(--warning-light)` no fundo
+do `CoinsWrapper`. Essa custom property **não é definida em nenhum lugar** — nem em
+`theme.js` (que não tem chave `warningLight`), nem em `GlobalStyles.js` (que não reexporta essa
+variável). É bug real do app web hoje: o fundo do indicador de moedas é efetivamente transparente,
+não o amarelo pastel que a intenção do design sugere. Portado FIELMENTE
+(`props.theme.warningLight`, que é `undefined` — mesmo resultado prático: sem fundo). Não é escopo
+desta migração corrigir; **é achado para o `PLANO_EXECUCAO.md`**, não decisão tomada aqui.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
