@@ -148,6 +148,22 @@ não o amarelo pastel que a intenção do design sugere. Portado FIELMENTE
 (`props.theme.warningLight`, que é `undefined` — mesmo resultado prático: sem fundo). Não é escopo
 desta migração corrigir; **é achado para o `PLANO_EXECUCAO.md`**, não decisão tomada aqui.
 
+## Login: validação de formato de e-mail é nova
+
+`frontend/src/services/authService.js` (`validateLogin`/`validateRegister`) só checa campo vazio,
+nunca formato de e-mail. A tarefa da M3.1 pede explicitamente "email válido" — `mobile/src/pages/
+Login/validation.js` adiciona `yup.string().email(...)` de propósito, usando a MESMA mensagem que
+já existia para campo vazio (`"Campos de e-mail ou senha não podem estar vazios."` /
+`"Preencha todos os campos obrigatórios."`) já que o `authService.js` original nunca teve uma
+mensagem separada para "formato inválido". Isso é uma regra nova, pedida pela própria tarefa — não
+confundir com as suposições desatualizadas documentadas em outros pontos deste arquivo.
+
+Também mudou o mecanismo de exibição: o web mostra a mensagem de validação via `addToast` (um
+catch genérico em `useLogin.executeAuth`); `mobile/` usa erro inline por campo do
+`react-hook-form` (`errors.email.message` etc.), que é o padrão idiomático da lib pedida pela
+tarefa. O toast continua existindo, mas só para erro de API de verdade (rede, credencial errada) —
+não para validação local.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:

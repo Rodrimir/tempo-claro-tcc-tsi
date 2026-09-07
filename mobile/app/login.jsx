@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import Login from '../src/pages/Login';
 
-export default function Login() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Login</Text>
-    </View>
-  );
+export default function LoginRoute() {
+  return <Login />;
 }
