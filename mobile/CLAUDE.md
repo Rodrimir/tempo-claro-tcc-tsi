@@ -53,6 +53,21 @@ Toda vez que uma tarefa esbarrar em "e isso aqui vira o quê?", a resposta prova
 | `index.html` · `vite.config.js`                 | `app.json` · `app/_layout.jsx` · `metro.config.js` (padrão)     |
 | Capacitor + `npx cap sync` + Gradle             | `eas build -p android --profile preview`                        |
 
+## Regra de ouro do estilo
+
+Em React Native não existe CSS custom property. O tema chega por `props.theme`, nunca por
+`var(--...)`:
+
+```
+ERRADO:  color: var(--text-primary);
+CERTO:   color: ${props => props.theme.textPrimary};
+```
+
+`mobile/src/styles/theme.js` tem as mesmas 19 chaves de `frontend/src/styles/theme.js`, com os
+mesmos valores hex — exceto `radiusMd` e `radiusFull`, que em `mobile/` são números (`12` e
+`9999`), não strings com `"px"`. Não existe `GlobalStyles` em `mobile/`: reset, box-sizing e o
+`max-width` do `#root` não têm equivalente em React Native.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
