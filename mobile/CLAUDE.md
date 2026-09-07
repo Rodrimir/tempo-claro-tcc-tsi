@@ -84,6 +84,16 @@ não deixe de chamar `clearExecutingHabitId` nos mesmos pontos onde o web chama 
 `clearExecutionState`, na conclusão ou desistência) — sem isso, um hábito já encerrado poderia ser
 "recuperado" numa sessão futura.
 
+## 401 na API: quem faz o quê
+
+`frontend/src/services/api.js` reage a 401 fazendo tudo inline no interceptor: dispara um toast de
+sessão expirada (via `window.dispatchEvent`, que não existe em RN), espera 2s, limpa o token e
+redireciona (`window.location.href`). `mobile/src/services/api.js` só expõe
+`setUnauthorizedHandler(fn)` e chama `fn()` no 401 — **a sequência toast → espera de 2s →
+`clearAuthToken` → `router.replace('/login')` inteira vira responsabilidade de quem registra o
+handler (`AuthContext`, na M1.6)**, que já tem acesso a `useToast`. Não simplifique para um
+redirect direto sem toast nem espera — isso mudaria o comportamento visível.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
