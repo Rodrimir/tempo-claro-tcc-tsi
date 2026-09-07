@@ -3,6 +3,7 @@ import { getAuthToken } from '../utils/storage';
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://tempo-claro-tcc-tsi.onrender.com/api',
+  timeout: 15000,
 });
 
 api.interceptors.request.use(async (config) => {
