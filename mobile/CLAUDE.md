@@ -99,14 +99,15 @@ do par `window.dispatchEvent`/`window.addEventListener` do web (inclusive a stri
 formato `{ message, type, duration }` são os mesmos). Não simplifique para um redirect direto sem
 toast nem espera — isso mudaria o comportamento visível.
 
-## Pendências que a M1.5 deixou para a M2
+## `BottomNav` como `tabBar` customizada
 
-`BottomNav` (M2.6) é de uma etapa posterior a M1. Um atalho temporário ainda precisa ser
-substituído quando a peça real existir:
-
-- **Barra de abas:** `app/(tabs)/_layout.jsx` usa o `tabBar` padrão do `Tabs` do expo-router.
-  **A M2.6 substitui por `tabBar={props => <BottomNav {...props} />}`**, que também é quem
-  desenha o botão Play central (não é uma `Tabs.Screen`).
+`app/(tabs)/_layout.jsx` usa `tabBar={props => <BottomNav {...props} />}` — não itera
+`state.routes` genericamente, desenha os 4 itens fixos (Foco/Dados/Loja/Perfil) igual ao JSX
+hardcoded do `BottomNav.jsx` do web. `create` é uma `Tabs.Screen` real (destino do slide vazio do
+carrossel da Home) mas não tem ícone na barra — registrada com `options={{ href: null }}`. O botão
+Play é um `Pressable` desenhado por cima (`PlayButtonWrapper` com `translateY(-16)`), não uma
+`Tabs.Screen`, e usa `router.push('/pretask')` da raiz — não o `navigation` recebido via props, que
+só navega dentro do próprio grupo `(tabs)`.
 
 ## `ThemeProvider` fica no `_layout.jsx` raiz
 
