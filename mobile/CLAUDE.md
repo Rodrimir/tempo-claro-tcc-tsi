@@ -68,6 +68,22 @@ mesmos valores hex — exceto `radiusMd` e `radiusFull`, que em `mobile/` são n
 `9999`), não strings com `"px"`. Não existe `GlobalStyles` em `mobile/`: reset, box-sizing e o
 `max-width` do `#root` não têm equivalente em React Native.
 
+## Armazenamento: `sessionStorage` não existe em RN
+
+`frontend/src/utils/storage.js` tem 3 funções a mais do que a tarefa que criou o equivalente em
+`mobile/` citava: `saveExecutingHabitId` / `loadExecutingHabitId` / `clearExecutingHabitId`
+(adicionadas na E1.2, depois de o plano de migração ter sido escrito). No web elas usam
+`sessionStorage` — guardam qual hábito está em execução para a tela `/execute` se recuperar de um
+F5 sem perder o hábito nem o tempo decorrido, e somem sozinhas ao fechar a aba.
+
+React Native não tem equivalente de `sessionStorage` (não existe "aba"). `mobile/src/utils/
+storage.js` usa `AsyncStorage` para essa chave também — funcionalmente cobre o caso análogo (app
+morto pelo sistema e reaberto), mas com uma diferença real: no web o dado some ao fechar a aba, em
+`mobile/` ele sobrevive até `clearExecutingHabitId` ser chamado explicitamente. Ao portar M3.4/M3.5,
+não deixe de chamar `clearExecutingHabitId` nos mesmos pontos onde o web chama (junto com
+`clearExecutionState`, na conclusão ou desistência) — sem isso, um hábito já encerrado poderia ser
+"recuperado" numa sessão futura.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
