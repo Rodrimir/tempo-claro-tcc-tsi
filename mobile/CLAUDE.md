@@ -99,21 +99,24 @@ do par `window.dispatchEvent`/`window.addEventListener` do web (inclusive a stri
 formato `{ message, type, duration }` são os mesmos). Não simplifique para um redirect direto sem
 toast nem espera — isso mudaria o comportamento visível.
 
-## Pendências que a M1.5/M1.6 deixaram para a M2
+## Pendências que a M1.5 deixou para a M2
 
-`BottomNav` (M2.6), `LoadingScreen` (M2.4) e o `Toast` visual de verdade (M2.3) são de uma etapa
-posterior a M1. Três atalhos temporários no código de M1 precisam ser substituídos quando a peça
-real existir — não são a versão final:
+`BottomNav` (M2.6) e `LoadingScreen` (M2.4) são de uma etapa posterior a M1. Dois atalhos
+temporários no código de M1 ainda precisam ser substituídos quando a peça real existir:
 
 - **Tela de carregamento:** enquanto as fontes ou o `AuthContext.loading` resolvem, o layout raiz
   devolve uma `View` vazia. **A M2.4 troca isso pela `LoadingScreen` real** (sol girando).
 - **Barra de abas:** `app/(tabs)/_layout.jsx` usa o `tabBar` padrão do `Tabs` do expo-router.
   **A M2.6 substitui por `tabBar={props => <BottomNav {...props} />}`**, que também é quem
   desenha o botão Play central (não é uma `Tabs.Screen`).
-- **Toast visual:** `ToastContext.jsx` hoje empilha `<Text>` soltos num `<View>` absoluto no lugar
-  do cartão de verdade (fundo colorido por tipo, ícone, fade). **A M2.3 substitui só o JSX
-  renderizado dentro do `Provider`** — a fila, o `addToast`, o `dispensarToast` e a ponte do
-  `DeviceEventEmitter` continuam iguais.
+
+O `Toast` visual (M2.3) já está resolvido: `ToastContext.jsx` renderiza o cartão de verdade
+(fundo por tipo — `dangerStrong`/`successStrong`/`bgSurface` — e o prefixo literal `"V "`/`"X "`
+que o web usa no lugar de ícone), com `SlideInRight`/`FadeOut` do react-native-reanimated como
+`entering`/`exiting` do `Animated.View`. Isso trocou a mecânica de saída: o web marca `saindo:
+true` e só remove do array 300ms depois (pra dar tempo da classe `.fading` rodar); em RN a
+remoção do array é imediata e é o `exiting` do reanimated que segura a view na tela durante a
+animação de saída — duplicar os dois mecanismos somaria 600ms de saída em vez de 300ms.
 
 ## `ThemeToggleContext`: sem leitura síncrona em RN
 

@@ -1,24 +1,22 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { DeviceEventEmitter, Text, View } from 'react-native';
+import { DeviceEventEmitter, Pressable } from 'react-native';
+import { SlideInRight, FadeOut } from 'react-native-reanimated';
+import { ToastContainer, ToastMessage, ToastText } from '../components/common/Toast/styles';
 
 const ToastContext = createContext(null);
 
 const EVENTO_TOAST_GLOBAL = 'tempoClaro:toast';
-const DURACAO_FADE_MS = 300;
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const dispensarToast = useCallback((id) => {
-    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, saindo: true } : t)));
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, DURACAO_FADE_MS);
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const addToast = useCallback((message, type = 'default', duration = 3000) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setToasts((prev) => [...prev, { id, message, type, saindo: false }]);
+    setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => dispensarToast(id), duration);
   }, [dispensarToast]);
 
@@ -33,13 +31,23 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0 }} pointerEvents="box-none">
+      <ToastContainer pointerEvents="box-none">
         {toasts.map((toast) => (
-          <Text key={toast.id} onPress={() => dispensarToast(toast.id)}>
-            {toast.message}
-          </Text>
+          <Pressable key={toast.id} onPress={() => dispensarToast(toast.id)}>
+            <ToastMessage
+              $type={toast.type}
+              entering={SlideInRight.duration(300)}
+              exiting={FadeOut.duration(300)}
+            >
+              <ToastText $type={toast.type}>
+                {toast.type === 'success' && 'V '}
+                {toast.type === 'error' && 'X '}
+                {toast.message}
+              </ToastText>
+            </ToastMessage>
+          </Pressable>
         ))}
-      </View>
+      </ToastContainer>
     </ToastContext.Provider>
   );
 };
