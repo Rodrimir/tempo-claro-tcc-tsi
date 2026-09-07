@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import Stats from '../../src/pages/Stats';
 
-export default function Stats() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Stats</Text>
-    </View>
-  );
+export default function StatsRoute() {
+  return <Stats />;
 }

@@ -210,6 +210,16 @@ registrado (via a flag `pronto`), pra não competir com essa checagem inicial.
 Success)` — não é o mesmo padrão de vibração (a API do RN não expõe um padrão customizado tão
 diretamente), é a extensão semanticamente mais próxima ("algo importante aconteceu").
 
+## Stats: gráfico real, não o estado vazio que a tarefa presumia
+
+A tarefa desta tela partia da premissa de que `GET /stats/weekly` sempre devolvia `[]` e mandava
+"não implementar o endpoint, não inventar dado de exemplo". Isso já estava desatualizado (mesmo
+achado documentado em `PARIDADE.md`, tabela C, e em `CLAUDE.md` da M1.4): o `StatsService` agrega
+`historico_execucoes` de verdade. Portado o gráfico real com dados reais da API, não um estado
+vazio proposital — `recharts` virou `Rect`s do `react-native-svg` desenhados à mão (altura
+proporcional ao maior valor da semana, cor por `dia.parcial`), como a tarefa já pedia
+independente dessa suposição.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
