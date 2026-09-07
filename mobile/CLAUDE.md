@@ -164,6 +164,26 @@ catch genérico em `useLogin.executeAuth`); `mobile/` usa erro inline por campo 
 tarefa. O toast continua existindo, mas só para erro de API de verdade (rede, credencial errada) —
 não para validação local.
 
+## Editar hábito: `CurrentHabitContext`, não router params
+
+O web passa o hábito inteiro para editar via `location.state.editHabit`. Params de rota do
+expo-router são strings (mesmo problema já resolvido para `ExecutionResultContext` na M1.6: um
+`HabitoResponseDTO` inteiro, com `ocorrencias` aninhado, também "vira string na URL"). A Home
+resolve isso reaproveitando o `CurrentHabitContext` que já existe: `handleEditar` chama
+`setCurrentHabit(habit)` explicitamente (não confia só na sincronização do carrossel, que segue o
+item CENTRAL — o cartão editado pode não ser o centralizado ainda) e manda só um parâmetro simples
+(`?modo=editar`) pro `/create`. **A M3.11 deve ler `useCurrentHabit().currentHabit` quando
+`modo === 'editar'`**, não esperar um objeto vindo por `params`.
+
+## Home: avatar reativo é comportamento real, não suposição do plano
+
+A tarefa que trouxe esta tela dizia que `proximo_vencimento` "chega sempre nulo da API" e mandava
+portar as expressões do avatar todas caindo em "normal" de propósito. Isso já estava desatualizado
+quando a tarefa foi lida — ver a nota em `PARIDADE.md` (tabela C): `proximo_vencimento` é calculado
+de verdade desde antes desta sessão de migração, e as quatro expressões (`normal`/`preocupado`/
+`desesperado`/`falha`) funcionam. Portado o comportamento REAL de `Home/index.jsx` (que já inclui
+`isDiaProgramado`, day-de-folga etc.), não a suposição desatualizada do prompt.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
