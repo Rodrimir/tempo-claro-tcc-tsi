@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import PreTask from '../src/pages/PreTask';
 
-export default function PreTask() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>PreTask</Text>
-    </View>
-  );
+export default function PreTaskRoute() {
+  return <PreTask />;
 }
