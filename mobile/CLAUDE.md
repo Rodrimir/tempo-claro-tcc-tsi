@@ -249,6 +249,20 @@ Modo de edição: `useLocalSearchParams()` lê `modo=editar` (mandado pela Home,
 montagem pra não reagir se o contexto mudar depois (o formulário trabalha sobre uma cópia local,
 igual o `formData` sempre foi).
 
+## Botão físico de voltar (M4.1)
+
+`BackHandler.addEventListener('hardwareBackPress', fn)` do react-native, `fn` retornando `true`
+bloqueia a navegação padrão. Em `/execute`, o handler chama `pause()` + abre o `GiveUpModal` (mesmo
+caminho do botão "Desistir"). Em `/success`/`/fail`, equivale ao botão VOLTAR/CONTINUAR
+(`router.replace('/home')`). Em `/login`, retorna `true` sem fazer nada — bloqueio puro. A razão de
+bloquear ali (em vez de, por exemplo, deixar o Android voltar pra tela anterior) é que
+`router.replace()` troca a rota atual, mas não necessariamente limpa TODO o histórico abaixo dela
+— se o `AuthGuard` redirecionou pro login a partir de um `logout()` no meio de uma pilha de
+navegação mais funda, ainda poderia sobrar uma tela autenticada mais embaixo no histórico. Bloquear
+o voltar no login garante o requisito ("voltar não retorna para telas autenticadas") sem depender
+de a pilha estar sempre rasa o bastante. `/home` (raiz das abas) não tem handler nenhum de
+propósito — o comportamento padrão do Android (fechar o app) já é o que a tarefa pede.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:

@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { BackHandler } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useExecutionResult } from '../../contexts/ExecutionResultContext';
@@ -24,6 +26,14 @@ const Fail = () => {
   const type = executionResult?.type || 'FAIL_TIMEOUT';
   const feedbackMsg = executionResult?.feedback?.texto_feedback;
   const moedasGanhas = executionResult?.feedback?.moedas_ganhas || 0;
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/home');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [router]);
 
   let icon, title, subtitle, bgColor;
 

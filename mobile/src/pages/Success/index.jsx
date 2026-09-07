@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { useWindowDimensions } from 'react-native';
+import { BackHandler, useWindowDimensions } from 'react-native';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useSharedValue,
@@ -72,6 +72,14 @@ const Success = () => {
   const moedasGanhas = feedback?.moedas_ganhas ?? 0;
   const diasSeguidos = feedback?.dias_seguidos || 1;
   const subtitleText = feedback?.texto_feedback || 'A excelência é um hábito.';
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/home');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [router]);
 
   const particles = useMemo(() => {
     return Array.from({ length: 50 }).map(() => ({

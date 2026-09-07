@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Modal, ActivityIndicator } from 'react-native';
+import { BackHandler, Modal, ActivityIndicator } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Feather } from '@expo/vector-icons';
@@ -86,6 +86,11 @@ const Login = () => {
   const estiloFlutuar = useAnimatedStyle(() => ({
     transform: [{ translateY: flutuar.value }],
   }));
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => subscription.remove();
+  }, []);
 
   const onSubmit = async (data) => {
     try {

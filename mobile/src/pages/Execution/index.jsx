@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { BackHandler } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTimer } from '../../hooks/useTimer';
@@ -110,6 +111,15 @@ const ExecutionActive = ({ habit }) => {
     resume();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executionToken]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      pause();
+      setShowGiveUpModal(true);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [pause]);
 
   const isQuantityDone = quantity >= metaOcorrenciaAtual;
   const podeConcluir = isOverachieving || isQuantityDone;
