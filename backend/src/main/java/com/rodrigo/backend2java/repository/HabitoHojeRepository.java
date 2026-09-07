@@ -56,6 +56,10 @@ public class HabitoHojeRepository {
             .frequencia_semanal(rs.getString("hab_frequencia_semanal"))
             // @audit-ok [E4.1 — coluna acrescentada ao fim de vw_habito_hoje.]
             .gatilho_ancora(rs.getString("hab_gatilho_ancora"))
+            // @audit-ok [E4.4.1 — sta_nivel_avatar já estava no SELECT de
+            // vw_habito_hoje (colunas sta_* originais, E1.1), só nunca tinha
+            // sido lida aqui nem exposta no DTO.]
+            .nivel_avatar(rs.getInt("sta_nivel_avatar"))
             .build();
 
     public Optional<HabitoResponseDTO> findByHabitoId(UUID habitoId) {

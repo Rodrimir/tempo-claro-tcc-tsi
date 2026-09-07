@@ -57,6 +57,12 @@ public record HabitoResponseDTO(
         // acima (não mexer na ordem dos já existentes).]
         String gatilho_ancora,
 
+        // @audit-ok [E4.4.1 — 1 + dias_seguidos, com teto de serviço em 50
+        // (Math.min aplicado em FechamentoDiarioJob, não no CHECK do banco).
+        // A VARIAÇÃO visual (v1..v5) não vem daqui — é derivada no frontend a
+        // partir deste nível (E4.4.2/E4.4.3, não implementadas ainda).]
+        Integer nivel_avatar,
+
         // @audit-ok [E4.2 (item 2) — lista completa das sub_atividades do
         // hábito (não só "a atual", que alvo_ocorrencia_atual/
         // horario_ocorrencia_atual já cobriam desde a E2.8). Existe pra tela

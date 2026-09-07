@@ -11,11 +11,12 @@ import com.rodrigo.backend2java.model.StatusHabito;
 // @audit-ok [Dashboard (9) / Execução Timer (24) / Loja Escudo (14) — repositório de status de gamificação por hábito]
 //
 // @audit-ok [Schema v2.1 — tabela status_habitos agora usa prefixo sta_*.
-// Colunas novas sta_recorde_dias, sta_valor_acumulado_hoje e sta_nivel_avatar
-// não têm campo correspondente em StatusHabito.java ainda — todas têm DEFAULT
-// no schema (0, 0 e 1) e ficam com esse valor até alguma tarefa futura
-// precisar delas (ex.: sta_valor_acumulado_hoje serve a RF07, a avaliação da
-// meta diária na janela 00:00-23:59, ainda não implementada).]
+// Colunas novas sta_recorde_dias e sta_valor_acumulado_hoje ainda não têm
+// campo correspondente em StatusHabito.java — ambas têm DEFAULT no schema
+// (0 e 0) e ficam com esse valor até alguma tarefa futura precisar delas
+// (sta_valor_acumulado_hoje serve a RF07, a avaliação da meta diária na
+// janela 00:00-23:59, ainda não implementada).
+// sta_nivel_avatar ganhou campo (E4.4.1) — ver StatusHabito.nivelAvatar.]
 @Repository
 @RequiredArgsConstructor
 public class StatusHabitoRepository {
@@ -24,12 +25,12 @@ public class StatusHabitoRepository {
 
         private static final String INSERT_STATUS = "INSERT INTO status_habitos (sta_habito_id, sta_moedas_locais, sta_bloqueios_acumulados, sta_dias_seguidos, "
                         +
-                        "sta_execucoes_hoje, sta_proximo_vencimento, sta_bloqueio_usado_hoje, sta_ultimo_reset) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                        "sta_execucoes_hoje, sta_proximo_vencimento, sta_bloqueio_usado_hoje, sta_ultimo_reset, sta_nivel_avatar) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         private static final String UPDATE_STATUS = "UPDATE status_habitos SET sta_moedas_locais = ?, sta_bloqueios_acumulados = ?, sta_dias_seguidos = ?, "
                         +
-                        "sta_execucoes_hoje = ?, sta_proximo_vencimento = ?, sta_bloqueio_usado_hoje = ?, sta_ultimo_reset = ? WHERE sta_habito_id = ?";
+                        "sta_execucoes_hoje = ?, sta_proximo_vencimento = ?, sta_bloqueio_usado_hoje = ?, sta_ultimo_reset = ?, sta_nivel_avatar = ? WHERE sta_habito_id = ?";
 
         // @audit-ok [Fechamento Diário (3) — zera os contadores diários de um hábito e
         // marca a data já apurada, no fuso do usuário]
@@ -49,6 +50,7 @@ public class StatusHabitoRepository {
                         .proximoVencimento(rs.getObject("sta_proximo_vencimento", OffsetDateTime.class))
                         .bloqueioUsadoHoje(rs.getBoolean("sta_bloqueio_usado_hoje"))
                         .ultimoReset(rs.getObject("sta_ultimo_reset", LocalDate.class))
+                        .nivelAvatar(rs.getInt("sta_nivel_avatar"))
                         .build();
 
         public Optional<StatusHabito> findById(UUID habitoId) {
@@ -67,7 +69,8 @@ public class StatusHabitoRepository {
                                 status.getExecucoesHoje(),
                                 status.getProximoVencimento(),
                                 status.getBloqueioUsadoHoje(),
-                                status.getUltimoReset());
+                                status.getUltimoReset(),
+                                status.getNivelAvatar());
         }
 
         // @audit-ok [Execução Timer (24) / Loja Escudo (14) — UPDATE completo de todos os campos de gamificação]
@@ -80,6 +83,7 @@ public class StatusHabitoRepository {
                                 status.getProximoVencimento(),
                                 status.getBloqueioUsadoHoje(),
                                 status.getUltimoReset(),
+                                status.getNivelAvatar(),
                                 status.getHabitoId());
         }
 

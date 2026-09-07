@@ -93,6 +93,24 @@ public class FechamentoDiarioJob {
                         // calcular() usa isso pra apontar pra 1ª ocorrência do dia novo.]
                         status.setProximoVencimento(
                                 proximoVencimentoService.calcular(habito, usuario, status.getExecucoesHoje()));
+                        // @audit-ok [E4.4.1 — nivel_avatar = 1 + dias_seguidos, teto de
+                        // serviço em 50 (não no CHECK do banco, pra permitir expandir sem
+                        // migração). Recalculado aqui, junto com proximo_vencimento e antes
+                        // de aplicarProgressaoDeMeta, porque é este bloco que sabe que o dia
+                        // virou PARA ESTE hábito nesta passada (linhasAfetadas > 0) — mesmo
+                        // raciocínio de por que os dois vizinhos só rodam aqui também.
+                        // dias_seguidos em si ainda não é tocado por este job (não existe
+                        // "consumo automático de escudo" ainda — E4.3 só foi diagnosticada,
+                        // não implementada); é função pura do que já estiver em
+                        // status.diasSeguidos neste momento, então cobre esse caso sozinha
+                        // quando/se ele existir. Regressão ao zerar a ofensiva (item 3) sai
+                        // de graça: Math.min(50, 1+0) = 1.
+                        // LIMITE CONHECIDO: como só roda na virada de hora em hora, o nível
+                        // pode ficar até 1h defasado do dias_seguidos real logo após uma
+                        // conclusão ou desistência no meio do dia (GamificacaoService não
+                        // recalcula nivel_avatar na hora) — fora do escopo desta tarefa,
+                        // sinalizado, não corrigido.]
+                        status.setNivelAvatar(Math.min(50, 1 + status.getDiasSeguidos()));
                         statusHabitoRepository.update(status);
                         // @audit-ok [E2.3 (item 2) — a progressão só é avaliada quando o dia
                         // realmente virou para este hábito nesta passada, pela mesma razão do
