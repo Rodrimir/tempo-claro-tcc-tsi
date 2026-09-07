@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import Execution from '../src/pages/Execution';
 
-export default function Execution() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Execution</Text>
-    </View>
-  );
+export default function ExecuteRoute() {
+  return <Execution />;
 }
