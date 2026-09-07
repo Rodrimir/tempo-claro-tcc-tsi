@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import CreateHabit from '../../src/pages/CreateHabit';
 
-export default function CreateHabit() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>CreateHabit</Text>
-    </View>
-  );
+export default function CreateRoute() {
+  return <CreateHabit />;
 }

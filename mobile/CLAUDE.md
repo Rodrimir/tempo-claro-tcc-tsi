@@ -232,6 +232,23 @@ O texto da loja já não promete mais consumo automático de escudo (corrigido a
 ver `docs/PLANO_EXECUCAO.md` E1.7) — copiado como está, RF ainda não implementado no backend
 (`FechamentoDiarioJob`) fica registrado em `PARIDADE.md`.
 
+## CreateHabit: `<input type="time">` vira texto livre "HH:MM"
+
+Não existe nenhuma lib de seletor de hora/data na lista de dependências do plano (nem
+`@react-native-community/datetimepicker`, nem qualquer outra). Os campos de horário (Hora de
+Execução, Início/Fim de cada ocorrência) viram `TextInput` de texto livre com placeholder
+"23:59"/"08:00", `maxLength={5}`, aceitando o mesmo formato `"HH:mm"` que o backend já espera
+(`horaCurta` já convertia `"HH:mm:ss"` → `"HH:mm"` no web; aqui o valor digitado já nasce nesse
+formato, sem parsing extra). Sem validação de formato além da presença exigida por
+`validarFormulario` — um valor mal digitado (ex.: "25:99") passa e só falharia no backend. Se a
+falta de um seletor de hora de verdade incomodar na comparação visual da M5.4, é ponto pra
+`eas-cli`/`expo install` trazer uma lib depois, fora do escopo desta tarefa.
+
+Modo de edição: `useLocalSearchParams()` lê `modo=editar` (mandado pela Home, M3.2) e
+`useCurrentHabit().currentHabit` fornece o hábito — capturado com `useState(() => ...)` na
+montagem pra não reagir se o contexto mudar depois (o formulário trabalha sobre uma cópia local,
+igual o `formData` sempre foi).
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
