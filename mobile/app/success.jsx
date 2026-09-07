@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import Success from '../src/pages/Success';
 
-export default function Success() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Success</Text>
-    </View>
-  );
+export default function SuccessRoute() {
+  return <Success />;
 }
