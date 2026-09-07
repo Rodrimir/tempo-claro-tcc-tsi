@@ -89,28 +89,39 @@ não deixe de chamar `clearExecutingHabitId` nos mesmos pontos onde o web chama 
 `frontend/src/services/api.js` reage a 401 fazendo tudo inline no interceptor: dispara um toast de
 sessão expirada (via `window.dispatchEvent`, que não existe em RN), espera 2s, limpa o token e
 redireciona (`window.location.href`). `mobile/src/services/api.js` só expõe
-`setUnauthorizedHandler(fn)` e chama `fn()` no 401 — **a sequência toast → espera de 2s →
-`clearAuthToken` → `router.replace('/login')` inteira vira responsabilidade de quem registra o
-handler (`AuthContext`, na M1.6)**, que já tem acesso a `useToast`. Não simplifique para um
-redirect direto sem toast nem espera — isso mudaria o comportamento visível.
+`setUnauthorizedHandler(fn)` e chama `fn()` no 401 — a sequência toast → espera de 2s →
+`clearAuthToken` → `router.replace('/login')` inteira é responsabilidade de quem registra o
+handler (`AuthContext`). Como a ordem de aninhamento dos providers é Auth > CurrentHabit >
+ExecutionResult > ThemeToggle > Toast, `AuthContext` fica FORA de `ToastProvider` e não pode
+chamar `useToast()` — por isso o toast sai por `DeviceEventEmitter.emit('tempoClaro:toast', ...)`,
+o mesmo canal que `ToastContext` escuta com `DeviceEventEmitter.addListener` — equivalente direto
+do par `window.dispatchEvent`/`window.addEventListener` do web (inclusive a string do evento e o
+formato `{ message, type, duration }` são os mesmos). Não simplifique para um redirect direto sem
+toast nem espera — isso mudaria o comportamento visível.
 
-## Pendências que a M1.5 deixou para a M1.6 e a M2.6
+## Pendências que a M1.5/M1.6 deixaram para a M2
 
-A M1.5 (navegação) precisa de `AuthContext` (M1.6) e de `BottomNav`/`LoadingScreen` (M2 — etapa
-posterior a M1). Como a ordem do plano é M1.5 antes de M1.6 e de M2, `app/_layout.jsx` e
-`app/(tabs)/_layout.jsx` nasceram com dois atalhos temporários que precisam ser substituídos
-quando a peça real existir — não são a versão final:
+`BottomNav` (M2.6), `LoadingScreen` (M2.4) e o `Toast` visual de verdade (M2.3) são de uma etapa
+posterior a M1. Três atalhos temporários no código de M1 precisam ser substituídos quando a peça
+real existir — não são a versão final:
 
-- **Guarda de autenticação:** `app/_layout.jsx` hoje lê `getAuthToken()` direto de
-  `storage.js` e mantém `isAuthenticated`/`authLoading` em `useState` local, só para redirecionar
-  para `/login` quando não há token. **A M1.6 troca isso pelo `AuthContext` de verdade**
-  (`verifyAuth()` chamando `getDashboard()` para validar o token, não só checando se existe) e
-  registra o `setUnauthorizedHandler` da M1.4 aqui.
-- **Tela de carregamento:** enquanto `authLoading`/fontes carregam, o layout raiz devolve uma
-  `View` vazia. **A M2.4 troca isso pela `LoadingScreen` real** (sol girando).
+- **Tela de carregamento:** enquanto as fontes ou o `AuthContext.loading` resolvem, o layout raiz
+  devolve uma `View` vazia. **A M2.4 troca isso pela `LoadingScreen` real** (sol girando).
 - **Barra de abas:** `app/(tabs)/_layout.jsx` usa o `tabBar` padrão do `Tabs` do expo-router.
   **A M2.6 substitui por `tabBar={props => <BottomNav {...props} />}`**, que também é quem
   desenha o botão Play central (não é uma `Tabs.Screen`).
+- **Toast visual:** `ToastContext.jsx` hoje empilha `<Text>` soltos num `<View>` absoluto no lugar
+  do cartão de verdade (fundo colorido por tipo, ícone, fade). **A M2.3 substitui só o JSX
+  renderizado dentro do `Provider`** — a fila, o `addToast`, o `dispensarToast` e a ponte do
+  `DeviceEventEmitter` continuam iguais.
+
+## `ThemeToggleContext`: sem leitura síncrona em RN
+
+No web, `tema` é lido de forma síncrona do `localStorage` no primeiro render (evita o flash: a cor
+certa já sai no primeiro frame). `AsyncStorage` não tem equivalente síncrono — `mobile/` inicia
+sempre com `tema = 'sistema'` e só troca para o valor persistido (se houver `'claro'`/`'escuro'`
+explícito) depois que a leitura assíncrona resolve, um frame ou dois depois do primeiro render.
+Diferença real e aceitável, não um bug a esconder.
 
 ## Contrato de nomes da API: `snake_case`
 
