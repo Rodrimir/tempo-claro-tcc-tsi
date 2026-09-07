@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import Store from '../../src/pages/Store';
 
-export default function Store() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Store</Text>
-    </View>
-  );
+export default function StoreRoute() {
+  return <Store />;
 }

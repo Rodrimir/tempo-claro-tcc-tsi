@@ -220,6 +220,18 @@ vazio proposital — `recharts` virou `Rect`s do `react-native-svg` desenhados �
 proporcional ao maior valor da semana, cor por `dia.parcial`), como a tarefa já pedia
 independente dessa suposição.
 
+## Store: `<select>` vira Modal, `LocalHeader` era import morto
+
+`frontend/src/pages/Store/index.jsx` importa `LocalHeader` mas nunca o renderiza — código morto no
+próprio web. Portado sem renderizar (paridade inclui código morto). O `<select>` HTML não tem
+equivalente nativo em RN e nenhuma lib de picker está na lista de dependências do plano — vira um
+`Pressable` mostrando o valor escolhido + `Modal` com a lista de hábitos ativos, mesmo padrão de
+modal já usado em `GiveUpModal`/configurações do Login/arquivar da Home.
+
+O texto da loja já não promete mais consumo automático de escudo (corrigido antes desta migração,
+ver `docs/PLANO_EXECUCAO.md` E1.7) — copiado como está, RF ainda não implementado no backend
+(`FechamentoDiarioJob`) fica registrado em `PARIDADE.md`.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
