@@ -101,14 +101,25 @@ toast nem espera — isso mudaria o comportamento visível.
 
 ## Pendências que a M1.5 deixou para a M2
 
-`BottomNav` (M2.6) e `LoadingScreen` (M2.4) são de uma etapa posterior a M1. Dois atalhos
-temporários no código de M1 ainda precisam ser substituídos quando a peça real existir:
+`BottomNav` (M2.6) é de uma etapa posterior a M1. Um atalho temporário ainda precisa ser
+substituído quando a peça real existir:
 
-- **Tela de carregamento:** enquanto as fontes ou o `AuthContext.loading` resolvem, o layout raiz
-  devolve uma `View` vazia. **A M2.4 troca isso pela `LoadingScreen` real** (sol girando).
 - **Barra de abas:** `app/(tabs)/_layout.jsx` usa o `tabBar` padrão do `Tabs` do expo-router.
   **A M2.6 substitui por `tabBar={props => <BottomNav {...props} />}`**, que também é quem
   desenha o botão Play central (não é uma `Tabs.Screen`).
+
+## `ThemeProvider` fica no `_layout.jsx` raiz
+
+A matriz de substituição já dizia isso (`GlobalStyles.js` → `expo-font` + `ThemeProvider` no
+`_layout.jsx` raiz), mas nenhuma tarefa de M1 tinha essa linha explícita no prompt — só ficou
+resolvido na M2.4, quando a `LoadingScreen` (o primeiro componente realmente montado dentro da
+árvore do `_layout.jsx`, não só compilado num harness solto) expôs a falta. `app/_layout.jsx` tem
+um componente `ThemedApp` entre o `ThemeToggleProvider` e o `ToastProvider` que lê `isDark` e
+escolhe `lightTheme`/`darkTheme` (`src/styles/theme.js`) para o `ThemeProvider` do
+`styled-components/native`. Qualquer tela ou componente com `props.theme` só funciona dentro dessa
+árvore — o pequeno `View` de fallback enquanto as fontes carregam (antes de qualquer provider
+montar) usa `lightTheme.bgPrimary` direto, sem `ThemeProvider`, porque não há como saber o tema do
+usuário antes do `AuthProvider`/`ThemeToggleProvider` sequer montarem.
 
 O `Toast` visual (M2.3) já está resolvido: `ToastContext.jsx` renderiza o cartão de verdade
 (fundo por tipo — `dangerStrong`/`successStrong`/`bgSurface` — e o prefixo literal `"V "`/`"X "`

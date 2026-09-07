@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
+import { ThemeProvider } from 'styled-components/native';
 import {
   useFonts,
   Lexend_400Regular,
@@ -12,8 +13,10 @@ import {
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
 import { CurrentHabitProvider } from '../src/contexts/CurrentHabitContext';
 import { ExecutionResultProvider } from '../src/contexts/ExecutionResultContext';
-import { ThemeToggleProvider } from '../src/contexts/ThemeToggleContext';
+import { ThemeToggleProvider, useThemeToggle } from '../src/contexts/ThemeToggleContext';
 import { ToastProvider } from '../src/contexts/ToastContext';
+import { lightTheme, darkTheme } from '../src/styles/theme';
+import LoadingScreen from '../src/components/common/LoadingScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,7 +34,7 @@ function AuthGuard() {
   }, [loading, isAuthenticated, segments]);
 
   if (loading) {
-    return <View style={{ flex: 1 }} />;
+    return <LoadingScreen />;
   }
 
   return (
@@ -43,6 +46,17 @@ function AuthGuard() {
       <Stack.Screen name="success" />
       <Stack.Screen name="fail" />
     </Stack>
+  );
+}
+
+function ThemedApp() {
+  const { isDark } = useThemeToggle();
+  return (
+    <ThemeProvider theme={isDark ? darkTheme : lightTheme}>
+      <ToastProvider>
+        <AuthGuard />
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 
@@ -61,7 +75,7 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1 }} />;
+    return <View style={{ flex: 1, backgroundColor: lightTheme.bgPrimary }} />;
   }
 
   return (
@@ -69,9 +83,7 @@ export default function RootLayout() {
       <CurrentHabitProvider>
         <ExecutionResultProvider>
           <ThemeToggleProvider>
-            <ToastProvider>
-              <AuthGuard />
-            </ToastProvider>
+            <ThemedApp />
           </ThemeToggleProvider>
         </ExecutionResultProvider>
       </CurrentHabitProvider>
