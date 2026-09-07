@@ -94,6 +94,24 @@ redireciona (`window.location.href`). `mobile/src/services/api.js` só expõe
 handler (`AuthContext`, na M1.6)**, que já tem acesso a `useToast`. Não simplifique para um
 redirect direto sem toast nem espera — isso mudaria o comportamento visível.
 
+## Pendências que a M1.5 deixou para a M1.6 e a M2.6
+
+A M1.5 (navegação) precisa de `AuthContext` (M1.6) e de `BottomNav`/`LoadingScreen` (M2 — etapa
+posterior a M1). Como a ordem do plano é M1.5 antes de M1.6 e de M2, `app/_layout.jsx` e
+`app/(tabs)/_layout.jsx` nasceram com dois atalhos temporários que precisam ser substituídos
+quando a peça real existir — não são a versão final:
+
+- **Guarda de autenticação:** `app/_layout.jsx` hoje lê `getAuthToken()` direto de
+  `storage.js` e mantém `isAuthenticated`/`authLoading` em `useState` local, só para redirecionar
+  para `/login` quando não há token. **A M1.6 troca isso pelo `AuthContext` de verdade**
+  (`verifyAuth()` chamando `getDashboard()` para validar o token, não só checando se existe) e
+  registra o `setUnauthorizedHandler` da M1.4 aqui.
+- **Tela de carregamento:** enquanto `authLoading`/fontes carregam, o layout raiz devolve uma
+  `View` vazia. **A M2.4 troca isso pela `LoadingScreen` real** (sol girando).
+- **Barra de abas:** `app/(tabs)/_layout.jsx` usa o `tabBar` padrão do `Tabs` do expo-router.
+  **A M2.6 substitui por `tabBar={props => <BottomNav {...props} />}`**, que também é quem
+  desenha o botão Play central (não é uma `Tabs.Screen`).
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
