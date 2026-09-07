@@ -1,0 +1,10 @@
+import { Text, View } from 'react-native';
+import { fonts } from '../src/styles/fonts';
+
+export default function Index() {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontFamily: fonts.bold }}>Tempo Claro</Text>
+    </View>
+  );
+}
