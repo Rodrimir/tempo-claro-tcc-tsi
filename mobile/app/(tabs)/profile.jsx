@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import Profile from '../../src/pages/Profile';
 
-export default function Profile() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Profile</Text>
-    </View>
-  );
+export default function ProfileRoute() {
+  return <Profile />;
 }
