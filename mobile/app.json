@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Tempo Claro",
-    "slug": "mobile",
+    "slug": "tempo-claro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,6 +10,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.rodrigo.tempoclaro.expo",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png"
