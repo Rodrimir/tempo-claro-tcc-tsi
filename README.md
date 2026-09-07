@@ -127,7 +127,7 @@ tempo-claro-tcc-tsi/
 │   ├── AuthController.java          POST /api/auth/login · POST /api/auth/register
 │   ├── HabitoController.java        GET /api/dashboard · CRUD /api/habits · priming · executions · shield
 │   ├── ProfileController.java       PUT /api/profile
-│   └── StatsController.java         GET /api/stats/weekly — retorna lista vazia (ver §11)
+│   └── StatsController.java         GET /api/stats/weekly — janela de 7 dias, delega a StatsService
 │
 ├── exception/
 │   └── GlobalExceptionHandler.java  @RestControllerAdvice: mapeia exceções para códigos HTTP
@@ -172,8 +172,8 @@ tempo-claro-tcc-tsi/
 
 | Arquivo | Conteúdo |
 |---|---|
-| `schema.sql` | DDL das 5 tabelas (`CREATE TABLE IF NOT EXISTS`) + `ALTER TABLE status_habitos ADD COLUMN IF NOT EXISTS ultimo_reset DATE`. Executado a cada boot. |
-| `data.sql` | Cria o índice único `ux_biblioteca_categoria_idioma` e insere os 3 registros de `biblioteca_textos` (AGUA, ESTUDAR, EXERCICIO) com `ON CONFLICT DO NOTHING`. |
+| `schema.sql` | DDL das 9 tabelas + `vw_habito_hoje` (`CREATE TABLE IF NOT EXISTS`). Executado a cada boot. |
+| `data.sql` | Insere os 3 registros de `biblioteca_textos` (AGUA, ESTUDO, EXERCICIO) com `ON CONFLICT DO NOTHING`. |
 | `application.properties` | Perfil padrão (execução local direta): Postgres em `localhost:5433`, porta 8082. |
 | `application-docker.properties` | Perfil `docker`: Postgres em `db:5432` (rede do compose), porta 8082. |
 | `application-prod.properties` | Perfil `prod`: Postgres da Neon com `sslmode=require`, porta `${PORT:8080}`. |
@@ -214,7 +214,6 @@ tempo-claro-tcc-tsi/
 │   ├── GiveUpModal/                 Modal de desistência. Envia FAIL_BLOQUEIO ou FAIL_TIMEOUT
 │   ├── LoadingScreen/               Tela de carregamento com o sol girando
 │   ├── MonospaceTimer/              Display MM:SS do cronômetro + badge de bônus
-│   ├── PwaPauseModal/               Modal de retomada — atualmente inativo (ver §11)
 │   └── Toast/styles.js              Só estilos; o componente vive dentro do ToastContext
 │
 ├── components/layout/
@@ -381,7 +380,7 @@ CREATE TABLE IF NOT EXISTS habitos (
 | `id` | `UUID PK` | `Habito.id` | `HabitoService.criarHabito` — `UUID.randomUUID()` | Chave de `status_habitos` e `historico_execucoes`; usado por todo o `GamificacaoService` | **`id`** |
 | `usuario_id` | `UUID FK → usuarios` | `Habito.usuarioId` | `HabitoService.criarHabito` | Filtro de `FIND_ALL_BY_USUARIO_ID`; `FechamentoDiarioJob` usa para achar o fuso do dono | — |
 | `titulo` | `VARCHAR(255) NOT NULL` | `Habito.titulo` | `criarHabito`; `atualizarHabito` | Exibição | **`titulo`** |
-| `categoria` | `VARCHAR(100)` | `Habito.categoria` | `criarHabito` (imutável) | **`GamificacaoService.obterPriming`** — é a chave de busca em `biblioteca_textos`. Valores: `AGUA`, `ESTUDAR`, `EXERCICIO` | **`categoria`** |
+| `categoria` | `VARCHAR(100)` | `Habito.categoria` | `criarHabito` (imutável) | **`GamificacaoService.obterPriming`** — é a chave de busca em `biblioteca_textos`. Valores: `AGUA`, `ESTUDO`, `EXERCICIO` | **`categoria`** |
 | `gatilho_ancora` | `VARCHAR(255)` | `Habito.gatilhoAncora` | `criarHabito` | **nunca** — nenhum service o lê | — (ausente do DTO) |
 | `tipo_medida` | `VARCHAR(50)` | `Habito.tipoMedida` | `criarHabito` (imutável) | Nenhuma regra no backend ramifica sobre ele; **o frontend usa** para escolher entre cronômetro e contador. Valores: `TEMPO`, `QUANTIDADE` | **`tipo_medida`** |
 | `modalidade` | `VARCHAR(50)` | `Habito.modalidade` | `criarHabito` (imutável) | Apenas repassado ao DTO. Valor único hoje: `DIARIA` | **`modalidade`** |
@@ -487,14 +486,10 @@ um duplo toque no botão ou de um *retry* de rede: **o usuário não ganha 200 m
 execução só**. A constraint `UNIQUE` na coluna é a rede de segurança no nível do banco, caso duas
 requisições cheguem simultaneamente.
 
-> **Esta tabela nunca é lida de volta como registro.** O `HistoricoExecucaoRepository` tem apenas
-> duas constantes — `COUNT_BY_EXECUTION_TOKEN` e `INSERT_HISTORICO` — e **não possui `RowMapper`**.
-> Não existe nenhum `SELECT` que recupere linhas desta tabela.
->
-> Essa é a explicação concreta para `GET /api/stats/weekly` retornar lista vazia: os dados
-> históricos **são gravados corretamente**, mas não há caminho de leitura implementado. Construir a
-> tela de estatísticas é, portanto, um trabalho de adicionar consultas de agregação sobre dados que
-> já existem — não de coletar dados novos.
+> Além de `COUNT_BY_EXECUTION_TOKEN` e `INSERT_HISTORICO`, o `HistoricoExecucaoRepository` expõe
+> `agregarPorDia` e `agregarDesistenciasPorDia` — duas consultas de agregação por dia (`GROUP BY
+> his_data_local`) que sustentam `GET /api/stats/weekly` (§6.4, `StatsService`). Não há `RowMapper`
+> de linha individual porque nenhuma tela precisa da execução crua, só do agregado diário.
 
 ---
 
@@ -537,7 +532,7 @@ O seed popula três linhas, todas em `pt-BR`:
 | `categoria` | `texto_pre_tarefa` |
 |---|---|
 | `AGUA` | "Seu corpo é 70% água. Este copo é o intervalo entre o cansaço e a clareza." |
-| `ESTUDAR` | "Não precisa entender tudo hoje. Precisa apenas começar e não parar antes do fim." |
+| `ESTUDO` | "Não precisa entender tudo hoje. Precisa apenas começar e não parar antes do fim." |
 | `EXERCICIO` | "O corpo reclama nos primeiros cinco minutos. Depois disso, ele coopera." |
 
 O `ON CONFLICT (categoria, idioma) DO NOTHING` — apoiado no índice único acima — é o que permite
@@ -622,15 +617,16 @@ Todos os endpoints ficam sob o prefixo **`/api`**.
 |---|---|---|---|---|---|
 | `POST` | `/auth/register` | pública | `RegisterRequestDTO` | `AuthResponseDTO` — **201** | `AuthService.cadastrar` |
 | `POST` | `/auth/login` | pública | `LoginRequestDTO` | `AuthResponseDTO` — 200 | `AuthService.autenticar` |
-| `GET` | `/dashboard` | Bearer | — | `List<HabitoResponseDTO>` | `HabitoService.listarDashboard` |
+| `GET` | `/dashboard` | Bearer | — | `DashboardResponseDTO` (`habits` + `limite_habitos_ativos`) | `HabitoService.listarDashboard` |
 | `POST` | `/habits` | Bearer | `HabitoRequestDTO` | `HabitoResponseDTO` — **201** | `HabitoService.criarHabito` |
 | `PUT` | `/habits/{id}` | Bearer | `HabitoRequestDTO` | `{"success": true}` | `HabitoService.atualizarHabito` |
-| `DELETE` | `/habits/{id}` | Bearer | — | `{"success": true}` | `HabitoService.deletarHabito` |
+| `DELETE` | `/habits/{id}` | Bearer | — | `{"success": true}` (soft delete: `hab_ativo = false`) | `HabitoService.deletarHabito` |
 | `GET` | `/habits/{id}/priming` | Bearer | — | `PrimingResponseDTO` | `GamificacaoService.obterPriming` |
 | `POST` | `/habits/{id}/executions` | Bearer | `ExecutionRequestDTO` | `ExecutionResponseDTO` | `GamificacaoService.processarExecucao` |
 | `POST` | `/habits/{id}/shield` | Bearer | — | `{"success": true, "message": "..."}` | `GamificacaoService.comprarEscudo` |
+| `GET` | `/me` | Bearer | — | `UsuarioResponseDTO` | `UsuarioService.buscarPerfil` |
 | `PUT` | `/profile` | Bearer | `ProfileUpdateDTO` | `{"success": true}` | `UsuarioService.atualizarPerfil` |
-| `GET` | `/stats/weekly` | Bearer | — | `[]` (stub — ver §11.1) | — |
+| `GET` | `/stats/weekly?habitoId={uuid}` | Bearer | — | `StatsResponseDTO` | `StatsService.obterEstatisticasSemanais` |
 
 ### Autenticação das requisições
 
@@ -650,7 +646,9 @@ O `GlobalExceptionHandler` traduz exceções para HTTP, sempre no formato
 | Exceção | HTTP | Quando ocorre |
 |---|---|---|
 | `MethodArgumentNotValidException` | **400** | Falha de validação Jakarta (`@NotBlank`, `@Min`…) |
-| `RuntimeException` | **400** | Regra de negócio: "Limite de 5 hábitos ativos atingido", "Saldo insuficiente", "Execução duplicada", "Nenhum escudo disponível…", "E-mail já está em uso" |
+| `RuntimeException` | **400** | Regra de negócio: "Limite de 2 hábitos ativos atingido", "Saldo insuficiente", "Execução duplicada", "Nenhum escudo disponível…", "E-mail já está em uso" |
+| `DataIntegrityViolationException` | **400** | Violação de `CHECK` do banco (ex.: `ck_hab_teto`, `ck_hab_freq`), traduzida para mensagem legível |
+| `HttpMessageNotReadableException` | **400** | Corpo malformado ou campo desconhecido no JSON (Jackson com `FAIL_ON_UNKNOWN_PROPERTIES`) |
 | `IllegalArgumentException` | **401** | Credenciais inválidas — **e também `tipo` de execução inválido** (ver §11.4) |
 | `Exception` | **500** | Qualquer erro não previsto, com mensagem genérica |
 
@@ -731,37 +729,57 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 **Response 200 OK:**
 ```json
-[
-  {
-    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "titulo": "Beber Água",
-    "categoria": "AGUA",
-    "tipo_medida": "QUANTIDADE",
-    "modalidade": "DIARIA",
-    "horario_agendado": "08:00:00",
-    "meta_base": 250,
-    "meta_frequencia_diaria": 1,
-    "intervalo_minutos": null,
-    "ativo": true,
-    "moedas_locais": 1200,
-    "bloqueios_acumulados": 1,
-    "dias_seguidos": 7,
-    "execucoes_hoje": 0,
-    "proximo_vencimento": "2026-06-22T23:59:00Z",
-    "bloqueio_usado_hoje": false
-  }
-]
+{
+  "habits": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "titulo": "Beber Água",
+      "categoria": "AGUA",
+      "tipo_medida": "QUANTIDADE",
+      "modalidade": "DIARIA",
+      "horario_agendado": null,
+      "meta_base": 250,
+      "meta_frequencia_diaria": 1,
+      "ativo": true,
+      "moedas_locais": 1200,
+      "bloqueios_acumulados": 1,
+      "dias_seguidos": 7,
+      "execucoes_hoje": 0,
+      "proximo_vencimento": "2026-06-22T23:59:00Z",
+      "bloqueio_usado_hoje": false,
+      "status": "PENDING",
+      "meta_maxima": 500,
+      "incremento": 50,
+      "dias_incremento": 10,
+      "frequencia_semanal": "1111100",
+      "alvo_ocorrencia_atual": 250,
+      "horario_ocorrencia_atual": "08:00:00",
+      "gatilho_ancora": "Depois do café da manhã",
+      "ocorrencias": [
+        { "horario_inicio": "08:00:00", "horario_fim": null, "alvo": 250 }
+      ],
+      "nivel_avatar": 8
+    }
+  ],
+  "limite_habitos_ativos": 2
+}
 ```
+
+`horario_agendado` chega sempre `null` — foi substituído por `horario_ocorrencia_atual`
+(ver §8.3, Fluxo 4). `meta_maxima`/`incremento`/`dias_incremento`/`ocorrencias` refletem a
+progressão automática de meta e as sub-atividades por ocorrência do dia.
 
 **Campos do status que determinam o comportamento no frontend:**
 
 | Campo | Tipo | Uso no frontend |
 |---|---|---|
-| `status` (derivado) | string | "COMPLETED" quando `execucoes_hoje >= meta_frequencia_diaria` |
-| `proximo_vencimento` | OffsetDateTime | Calcula `diffMin` para expressão do avatar |
-| `dias_seguidos` | int | Exibido na tela Stats e no nível do avatar |
+| `status` | string | "COMPLETED" quando `execucoes_hoje >= meta_frequencia_diaria` |
+| `proximo_vencimento` | OffsetDateTime | Calcula `diffMin` para expressão do avatar (real desde a virada do dia) |
+| `dias_seguidos` | int | Exibido na tela Stats |
+| `nivel_avatar` | int | `1 + dias_seguidos`, com teto de serviço em 50 (recalculado no fechamento diário) |
 | `moedas_locais` | int | Exibido na Loja |
 | `bloqueios_acumulados` | int | Exibido no GiveUpModal e na Loja |
+| `gatilho_ancora` | string \| null | Exibido no cartão da Home e na pré-tarefa, quando preenchido |
 
 ---
 
@@ -779,24 +797,36 @@ Content-Type: application/json
   "tipo_medida": "QUANTIDADE",
   "modalidade": "DIARIA",
   "meta_base": 250,
-  "aumento_dezena": 50,
+  "incremento": 50,
+  "dias_incremento": 10,
   "meta_maxima": 500,
-  "frequencia_semanal": [1, 2, 3, 4, 5],
+  "frequencia_semanal": "1111100",
   "meta_frequencia_diaria": 1,
-  "horario_agendado": "08:00:00"
+  "gatilho_ancora": "Depois do café da manhã",
+  "horario_agendado": "08:00:00",
+  "ocorrencias": null
 }
 ```
+
+`frequencia_semanal` é uma máscara de 7 dígitos `0`/`1` (posição 1 = domingo), não um array de
+índices. Quando `meta_frequencia_diaria > 1`, `ocorrencias` recebe um array de
+`{ horario_inicio, horario_fim }` (um por ocorrência) e `horario_agendado` vai `null` — os dois
+nunca são enviados juntos.
 
 **Response 201 Created:** objeto `HabitoResponseDTO` completo (mesmo formato do dashboard).
 
 **Response 400 Bad Request (limite atingido):**
 ```json
-{ "success": false, "message": "Limite de 5 hábitos ativos atingido" }
+{ "success": false, "message": "Limite de 2 hábitos ativos atingido" }
 ```
 
 ---
 
 #### PUT /habits/{id} — Atualizar hábito
+
+Aceita o **mesmo `HabitoRequestDTO`** de `POST /habits` e substitui todos os campos editáveis —
+não é um PATCH parcial. As sub-atividades são apagadas e recriadas a partir da meta e frequência
+enviadas.
 
 **Request:**
 ```http
@@ -806,9 +836,13 @@ Content-Type: application/json
 
 {
   "titulo": "Gotinha Atualizada",
-  "meta_base": 300,
+  "categoria": "AGUA",
   "tipo_medida": "QUANTIDADE",
-  "modalidade": "DIARIA"
+  "modalidade": "DIARIA",
+  "meta_base": 300,
+  "meta_frequencia_diaria": 1,
+  "frequencia_semanal": "1111111",
+  "horario_agendado": "08:00:00"
 }
 ```
 
@@ -855,7 +889,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 #### POST /habits/{id}/executions — Registrar execução de hábito
 
-**Request (conclusão padrão — timer):**
+**Request (conclusão — `tipo` ausente ou em branco):**
 ```http
 POST /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/executions
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
@@ -863,19 +897,14 @@ Content-Type: application/json
 
 {
   "execution_token": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "tipo": "COMPLETE_PADRAO",
   "valor_realizado": 1500
 }
 ```
 
-**Request (conclusão extra — ultrapassou 20% da meta):**
-```json
-{
-  "execution_token": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "tipo": "COMPLETE_EXTRA",
-  "valor_realizado": 1900
-}
-```
+O cliente **não decide mais** se a conclusão é padrão ou extra — isso violaria RF22/RNF08
+(cálculo exclusivo do servidor). O servidor recalcula sozinho a partir de `valor_realizado` contra
+o alvo da ocorrência sendo concluída: `>= alvo * 1.2` credita o bônus, senão credita o padrão.
+Um `tipo: "COMPLETE_EXTRA"` enviado pelo cliente é ignorado.
 
 **Request (desistência voluntária):**
 ```json
@@ -897,12 +926,15 @@ Content-Type: application/json
 
 **Valores aceitos em `tipo`:**
 
-| Valor | Moedas | Efeito em `dias_seguidos` |
-|---|---|---|
-| `COMPLETE_PADRAO` | +100 | +1 (somente quando meta diária é atingida exatamente) |
-| `COMPLETE_EXTRA` | +150 | +1 (somente quando meta diária é atingida exatamente) |
-| `FAIL_TIMEOUT` | 0 | reset para 0 |
-| `FAIL_BLOQUEIO` | 0 | reset para 0 |
+| Valor | Moedas | Efeito em `dias_seguidos` | `historico_execucoes.tipo_sucesso` |
+|---|---|---|---|
+| ausente / em branco | +100 (ou +150 se `valor_realizado >= alvo * 1.2`) | +1 quando a última ocorrência do dia é concluída | `COMPLETE_PADRAO` ou `COMPLETE_EXTRA` |
+| `FAIL_BLOQUEIO` | 0 | **preservado** — consome 1 escudo | `PROTEGIDO_ESCUDO` |
+| `FAIL_TIMEOUT` | 0 | reset para 0 | `DESISTENCIA` |
+
+`FAIL_BLOQUEIO` exige `bloqueios_acumulados > 0` e `bloqueio_usado_hoje = false`; senão retorna 400.
+Todo valor de `tipo` fora dessa lista lança exceção no service. `valor_realizado` (mesmo parcial)
+é sempre gravado em `historico_execucoes` — inclusive numa desistência.
 
 **Response 200 OK:**
 ```json
@@ -911,7 +943,8 @@ Content-Type: application/json
   "moedas_totais": 1300,
   "dias_seguidos": 8,
   "novo_nivel": 8,
-  "texto_feedback": "Execução registrada!"
+  "texto_feedback": "Execução registrada!",
+  "bonus": false
 }
 ```
 
@@ -977,17 +1010,32 @@ Content-Type: application/json
 
 #### GET /stats/weekly — Estatísticas semanais
 
+`habitoId` é obrigatório — o endpoint não recebia hábito nenhum na versão anterior.
+
 **Request:**
 ```http
-GET /api/stats/weekly
+GET /api/stats/weekly?habitoId=3fa85f64-5717-4562-b3fc-2c963f66afa6
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
 
 **Response 200 OK:**
 ```json
-[]
+{
+  "dias": [
+    { "data": "2026-06-16", "nome": "SEG", "valor_realizado": 0, "execucoes": 0, "meta_cumprida": false, "parcial": false },
+    { "data": "2026-06-17", "nome": "TER", "valor_realizado": 250, "execucoes": 1, "meta_cumprida": true, "parcial": false },
+    { "data": "2026-06-18", "nome": "QUA", "valor_realizado": 120, "execucoes": 1, "meta_cumprida": false, "parcial": true }
+  ],
+  "recorde": 250,
+  "dias_com_meta_cumprida": 1,
+  "constancia_semanal_percentual": 14
+}
 ```
-> Agregação de dados históricos pendente para versão 2.0. O endpoint existe e retorna array vazio.
+
+Os 7 dias vêm sempre presentes (dia sem execução chega com `valor_realizado: 0`, sem "buraco" no
+array). `parcial: true` marca um dia cujo valor veio de uma desistência ou proteção de escudo, não
+de uma conclusão — nunca coexiste com `meta_cumprida: true`, e o frontend usa isso para colorir a
+barra do gráfico de forma diferente. `recorde` só considera dias com `meta_cumprida: true`.
 
 ---
 
@@ -1009,7 +1057,7 @@ Definidas em `src/routes/index.jsx`. O componente `ProtectedRoute` exibe `Loadin
 | `/login` | `Login` | não | **Única rota pública** |
 | `/` | — | — | Redireciona para `/home` |
 | `/home` | `Home` | sim | Dashboard com o carrossel |
-| `/stats/:period?` | `Stats` | sim | O parâmetro `:period` nunca é lido pelo código |
+| `/stats` | `Stats` | sim | — |
 | `/store` | `Store` | sim | Loja de escudos |
 | `/profile` | `Profile` | sim | Perfil e preferências |
 | `/create` | `CreateHabit` | sim | Assistente de criação |
@@ -1027,7 +1075,7 @@ navegação, o usuário não abandona uma sessão cronometrada por acidente.
 | Página | Chama da API | Contexts que consome | Navega para |
 |---|---|---|---|
 | **Login** | `login()`, `register()` (via `AuthContext`) | `useAuth`, `useThemeToggle`, `useToast` | `/home` ao autenticar |
-| **Home** | `getDashboard()` | `useCurrentHabit` (**escreve**), `useThemeToggle` | `/create` pelo slide vazio |
+| **Home** | `getDashboard()`, `archiveHabit(id)` (menu do cartão) | `useCurrentHabit` (**escreve**), `useThemeToggle` | `/create` pelo slide vazio ou pelo menu "Editar" |
 | **PreTask** | `getPreTaskPriming(id)` | `useCurrentHabit` | `/execute` ou `/home` |
 | **Execution** | `submitExecution(id, payload)` | `useCurrentHabit`, `useToast` | `/success` ou `/fail` |
 | **Success** | — (lê `location.state`) | — | `/home` |
@@ -1035,7 +1083,7 @@ navegação, o usuário não abandona uma sessão cronometrada por acidente.
 | **Stats** | `getWeeklyStats()` | `useCurrentHabit` | não navega |
 | **Store** | `getDashboard()`, `buyShield(id)` | `useToast` | não navega |
 | **Profile** | `updateProfile(data)` | `useAuth`, `useThemeToggle`, `useToast` | não navega — o `logout()` faz o `ProtectedRoute` redirecionar |
-| **CreateHabit** | `createHabit(data)` | `useToast` | `/home` após criar |
+| **CreateHabit** | `createHabit(data)` ou `updateHabit(id, data)` no modo de edição | `useToast` | `/home` após criar/salvar |
 
 **Home** é a única página que *escreve* em `CurrentHabitContext`: conforme o usuário desliza o
 carrossel, ela publica o hábito central. Todas as outras telas apenas leem esse valor — inclusive
@@ -1049,7 +1097,7 @@ vazio pedindo para voltar à tela inicial.
 |---|---|---|
 | `AuthContext` | `isAuthenticated`, `loading`, `user` | `login`, `register`, `logout`, `updateLocalUser` |
 | `CurrentHabitContext` | `currentHabit` | `setCurrentHabit` |
-| `ThemeToggleContext` | `isDark` | `toggleTheme` |
+| `ThemeToggleContext` | `isDark`, `tema` (`'claro'`\|`'escuro'`\|`'sistema'`) | `setTema(novoTema)` |
 | `ToastContext` | fila de `toasts` | `addToast(message, type, duration)` |
 
 Ao montar, o `AuthProvider` executa `verifyAuth()`: se existe token salvo, chama `getDashboard()`
@@ -1058,6 +1106,12 @@ sessão expirada cair no login em vez de mostrar uma tela quebrada.
 
 **`CurrentHabitContext` não persiste.** Um *refresh* do navegador zera o hábito selecionado — por
 isso `PreTask` e `Execution` verificam `currentHabit` e voltam para a Home se estiver nulo.
+
+**`ThemeToggleContext` persiste em dois lugares.** `tema` é lido de forma síncrona do
+`localStorage` no primeiro render (sem flash) e sincronizado com `usuarios.usu_tema` no login e em
+`GET /me`. Com `tema === 'sistema'` (padrão), um listener de `prefers-color-scheme` mantém `isDark`
+em dia enquanto o app está aberto; com `'claro'`/`'escuro'` explícitos, a escolha do usuário vence
+o sistema operacional.
 
 ### 7.4. `hooks/useTimer.js`
 
@@ -1103,7 +1157,11 @@ Instância axios com dois interceptores:
 - **Resposta** — ao receber **401** em qualquer rota que não seja de autenticação, limpa o token e
   força `window.location.href = '/login'`.
 
-As 11 funções exportadas mapeiam um endpoint cada:
+`baseURL` é `import.meta.env.DEV ? 'http://localhost:8080/api' : '<URL do Render>'` — em
+`npm run dev` o app fala com o backend local automaticamente; o bundle de produção mantém a URL do
+Render embutida.
+
+As 12 funções exportadas mapeiam um endpoint cada:
 
 | Função | Endpoint | Usada em |
 |---|---|---|
@@ -1111,38 +1169,51 @@ As 11 funções exportadas mapeiam um endpoint cada:
 | `register(data)` | `POST /auth/register` | `AuthContext` |
 | `getDashboard()` | `GET /dashboard` | `Home`, `Store`, `AuthContext` |
 | `createHabit(data)` | `POST /habits` | `CreateHabit` |
-| `updateHabit(id, data)` | `PUT /habits/{id}` | **nenhuma tela** (ver §11.1) |
-| `archiveHabit(id)` | `DELETE /habits/{id}` | **nenhuma tela** (ver §11.1) |
+| `updateHabit(id, data)` | `PUT /habits/{id}` | `CreateHabit` (modo de edição) |
+| `archiveHabit(id)` | `DELETE /habits/{id}` | `Home` (menu do cartão) |
 | `getPreTaskPriming(id)` | `GET /habits/{id}/priming` | `PreTask` |
 | `submitExecution(id, payload)` | `POST /habits/{id}/executions` | `Execution` |
 | `buyShield(id)` | `POST /habits/{id}/shield` | `Store` |
+| `getMe()` | `GET /me` | `Profile` |
 | `updateProfile(data)` | `PUT /profile` | `Profile` |
-| `getWeeklyStats()` | `GET /stats/weekly` | `Stats` |
+| `getWeeklyStats(habitoId)` | `GET /stats/weekly?habitoId={uuid}` | `Stats` |
 
 ### 7.7. Tema e estilos
 
-`styles/theme.js` exporta `lightTheme` e `darkTheme`, com as mesmas 12 chaves:
+`styles/theme.js` exporta `lightTheme` e `darkTheme`, com as mesmas 19 chaves:
 
 | Chave | Claro | Escuro |
 |---|---|---|
+| `isDark` | `false` | `true` |
 | `primaryColor` | `#4f46e5` | `#818cf8` |
-| `primaryLight` | `#e0e7ff` | `#312e81` |
+| `primaryLight` | `#e0e7ff` | `#1e1b4b` |
+| `primaryStrong` | `#4f46e5` | `#4338ca` |
 | `bgPrimary` | `#f8fafc` | `#020617` |
 | `bgSurface` | `#ffffff` | `#0f172a` |
 | `textPrimary` | `#0f172a` | `#f8fafc` |
 | `textSecondary` | `#64748b` | `#94a3b8` |
-| `successColor` | `#10b981` | `#34d399` |
-| `warningColor` | `#f59e0b` | `#fbbf24` |
-| `dangerColor` | `#ef4444` | `#f87171` |
+| `successColor` | `#047857` | `#34d399` |
+| `successStrong` | `#047857` | `#065f46` |
+| `warningColor` | `#b45309` | `#fbbf24` |
+| `warningStrong` | `#b45309` | `#92400e` |
+| `dangerColor` | `#b91c1c` | `#f87171` |
+| `dangerStrong` | `#b91c1c` | `#991b1b` |
+| `dangerLight` | `#fef2f2` | `#2d1416` |
+| `bonusStrong` | `#0369a1` | `#075985` |
 | `borderColor` | `#e2e8f0` | `#1e293b` |
 | `radiusMd` | `12px` | `12px` |
 | `radiusFull` | `9999px` | `9999px` |
 
-`styles/GlobalStyles.js` aplica o reset, importa a fonte **Lexend** e reexporta 10 dessas chaves
-como CSS custom properties (`--primary-color`, `--primary-light`, `--bg-primary`, `--bg-surface`,
-`--text-primary`, `--text-secondary`, `--success-color`, `--warning-color`, `--danger-color`,
-`--border-color`) — é assim que os `styles.js` acessam o tema sem receber `props`. As chaves
-`radiusMd` e `radiusFull` **não** viram custom properties.
+Os tokens `*Strong` existem para preenchimento sólido com texto branco por cima (botões, telas de
+sucesso/falha, badges) — as cores "do dia a dia" (`successColor` etc.) ficam pastel de propósito no
+tema escuro, pensadas para texto/ícone sobre fundo escuro, e falhariam o contraste mínimo de 4,5:1
+nesse outro papel. `isDark` substitui uma comparação de string frágil que existia antes
+(`theme.bgPrimary === '#0f172a'`, que nunca era verdadeira).
+
+`styles/GlobalStyles.js` aplica o reset, importa a fonte **Lexend** e reexporta essas chaves (exceto
+`radiusMd`/`radiusFull` e o booleano `isDark`) como CSS custom properties (`--primary-color`,
+`--primary-strong`, `--danger-light` etc.) — é assim que os `styles.js` acessam o tema sem receber
+`props`.
 
 O `#root` é limitado a `max-width: 480px`, o que dá ao aplicativo o formato de tela de celular
 mesmo quando aberto no navegador desktop.
@@ -1342,12 +1413,16 @@ HomeScreen monta (1)
           → HabitoRepository.findAllByUsuarioId() — WHERE ativo = true (9)
           → para cada hábito: StatusHabitoRepository.findById() (10)
           → mapeia para HabitoResponseDTO[] (11)
-        → Response: array de HabitoResponseDTO (12)
+        → Response: DashboardResponseDTO { habits, limite_habitos_ativos } (12)
     → sort: COMPLETED vai para o final, ordena por proximo_vencimento (13)
     → setLocalHabits(data) (14)
-  → carrossel renderiza HabitSlide por hábito (15)
+  → 0 hábitos: tela de boas-vindas dedicada, distinta do slide de criação (14a)
+  → carrossel renderiza HabitSlide por hábito, com o gatilho abaixo do título quando preenchido (15)
   → getAvatarExpression(habit) — calcula diffMin para expressão do avatar (16)
   → handleScroll → setActiveIndex → setCurrentHabit(localHabits[i]) (17)
+  → menu "⋮" no cartão: Editar (leva a /create com o hábito no location.state) ou
+    Arquivar (DELETE /habits/{id}, com confirmação explicando que o histórico é
+    preservado e a vaga é liberada) (18)
 ```
 
 **Expressões do avatar por `diffMin`:**
@@ -1372,6 +1447,8 @@ BottomNav — botão Play pressionado (1)
     → senão: navigate('/pretask') (5)
 PreTask monta (6)
   → useEffect — se !currentHabit: navigate('/home') (7)
+  → exibe o NOME do hábito em destaque e, se preenchido, o gatilho (com âncora ⚓)
+    acima da frase motivacional (7a)
   → api.getPreTaskPriming(currentHabit.id) (8)
     → GET /api/habits/{id}/priming com Bearer token (9)
       → [Backend] HabitoController.getPriming(id) (10)
@@ -1392,7 +1469,8 @@ PreTask monta (6)
 ```
 ExecutionScreen monta (1)
   → useEffect: executionToken = crypto.randomUUID() (2)
-  → useTimer(meta_base, habitId, executionToken, isTimer=true) (3)
+  → metaOcorrenciaAtual = habit.alvo_ocorrencia_atual ?? habit.meta_base (2a)
+  → hábito TEMPO: useTimer(metaOcorrenciaAtual, habitId, executionToken, isTimer=true) (3)
     → setInterval 1s → decrementa timeLeft (4)
     → document.visibilitychange oculto: pause() (5)
       → clearInterval (6)
@@ -1401,23 +1479,30 @@ ExecutionScreen monta (1)
       → storage.loadExecutionState(habitId) (9)
       → isWithinTolerance(startedAt) — máx 1 hora de pausa (10)
       → compensa timeDiff, ajusta timeLeft (11)
-  → timeLeft === 0: setIsOverachieving(true) + vibrate (12)
+  → hábito QUANTIDADE: contador com passo max(1, round(metaOcorrenciaAtual / 10));
+    toque no número central abre entrada manual (3b)
+  → timeLeft === 0 (ou quantidade >= meta): setIsOverachieving(true) + vibrate (12)
   → botão CONCLUIR visível quando isOverachieving (13)
   → handleComplete() (14)
     → pause() — salva estado final (15)
-    → calcula isExtra: overachieveTime >= meta_base * 0.2 (16)
+    → NÃO decide mais padrão/extra no cliente — envia só execution_token e
+      valor_realizado; o servidor recalcula sozinho contra o alvo da
+      ocorrência (RF22/RNF08) (16)
     → api.submitExecution(id, payload) (17)
       → POST /api/habits/{id}/executions com Bearer token (18)
         → [Backend] HabitoController.executeHabit() (19)
         → [Backend] GamificacaoService.processarExecucao() (20)
           → HistoricoExecucaoRepository.existsByExecutionToken() — idempotência (21)
-          → calcula moedas (100 ou 150) (22)
-          → atualiza execucoesHoje e diasSeguidos (23)
+          → recalcula bônus: valor_realizado >= alvo_da_ocorrência * 1.2 (22)
+          → atualiza execucoesHoje; diasSeguidos só sobe quando a ÚLTIMA
+            ocorrência do dia é concluída (23)
+          → proximo_vencimento passa a apontar para a próxima ocorrência
+            pendente do dia, não para o fim do dia (23a)
           → StatusHabitoRepository.update(status) (24)
           → HistoricoExecucaoRepository.save(historico) (25)
-        → Response: { moedas_ganhas, moedas_totais, dias_seguidos, texto_feedback } (26)
+        → Response: { moedas_ganhas, moedas_totais, dias_seguidos, novo_nivel, texto_feedback, bonus } (26)
     → storage.clearExecutionState(habitId) (27)
-    → navigate('/success', { state: { bonus: isExtra, feedback: res.data } }) (28)
+    → navigate('/success', { state: { bonus: res.data.bonus, feedback: res.data } }) (28)
 ```
 
 ---
@@ -1435,7 +1520,7 @@ ExecutionScreen — botão "Desistir" (1)
       FAIL_BLOQUEIO  (usar escudo)   ou   FAIL_TIMEOUT (assumir a falha)
   → handleGiveUp(type) (5)
     → pause() (6)
-    → payload: { execution_token, tipo, valor_realizado: meta_base - timeLeft } (7)
+    → payload: { execution_token, tipo, valor_realizado: <parcial já feito> } (7)
     → api.submitExecution(id, payload) (8)
       → POST /api/habits/{id}/executions (9)
         → [Backend] GamificacaoService.processarExecucao() (10)
@@ -1503,13 +1588,18 @@ Fail monta (1)
 Stats monta (1)
   → currentHabit do CurrentHabitContext (2)
   → se !currentHabit: renderiza EmptyState (3)
-  → setLoading(true) → api.getWeeklyStats() (4)
-    → GET /api/stats/weekly com Bearer token (5)
-      → [Backend] StatsController.getWeeklyStats() → retorna [] (6)
-  → response.data vazio: setData([]) (7)
-  → calcula maxRecord = Math.max(...data.map(d => d.valor)) (8)
-  → recharts BarChart renderiza gráfico (9)
-  → StatCards: dias_seguidos e recorde da semana do habit (10)
+  → setLoading(true) → api.getWeeklyStats(currentHabit.id) (4)
+    → GET /api/stats/weekly?habitoId={id} com Bearer token (5)
+      → [Backend] StatsController.getWeeklyStats() (6)
+      → [Backend] StatsService.obterEstatisticasSemanais() (6a)
+        → HistoricoExecucaoRepository — agrega por dia, últimos 7 dias (6b)
+        → completa os 7 dias mesmo sem execução (valor 0) (6c)
+  → Response: StatsResponseDTO { dias, recorde, dias_com_meta_cumprida, constancia_semanal_percentual } (7)
+  → todo dia sem execução E sem desistência (7 dias inteiros): estado vazio
+    dedicado ("Ainda não há execuções registradas...") (7a)
+  → recharts BarChart renderiza uma barra por dia; dia com `parcial: true`
+    (desistência/escudo) usa cor diferente das barras de conclusão (8)
+  → StatCards: recorde e percentual de constância semanal (RF17) (9)
 ```
 
 ---
@@ -1569,29 +1659,47 @@ Profile monta (1)
 #### FLUXO 13 — Criar Hábito (`POST /habits`)
 
 ```
-CreateHabit monta — step = 1 (1)
-  → Etapa 1: usuário clica em molde (AGUA / ESTUDAR / EXERCICIO) (2)
+CreateHabit monta — step = 1 (modo criar) ou step = 3 pré-preenchido (modo editar,
+  ativado por location.state.editHabit vindo do menu "Editar" da Home) (1)
+  → Etapa 1: usuário toca num molde — AGUA / ESTUDO / EXERCICIO (carrossel com
+    scroll-snap, cartão ativo centralizado, navegável por teclado) (2)
     → setMolde(m) → NextButton → setStep(2) (3)
-  → Etapa 2: escolha do modo de configuração (4)
-    → "Medir Dificuldade": addToast('Em breve!') (5)
-    → "Preencher Manualmente": setStep(3) (6)
-  → Etapa 3: formulário preenchido (7)
-    → meta_base, aumento_dezena, meta_maxima, frequencia_semanal, vezes_dia, horario (8)
+  → Etapa 2: card estático "Calibração Automática — Em breve" (não clicável) ao
+    lado de "Preencher Manualmente" — único caminho ativo (4)
+    → setStep(3) (5)
+  → Etapa 3: formulário — nome do hábito (até 60 caracteres, pré-preenchido com
+    o nome do molde), gatilho (opcional, até 120), meta_base, incremento,
+    dias_incremento, meta_maxima, frequencia_semanal (máscara de 7 dígitos,
+    bloqueia envio com 0 dias), vezes_dia (1-12) e, quando > 1, um horário por
+    ocorrência com o alvo calculado em tempo real (6)
+    → validação campo a campo ANTES de avançar — campo vazio bloqueia o envio
+      com erro no próprio campo, nunca vira 1 silenciosamente (7)
+    → handleRevisar() → Etapa 4: resumo de revisão ("Você vai criar/atualizar
+      [nome] com meta de [X], nos dias [Y], executando [Z] vez(es) ao dia") (8)
     → handleSave() (9)
       → setIsSubmitting(true) (10)
       → monta payload completo (11)
-      → api.createHabit(payload) (12)
-        → POST /api/habits com Bearer token (13)
-          → [Backend] HabitoController.createHabit() → email do SecurityContext (14)
-          → [Backend] HabitoService.criarHabito(email, request) (15)
+      → modo criar: api.createHabit(payload) → POST /api/habits (12)
+      → modo editar: api.updateHabit(id, payload) → PUT /api/habits/{id} (12a)
+        → [Backend] HabitoController.createHabit()/updateHabit() → email do
+          SecurityContext (14)
+          → [Backend] HabitoService.criarHabito()/atualizarHabito() (15)
             → UsuarioRepository.findByEmail() (16)
-            → HabitoRepository.findAllByUsuarioId() — valida limite de 5 (17)
-            → HabitoRepository.save(habito) (18)
-            → StatusHabitoRepository.save(status inicial) (19)
-          → Response: HabitoResponseDTO completo (20)
-      → addToast('Hábito criado!', 'success') (21)
+            → HabitoRepository.findAllByUsuarioId() — valida limite de 2 (só
+              na criação) (17)
+            → gera/recria as sub_atividades (uma por ocorrência) (18)
+            → HabitoRepository.save()/update() (18a)
+            → StatusHabitoRepository.save(status inicial) — só na criação (19)
+          → Response: HabitoResponseDTO completo, ou { success: true } na
+            edição (20)
+      → addToast('Hábito criado/atualizado com sucesso!', 'success') (21)
       → navigate('/home') (22)
 ```
+
+**Arquivar** (menu "⋮" do cartão da Home, fora deste fluxo): `DELETE /habits/{id}` faz
+`HabitoRepository.archive` — `UPDATE hab_ativo = false`, nunca `DELETE`. O histórico de
+execuções é preservado e a vaga entre os hábitos ativos é liberada, com confirmação explicando
+os dois pontos antes de executar.
 
 ---
 #### FLUXO 14 — Fechamento Diário (sem origem no frontend)
@@ -1613,8 +1721,18 @@ FechamentoDiarioJob — @Scheduled(fixedRate = 1h, initialDelay = 60s) (1)
              SET execucoes_hoje = 0, bloqueio_usado_hoje = false, ultimo_reset = ?
            WHERE habito_id = ?
              AND (ultimo_reset IS NULL OR ultimo_reset < ?)
+      → só quando o dia realmente virou PARA ESTE hábito nesta passada: (5a)
+          → recalcula proximo_vencimento para a próxima ocorrência (5b)
+          → nivel_avatar = min(50, 1 + dias_seguidos) (5c)
+          → a cada hab_dias_incremento dias seguidos de ofensiva,
+            hab_meta_base += hab_incremento (respeitando hab_meta_maxima) e
+            as sub_atividades são recalculadas preservando os horários (5d)
   → registra no log quantos hábitos foram efetivamente zerados (6)
 ```
+
+**Ainda não implementado neste job:** consumo automático de escudo quando a meta do dia anterior
+não foi cumprida (ver §11.1) — `dias_seguidos` só zera hoje pela desistência explícita
+(`FAIL_TIMEOUT`, Fluxo 7), nunca por inatividade silenciosa.
 
 **Por que roda de hora em hora, e não uma vez à meia-noite.** Cada usuário tem seu próprio
 `fuso_horario`. A meia-noite acontece em instantes diferentes para cada um, então não existe um
@@ -1725,27 +1843,34 @@ pretendia que fosse.
 
 | Item | Situação |
 |---|---|
-| **`GET /stats/weekly`** | `StatsController` retorna `new ArrayList<>()`. A tela `Stats` renderiza um gráfico vazio. A causa raiz está em [§4.4](#44-historico_execucoes): os dados existem no banco, mas o repositório não tem nenhuma consulta de leitura. |
-| **"Medir Dificuldade"** | Segundo passo do assistente em `CreateHabit`. Exibe um toast "Em breve!" e não faz nada. |
-| **Dias da semana** | O formulário de `CreateHabit` tem botões de seleção de dias, mas não existe coluna no banco nem campo no DTO que os receba. A seleção é perdida ao enviar. |
+| **"Medir Dificuldade"** | Segundo passo do assistente em `CreateHabit`. Decisão D4: trabalho futuro. Hoje é um card estático "Calibração Automática — Em breve", não clicável — o preenchimento manual é o único caminho ativo. |
+| **Dias da semana** | Agora tem coluna (`hab_frequencia_semanal`) e campo no DTO, e o formulário envia a máscara de verdade — **não é mais uma limitação**. |
 | **Seletor de idioma** | Botão fixo "🇧🇷 PT" no `Login` e no `Profile`. Não há i18n; `usuarios.preferencia_idioma` é gravada mas nunca lida. |
-| **Editar e arquivar hábito** | `updateHabit()` e `archiveHabit()` existem em `services/api.js` e os endpoints funcionam, mas **nenhuma tela os chama**. Não há caminho pela interface. |
+| **Editar e arquivar hábito** | Implementado — menu "⋮" no cartão da Home leva à edição (reaproveitando o Passo 3 do assistente, pré-preenchido) ou ao arquivamento (soft delete, com confirmação). |
 | **Excluir conta** | Não implementado em nenhuma camada. |
-| **`PwaPauseModal`** | Componente completo e renderizado condicionalmente em `Execution`, mas o estado `showPwaModal` nunca é definido como `true` — é código inalcançável. |
+| **`PwaPauseModal`** | Removido do código — `useTimer` já pausa/retoma sozinho via `visibilitychange`, sem prompt ao usuário. |
+| **Consumo automático de escudo** | Decisão D2: implementar. A coluna/CHECK já existem (`his_tipo_sucesso IN (..., 'PROTEGIDO_AUTOMATICO')`) e a Loja já não promete mais o comportamento (texto corrigido), mas o `FechamentoDiarioJob` ainda não consome escudo nem preserva `dias_seguidos` quando a meta do dia anterior não foi cumprida — ver Fluxo 14. |
+| **Questionário de calibração** | Tabelas `calibracoes`/`calibracao_respostas` reservadas no schema, sem nenhum código que as use — trabalho futuro (D4), mesmo item de "Medir Dificuldade" acima. |
 
-### 11.2. Campos sem uso em código
+### 11.2. Campos que passaram a ter uso
 
-Colunas que existem no banco e são gravadas, mas que nenhuma regra de negócio consome. Não são
-bugs — são funcionalidades planejadas e não concluídas —, mas explicam por que certos dados
-parecem "não fazer nada".
+Estes campos apareciam aqui como "gravados mas nunca lidos" numa versão anterior deste documento.
+Hoje têm regra de negócio real:
+
+| Coluna | Situação atual |
+|---|---|
+| `habitos.gatilho_ancora` | Exibida no cartão da Home (abaixo do título) e na Pré-Tarefa (acima da frase motivacional), quando preenchida. Consta do `HabitoResponseDTO`. |
+| `status_habitos.proximo_vencimento` | Calculado na criação, após cada execução e na virada do dia — aponta para a próxima ocorrência pendente, não para o fim do dia. As quatro expressões do avatar e os balões de urgência dependem dele e funcionam. |
+| `status_habitos.nivel_avatar` | Recalculado no fechamento diário (`1 + dias_seguidos`, teto de serviço em 50) e exposto no DTO. A variação visual (v1-v5) ainda é trabalho futuro — nenhuma tela a usa hoje. |
+
+Ainda sem uso em código, sem mudança desde a versão anterior:
 
 | Coluna | Situação |
 |---|---|
-| `habitos.gatilho_ancora` | Recebida do formulário e gravada. Nenhum service a lê e **ela não consta do `HabitoResponseDTO`** — o frontend nunca a recebe de volta. |
-| `status_habitos.proximo_vencimento` | Só recebe `null`; nenhum código atribui valor real. Chega ao frontend sempre nula. A `Home` tenta usá-la para escolher a expressão do avatar, então na prática **todos os avatares ficam na expressão `normal`**. |
 | `usuarios.preferencia_idioma` | Gravada com o literal `"pt-BR"` no cadastro. `obterPriming` passa o literal `"pt-BR"` em vez de consultar esta coluna. |
 | `usuarios.criado_em` · `habitos.criado_em` | Gravadas e mapeadas pelos `RowMapper`, nunca consumidas nem expostas. |
 | `biblioteca_textos.texto_sucesso_padrao` · `texto_sucesso_extra` · `texto_aviso_urgencia` | Populadas pelo seed e mapeadas pelo `RowMapper`, mas **nunca consumidas**: os textos equivalentes estão fixos no `GamificacaoService` (`"Execução registrada!"`, `"Desempenho excelente!"`). Ligar essas colunas ao código é uma melhoria de baixo custo. |
+| `status_habitos.sta_recorde_dias` · `sta_valor_acumulado_hoje` | Colunas do schema sem campo Java correspondente ainda. |
 
 ### 11.3. Segurança
 
@@ -1762,9 +1887,9 @@ parecem "não fazer nada".
 
 | Item | Descrição |
 |---|---|
-| **Zero testes automatizados** | `backend/src/test/` não existe. O `Dockerfile` compila com `-x test`. No frontend não há framework de teste nem script. A validação é manual, pela coleção Postman. |
+| **Cobertura de teste mínima** | `backend/src/test/` existe (1 classe, 7 testes JUnit, cobrindo geração de sub-atividades). O `Dockerfile` ainda compila com `-x test` — os testes não rodam no build de produção. No frontend não há framework de teste nem script; a validação é manual. |
 | **Zero CI** | Não há `.github/workflows`. Os deploys em Render e Vercel são disparados manualmente pelos painéis. |
-| **`baseURL` fixa em produção** | `frontend/src/services/api.js` tem a URL do Render embutida, sem variável de ambiente. `npm run dev` acessa a API de produção. |
+| **`baseURL` do frontend** | `import.meta.env.DEV` escolhe entre `localhost:8080` (em `npm run dev`) e a URL do Render (no bundle de produção) — ver §7.6. Resolvido para desenvolvimento local; o bundle publicado continua com a URL do Render embutida, sem variável de ambiente própria. |
 | **Chave AES versionada** | `utils/storage.js` usa `VITE_CRYPTO_SECRET` com fallback para um literal no código. Como não há `.env`, o literal é sempre o usado. Vale notar que uma chave embutida no bundle JavaScript não é secreta de qualquer forma — a criptografia aqui dificulta a leitura casual do `localStorage`, não protege contra um atacante. |
 | **N+1 no dashboard** | `HabitoService.listarDashboard` faz uma consulta para listar os hábitos e depois duas por hábito (`habitos` + `status_habitos`). Um `JOIN` resolveria em uma consulta. |
 | **`IllegalArgumentException` → 401** | O `GlobalExceptionHandler` mapeia essa exceção para 401 por causa do fluxo de login. Como `GamificacaoService` usa a mesma exceção para `tipo` inválido, **enviar um tipo desconhecido retorna 401 em vez de 400**. |
