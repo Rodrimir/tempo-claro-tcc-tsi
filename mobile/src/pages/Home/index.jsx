@@ -10,7 +10,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { getDashboard, archiveHabit } from '../../services/api';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import LocalHeader from '../../components/layout/LocalHeader';
-import { useFloat, usePulse } from './useFloat';
+import { useFloat, usePulse } from '../../hooks/useFloat';
 
 import solFlutuando from '../../../assets/sol_flutuando.webp';
 import luaFlutuando from '../../../assets/lua_flutuando.png';

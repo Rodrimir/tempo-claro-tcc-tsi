@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import Fail from '../src/pages/Fail';
 
-export default function Fail() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Fail</Text>
-    </View>
-  );
+export default function FailRoute() {
+  return <Fail />;
 }
