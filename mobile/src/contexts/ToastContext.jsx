@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { DeviceEventEmitter, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SlideInRight, FadeOut } from 'react-native-reanimated';
 import { ToastContainer, ToastMessage, ToastText } from '../components/common/Toast/styles';
 
@@ -8,6 +9,7 @@ const ToastContext = createContext(null);
 const EVENTO_TOAST_GLOBAL = 'tempoClaro:toast';
 
 export const ToastProvider = ({ children }) => {
+  const insets = useSafeAreaInsets();
   const [toasts, setToasts] = useState([]);
 
   const dispensarToast = useCallback((id) => {
@@ -31,7 +33,7 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <ToastContainer pointerEvents="box-none">
+      <ToastContainer pointerEvents="box-none" $insetTop={insets.top}>
         {toasts.map((toast) => (
           <Pressable key={toast.id} onPress={() => dispensarToast(toast.id)}>
             <ToastMessage

@@ -4,7 +4,7 @@ import { fonts } from '../../../styles/fonts';
 
 export const ToastContainer = styled.View`
   position: absolute;
-  top: 24px;
+  top: ${(props) => 24 + (props.$insetTop || 0)}px;
   right: 24px;
   gap: 12px;
 `;
