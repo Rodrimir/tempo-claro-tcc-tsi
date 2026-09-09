@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { FlatList, Modal, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
@@ -203,8 +203,8 @@ const HomeScreen = () => {
   const [habitoParaArquivar, setHabitoParaArquivar] = useState(null);
   const [arquivando, setArquivando] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     setLoadError(false);
     try {
       const response = await getDashboard();
@@ -225,13 +225,17 @@ const HomeScreen = () => {
       addToast('Não foi possível carregar seus hábitos.', 'error');
       setLoadError(true);
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
   }, [addToast]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const primeiraCarga = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      loadData(!primeiraCarga.current);
+      primeiraCarga.current = false;
+    }, [loadData])
+  );
 
   useEffect(() => {
     if (localHabits.length > 0 && localHabits[activeIndex] && localHabits[activeIndex].id !== CRIAR_SLIDE.id) {
@@ -291,7 +295,7 @@ const HomeScreen = () => {
           </IconWrapper>
           <EmptyTitle>Não foi possível carregar</EmptyTitle>
           <EmptySubtitle>Verifique sua conexão e tente novamente.</EmptySubtitle>
-          <RetryButton onPress={loadData}>
+          <RetryButton onPress={() => loadData()}>
             <RetryButtonText>Tentar novamente</RetryButtonText>
           </RetryButton>
         </ErrorStateContainer>

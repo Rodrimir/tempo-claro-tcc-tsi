@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Modal } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
@@ -49,7 +50,7 @@ const Store = () => {
   const [loading, setLoading] = useState(true);
   const [pickerAberto, setPickerAberto] = useState(false);
 
-  const loadHabits = async () => {
+  const loadHabits = useCallback(async (silencioso = false) => {
     try {
       const response = await getDashboard();
       const data = response.data.habits || response.data || [];
@@ -59,13 +60,17 @@ const Store = () => {
     } catch (error) {
       addToast('Erro ao carregar dados da loja.', 'error');
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
-  };
+  }, [addToast]);
 
-  useEffect(() => {
-    loadHabits();
-  }, []);
+  const primeiraCarga = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      loadHabits(!primeiraCarga.current);
+      primeiraCarga.current = false;
+    }, [loadHabits])
+  );
 
   const activeHabits = habits.filter((h) => h.status !== 'ARCHIVED' && h.status !== 'COMPLETED');
   const habitoSelecionado = activeHabits.find((h) => h.id === selectedHabitId);
@@ -106,7 +111,7 @@ const Store = () => {
   const nenhumEscudoAinda = inventarioHabits.every((h) => (h.bloqueios_acumulados || 0) === 0);
 
   return (
-    <StoreContainer>
+    <StoreContainer $insetTop={insets.top}>
       <Title>Loja do Hábito</Title>
       <Subtitle>
         As moedas mostradas aqui pertencem só ao hábito selecionado — cada hábito tem seu próprio saldo, não

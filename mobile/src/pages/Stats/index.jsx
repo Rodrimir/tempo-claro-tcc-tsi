@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { View } from 'react-native';
 import { Svg, Rect } from 'react-native-svg';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -84,12 +85,12 @@ const Stats = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (silencioso = false) => {
     if (!habit) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!silencioso) setLoading(true);
     setLoadError(false);
     try {
       const response = await getWeeklyStats(habit.id);
@@ -109,13 +110,17 @@ const Stats = () => {
       addToast('Não foi possível carregar as estatísticas.', 'error');
       setLoadError(true);
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
   }, [habit, addToast]);
 
-  useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+  const primeiraCarga = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      loadStats(!primeiraCarga.current);
+      primeiraCarga.current = false;
+    }, [loadStats])
+  );
 
   if (!habit) {
     return (
@@ -148,7 +153,7 @@ const Stats = () => {
         </EmptyIconWrapper>
         <EmptyTitle>Não foi possível carregar</EmptyTitle>
         <EmptyText>Verifique sua conexão e tente novamente.</EmptyText>
-        <RetryButton onPress={loadStats}>
+        <RetryButton onPress={() => loadStats()}>
           <RetryButtonText>Tentar novamente</RetryButtonText>
         </RetryButton>
       </EmptyStateContainer>
@@ -173,7 +178,7 @@ const Stats = () => {
   }
 
   return (
-    <StatsContainer>
+    <StatsContainer style={{ paddingTop: insets.top + 24 }}>
       <Title>Dados do Hábito</Title>
       <HabitTitle>{habit.titulo}</HabitTitle>
 
