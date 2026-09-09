@@ -263,6 +263,19 @@ o voltar no login garante o requisito ("voltar não retorna para telas autentica
 de a pilha estar sempre rasa o bastante. `/home` (raiz das abas) não tem handler nenhum de
 propósito — o comportamento padrão do Android (fechar o app) já é o que a tarefa pede.
 
+## A regra "nenhum comentário" e as diretivas do ESLint
+
+A regra do projeto é **nenhum comentário explicativo no código** — nem os herdados do `frontend/`
+ao portar uma tela. As 5 linhas `// eslint-disable-next-line react-hooks/exhaustive-deps` que
+existem em `mobile/src` são a única exceção, decidida explicitamente: não explicam nada, são
+**diretivas funcionais** que suprimem um aviso do linter em efeitos que devem rodar só na montagem
+(o `frontend/` tem as mesmas). Removê-las traria os avisos de volta sem mudar comportamento algum.
+
+Ficam em: `ThemeToggleContext.jsx`, `Execution/index.jsx`, `Profile/index.jsx`,
+`Success/index.jsx`, `hooks/useTimer.js`.
+
+Isso **não** abre precedente para comentário explicativo.
+
 ## Contrato de nomes da API: `snake_case`
 
 Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:

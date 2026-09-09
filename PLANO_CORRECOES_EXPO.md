@@ -267,6 +267,11 @@ Removê-los reintroduz os warnings sem mudar comportamento. O `frontend/` tem os
 
 ---
 
+Concluído — decisão: MANTER. Registrada em `mobile/CLAUDE.md` com a distinção entre
+diretiva funcional e comentário explicativo.
+
+---
+
 ### ☐ C1.3 — `--warning-light` não existe (achado no `frontend/`, não no `mobile/`) `XS`
 
 **Por quê:** `frontend/src/components/layout/LocalHeader/styles.js` usa `var(--warning-light)`, que
