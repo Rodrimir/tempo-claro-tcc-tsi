@@ -317,7 +317,7 @@ const HomeScreen = () => {
             {limiteHabitos === 1 ? '' : 's'} por vez — sem dispersão, sem sobrecarga. Crie o primeiro pra
             começar.
           </EmptySubtitle>
-          <CreateHabitButton onPress={() => router.push('/create')} style={{ marginTop: 24 }}>
+          <CreateHabitButton onPress={() => router.push({ pathname: '/create', params: { modo: 'criar' } })} style={{ marginTop: 24 }}>
             <Feather name="play" size={32} color="white" style={{ transform: [{ rotate: '90deg' }] }} />
           </CreateHabitButton>
         </ErrorStateContainer>
@@ -340,7 +340,7 @@ const HomeScreen = () => {
         style={{ flex: 1 }}
         renderItem={({ item }) =>
           item.id === CRIAR_SLIDE.id ? (
-            <CriarHabitoSlide width={width} isDark={isDark} onPress={() => router.push('/create')} />
+            <CriarHabitoSlide width={width} isDark={isDark} onPress={() => router.push({ pathname: '/create', params: { modo: 'criar' } })} />
           ) : (
             <HabitCardSlide
               habit={item}

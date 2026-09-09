@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -65,6 +65,15 @@ function horaCurta(valor) {
   return valor ? String(valor).slice(0, 5) : '';
 }
 
+const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const MSG_HORA = 'Use o formato HH:MM (ex.: 08:00).';
+
+function mascaraHora(valor) {
+  const digitos = String(valor).replace(/\D/g, '').slice(0, 4);
+  if (digitos.length <= 2) return digitos;
+  return `${digitos.slice(0, 2)}:${digitos.slice(2)}`;
+}
+
 function diasDaMascara(mascara) {
   if (!mascara) return [1, 2, 3, 4, 5];
   return [...mascara].reduce((acc, c, i) => (c === '1' ? [...acc, i] : acc), []);
@@ -114,15 +123,35 @@ const CreateHabit = () => {
   const { currentHabit } = useCurrentHabit();
   const { addToast } = useToast();
 
-  const [editHabit] = useState(() => (modo === 'editar' ? currentHabit : null));
-  const isEditMode = Boolean(editHabit);
-  const moldeInicial = isEditMode ? MOLDES.find((m) => m.id === editHabit.categoria) || MOLDES[0] : MOLDES[0];
+  const currentHabitRef = useRef(currentHabit);
+  useEffect(() => {
+    currentHabitRef.current = currentHabit;
+  }, [currentHabit]);
 
-  const [step, setStep] = useState(isEditMode ? 3 : 1);
-  const [molde, setMolde] = useState(moldeInicial);
+  const alvoInicial = modo === 'editar' ? currentHabit : null;
+  const moldeDe = (alvo) => (alvo ? MOLDES.find((m) => m.id === alvo.categoria) || MOLDES[0] : MOLDES[0]);
+
+  const [editHabit, setEditHabit] = useState(alvoInicial);
+  const [step, setStep] = useState(alvoInicial ? 3 : 1);
+  const [molde, setMolde] = useState(() => moldeDe(alvoInicial));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(() => formDataInicial(editHabit, moldeInicial));
+  const [formData, setFormData] = useState(() => formDataInicial(alvoInicial, moldeDe(alvoInicial)));
+
+  const isEditMode = Boolean(editHabit);
+
+  useFocusEffect(
+    useCallback(() => {
+      const alvo = modo === 'editar' ? currentHabitRef.current : null;
+      const moldeAlvo = moldeDe(alvo);
+      setEditHabit(alvo);
+      setMolde(moldeAlvo);
+      setStep(alvo ? 3 : 1);
+      setFormData(formDataInicial(alvo, moldeAlvo));
+      setErrors({});
+      setIsSubmitting(false);
+    }, [modo])
+  );
 
   const handleNext = () => setStep((prev) => prev + 1);
   const handleBack = () => setStep((prev) => prev - 1);
@@ -218,10 +247,18 @@ const CreateHabit = () => {
       erros.frequencia_semanal = 'Selecione ao menos um dia da semana.';
     }
 
+    if (vezesDiaNum <= 1 && formData.horario && !RE_HORA.test(formData.horario)) {
+      erros.horario = MSG_HORA;
+    }
+
     if (vezesDiaNum > 1) {
       formData.ocorrencias.forEach((ocorrencia, i) => {
         if (!ocorrencia.horario_inicio) {
           erros[`ocorrencia_${i}`] = `Informe o horário de início da ocorrência ${i + 1}.`;
+        } else if (!RE_HORA.test(ocorrencia.horario_inicio)) {
+          erros[`ocorrencia_${i}`] = MSG_HORA;
+        } else if (ocorrencia.horario_fim && !RE_HORA.test(ocorrencia.horario_fim)) {
+          erros[`ocorrencia_${i}`] = MSG_HORA;
         }
       });
     }
@@ -462,9 +499,10 @@ const CreateHabit = () => {
                     <Input
                       placeholder="23:59"
                       maxLength={5}
+                      keyboardType="number-pad"
                       value={formData.horario}
                       $error={Boolean(errors.horario)}
-                      onChangeText={(v) => atualizarCampo('horario', v)}
+                      onChangeText={(v) => atualizarCampo('horario', mascaraHora(v))}
                     />
                     {errors.horario && <ErrorText>{errors.horario}</ErrorText>}
                   </GridCell>
@@ -485,9 +523,10 @@ const CreateHabit = () => {
                           <Input
                             placeholder="08:00"
                             maxLength={5}
+                            keyboardType="number-pad"
                             value={ocorrencia.horario_inicio}
                             $error={Boolean(errors[`ocorrencia_${i}`])}
-                            onChangeText={(v) => atualizarOcorrencia(i, 'horario_inicio', v)}
+                            onChangeText={(v) => atualizarOcorrencia(i, 'horario_inicio', mascaraHora(v))}
                           />
                         </GridCell>
                         <GridCell>
@@ -495,8 +534,9 @@ const CreateHabit = () => {
                           <Input
                             placeholder="08:30"
                             maxLength={5}
+                            keyboardType="number-pad"
                             value={ocorrencia.horario_fim}
-                            onChangeText={(v) => atualizarOcorrencia(i, 'horario_fim', v)}
+                            onChangeText={(v) => atualizarOcorrencia(i, 'horario_fim', mascaraHora(v))}
                           />
                         </GridCell>
                       </GridRow>
