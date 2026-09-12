@@ -17,6 +17,7 @@ import { CurrentHabitProvider } from '../src/contexts/CurrentHabitContext';
 import { ExecutionResultProvider } from '../src/contexts/ExecutionResultContext';
 import { ThemeToggleProvider, useThemeToggle } from '../src/contexts/ThemeToggleContext';
 import { ToastProvider } from '../src/contexts/ToastContext';
+import { LanguageProvider } from '../src/contexts/LanguageContext';
 import { lightTheme, darkTheme } from '../src/styles/theme';
 import LoadingScreen from '../src/components/common/LoadingScreen';
 
@@ -47,6 +48,7 @@ function AuthGuard() {
       <Stack.Screen name="execute" />
       <Stack.Screen name="success" />
       <Stack.Screen name="fail" />
+      <Stack.Screen name="calibration" />
     </Stack>
   );
 }
@@ -86,9 +88,11 @@ export default function RootLayout() {
       <AuthProvider>
         <CurrentHabitProvider>
           <ExecutionResultProvider>
-            <ThemeToggleProvider>
-              <ThemedApp />
-            </ThemeToggleProvider>
+            <LanguageProvider>
+              <ThemeToggleProvider>
+                <ThemedApp />
+              </ThemeToggleProvider>
+            </LanguageProvider>
           </ExecutionResultProvider>
         </CurrentHabitProvider>
       </AuthProvider>

@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { useRouter } from 'expo-router';
 import { login as apiLogin, register as apiRegister, getDashboard, setUnauthorizedHandler } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { traduzir, IDIOMA_PADRAO } from '../i18n';
 import {
   setAuthToken,
   clearAuthToken,
@@ -43,9 +45,15 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    setUnauthorizedHandler(() => {
+    setUnauthorizedHandler(async () => {
+      // Este contexto fica FORA do LanguageProvider (é ele que alimenta o idioma
+      // do usuário), então traduz com a função pura. O idioma é lido do disco no
+      // momento do disparo, e não guardado numa variável: o handler é registrado
+      // uma vez só, e qualquer cópia em memória ficaria defasada se a pessoa
+      // trocasse de idioma no meio da sessão.
+      const idioma = (await AsyncStorage.getItem('idioma')) || IDIOMA_PADRAO;
       DeviceEventEmitter.emit('tempoClaro:toast', {
-        message: 'Sua sessão expirou. Entre novamente.',
+        message: traduzir(idioma, 'comum.sessaoExpirada'),
         type: 'error',
         duration: 2000,
       });
@@ -86,6 +94,7 @@ export const AuthProvider = ({ children }) => {
       nome: data.nome,
       email: data.email,
       password: data.senha,
+      preferencia_idioma: data.idioma,
     };
     const response = await apiRegister(payload);
     await persistSession(response);

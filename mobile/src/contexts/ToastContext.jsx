@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { DeviceEventEmitter, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SlideInRight, FadeOut } from 'react-native-reanimated';
+import { Feather } from '@expo/vector-icons';
 import { ToastContainer, ToastMessage, ToastText } from '../components/common/Toast/styles';
 
 const ToastContext = createContext(null);
@@ -41,11 +42,9 @@ export const ToastProvider = ({ children }) => {
               entering={SlideInRight.duration(300)}
               exiting={FadeOut.duration(300)}
             >
-              <ToastText $type={toast.type}>
-                {toast.type === 'success' && 'V '}
-                {toast.type === 'error' && 'X '}
-                {toast.message}
-              </ToastText>
+              {toast.type === 'success' && <Feather name="check-circle" size={18} color="#ffffff" />}
+              {toast.type === 'error' && <Feather name="x-circle" size={18} color="#ffffff" />}
+              <ToastText $type={toast.type}>{toast.message}</ToastText>
             </ToastMessage>
           </Pressable>
         ))}

@@ -39,32 +39,60 @@ export const StepTitle = styled.Text`
   color: ${(props) => props.theme.textPrimary};
 `;
 
-export const MoldeScrollContentContainer = { gap: 16, paddingHorizontal: 24, paddingVertical: 16 };
+/* Grade 2x2: os quatro moldes cabem na tela de uma vez, sem rolagem lateral.
+   O carrossel horizontal de antes escondia opções fora da borda — com três
+   escolhas fixas (RF02) e uma reservada, mostrar tudo de uma vez elimina a
+   descoberta por arrasto, que é justamente o tipo de atrito que o app existe
+   para evitar. */
+export const MoldeGrid = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-top: 8px;
+`;
 
 export const MoldeCard = styled(Pressable)`
-  width: 240px;
+  width: 48%;
+  min-height: 168px;
+  margin-bottom: 16px;
   background-color: ${(props) => (props.$active ? props.theme.primaryLight : props.theme.bgSurface)};
   border-width: 2px;
-  border-color: ${(props) => (props.$active ? props.theme.primaryColor : 'transparent')};
+  border-color: ${(props) => (props.$active ? props.theme.primaryColor : props.theme.borderColor)};
   border-radius: 24px;
-  padding: 24px;
+  padding: 20px 14px;
   align-items: center;
+  justify-content: center;
+  opacity: ${(props) => (props.$disabled ? 0.45 : 1)};
 `;
 
 export const MoldeEmoji = styled.Text`
-  font-size: 64px;
-  margin-bottom: 16px;
+  font-size: 44px;
+  margin-bottom: 10px;
+`;
+
+/* O card do molde mostra o próprio avatar do hábito (nível 1, expressão normal),
+   não um emoji genérico: é a mesma arte que vai aparecer na Home depois. */
+export const MoldeAvatar = styled.View`
+  width: 72px;
+  height: 72px;
+  margin-bottom: 10px;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const MoldeTitle = styled.Text`
   font-family: ${fonts.bold};
-  font-size: 20px;
-  margin-bottom: 8px;
+  font-size: 17px;
+  margin-bottom: 6px;
+  text-align: center;
   color: ${(props) => props.theme.textPrimary};
 `;
 
 export const MoldeDesc = styled.Text`
-  font-size: 14px;
+  font-size: 12px;
+  line-height: 16px;
   color: ${(props) => props.theme.textSecondary};
   text-align: center;
 `;
@@ -101,19 +129,6 @@ export const OptionCard = styled(Pressable)`
   flex-direction: row;
   align-items: center;
   gap: 16px;
-`;
-
-export const StaticOptionCard = styled.View`
-  padding: 24px;
-  background-color: ${(props) => props.theme.bgSurface};
-  border-radius: 16px;
-  border-width: 1px;
-  border-color: ${(props) => props.theme.borderColor};
-  border-style: dashed;
-  flex-direction: row;
-  align-items: center;
-  gap: 16px;
-  opacity: 0.6;
 `;
 
 export const OptionIconWrapper = styled.View`
@@ -157,7 +172,16 @@ export const Label = styled.Text`
   color: ${(props) => props.theme.textPrimary};
 `;
 
-export const Input = styled.TextInput`
+export const FieldHint = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 13px;
+  color: ${(props) => props.theme.textSecondary};
+  margin-top: 6px;
+`;
+
+export const Input = styled.TextInput.attrs((props) => ({
+  placeholderTextColor: props.theme.textSecondary,
+}))`
   width: 100%;
   padding: 12px;
   border-width: 1px;
@@ -194,6 +218,13 @@ export const OcorrenciaAlvo = styled.Text`
   font-size: 14px;
   color: ${(props) => props.theme.primaryColor};
   margin-bottom: 8px;
+`;
+
+export const OcorrenciaAviso = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 13px;
+  color: ${(props) => props.theme.textSecondary};
+  margin-top: 4px;
 `;
 
 export const WeekDaysContainer = styled.View`

@@ -3,8 +3,19 @@ import { Pressable } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { fonts } from '../../styles/fonts';
 
-export const HomeContainer = styled.View`
+/* O cenário (dia/noite, conforme o tema) é o fundo da tela inteira — a mesma
+   ideia da Loja. O véu escurece só o suficiente pra texto e cartões continuarem
+   legíveis por cima da ilustração. */
+export const HomeContainer = styled.ImageBackground.attrs({
+  resizeMode: 'cover',
+})`
   flex: 1;
+  background-color: ${(props) => props.theme.bgPrimary};
+`;
+
+export const HomeVeu = styled.View`
+  flex: 1;
+  background-color: ${(props) => (props.theme.isDark ? 'rgba(6, 12, 30, 0.55)' : 'rgba(255, 255, 255, 0.35)')};
 `;
 
 export const HabitSlide = styled.View`
@@ -25,14 +36,15 @@ export const HabitCard = styled(Animated.View)`
       : props.$urgent
         ? props.theme.dangerLight
         : props.theme.primaryLight};
-  padding: 16px 24px;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  border-bottom-right-radius: 24px;
-  border-bottom-left-radius: 4px;
+  padding: 18px 26px;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  border-bottom-right-radius: 28px;
+  border-bottom-left-radius: 8px;
   margin-bottom: 32px;
   elevation: 3;
-  max-width: 280px;
+  width: 100%;
+  max-width: 340px;
   align-items: center;
   border-width: ${(props) => (props.$urgent && !props.$completed ? '2px' : '0px')};
   border-color: ${(props) => props.theme.dangerColor};
@@ -44,14 +56,8 @@ export const CardSubtitle = styled.Text`
   color: ${(props) => (props.$completed ? 'white' : props.$urgent ? props.theme.dangerColor : props.theme.primaryColor)};
   text-transform: uppercase;
   margin-bottom: 4px;
+  margin-right: 28px;
   letter-spacing: 1px;
-`;
-
-export const CardTitle = styled.Text`
-  font-family: ${fonts.bold};
-  font-size: 24px;
-  text-align: center;
-  color: ${(props) => (props.$completed ? 'white' : props.theme.textPrimary)};
 `;
 
 export const GatilhoText = styled.Text`
@@ -61,17 +67,65 @@ export const GatilhoText = styled.Text`
   color: ${(props) => (props.$completed ? 'rgba(255,255,255,0.85)' : props.theme.textSecondary)};
 `;
 
-export const ProgressoOcorrenciasText = styled.Text`
-  font-family: ${fonts.semiBold};
+/* A lista de tarefas de hoje É o progresso — substitui título do hábito e a
+   antiga linha "200/2000ml · 2/3 momentos" por um checklist concreto: uma
+   linha por ocorrência, com horário, alvo e o que já aconteceu com ela. */
+export const TarefaLinha = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+`;
+
+/* Rótulo ("Tarefa 2") e detalhe (horário · alvo) em linhas SEPARADAS, não um
+   texto corrido — um único Text quebrando sozinho, com a largura estreita do
+   balão, virava 3 linhas de um jeito imprevisível (o alvo cortava no meio). */
+export const TarefaColuna = styled.View`
+  flex: 1;
+  padding-top: 1px;
+`;
+
+export const TarefaLabel = styled.Text`
+  font-family: ${(props) => (props.$ativa ? fonts.bold : fonts.semiBold)};
   font-size: 13px;
+  text-decoration-line: ${(props) => (props.$falhou ? 'line-through' : 'none')};
+  color: ${(props) => (props.$completed ? 'white' : props.$falhou ? props.theme.textSecondary : props.theme.textPrimary)};
+`;
+
+export const TarefaDetalhe = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 12px;
+  text-decoration-line: ${(props) => (props.$falhou ? 'line-through' : 'none')};
+  color: ${(props) => (props.$completed ? 'rgba(255,255,255,0.85)' : props.theme.textSecondary)};
+`;
+
+/* Só a próxima tarefa por padrão — a lista das N ocorrências inteira estourava
+   o balão pra hábitos de 3x/dia. O detalhe completo mora atrás do botão de
+   expandir, não desaparece, só não fica sempre aberto. */
+export const TarefaBloco = styled.View`
+  align-self: stretch;
   margin-top: 4px;
-  color: ${(props) => (props.$completed ? 'rgba(255,255,255,0.95)' : props.theme.textSecondary)};
+  gap: 6px;
+`;
+
+export const ExpandirButton = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding: 4px;
+`;
+
+export const ExpandirTexto = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 11px;
+  color: ${(props) => (props.$completed ? 'rgba(255,255,255,0.85)' : props.theme.primaryColor)};
 `;
 
 export const UrgentBadge = styled(Animated.View)`
   background-color: ${(props) => props.theme.dangerStrong};
-  padding: 8px 16px;
-  border-radius: 16px;
+  padding: 10px 20px;
+  border-radius: 9999px;
   margin-bottom: 16px;
 `;
 
@@ -89,6 +143,30 @@ export const AvatarWrapper = styled(Animated.View)`
   margin-bottom: 20px;
 `;
 
+/* Contador de tempo, logo abaixo do avatar. Discreto por padrão — é informação de
+   apoio, não alarme — e só ganha a cor de perigo quando o prazo já passou. */
+/* Fundo opaco (não só um texto solto): o cenário atrás varia demais de tom —
+   céu claro, grama escura, noite — pra qualquer cor de texto funcionar direto
+   em cima dele nos dois temas. Uma pílula com o bgSurface do tema garante
+   contraste certo sempre, porque some com o próprio tema, não com a imagem. */
+export const ContadorWrapper = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-top: -8px;
+  margin-bottom: 12px;
+  background-color: ${(props) => props.theme.bgSurface};
+  padding: 8px 16px;
+  border-radius: 9999px;
+  elevation: 3;
+`;
+
+export const ContadorTexto = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 14px;
+  color: ${(props) => (props.$atrasado ? props.theme.dangerColor : props.theme.textPrimary)};
+`;
+
 export const ShadowBlur = styled.View`
   background-color: rgba(0,0,0,0.08);
   width: 100px;
@@ -103,6 +181,16 @@ export const SunWrapper = styled(Animated.View)`
   overflow: hidden;
   border-radius: 80px;
   margin-bottom: 32px;
+`;
+
+/* Mesma ideia do ContadorWrapper: título e subtítulo do slide "criar hábito"
+   também caem direto em cima do cenário, sem nenhum cartão atrás. */
+export const EmptyTextCard = styled.View`
+  background-color: ${(props) => props.theme.bgSurface};
+  padding: 20px 24px;
+  border-radius: 24px;
+  elevation: 3;
+  margin-bottom: 8px;
 `;
 
 export const EmptyTitle = styled.Text`
@@ -165,24 +253,33 @@ export const DotsWrapper = styled.View`
   padding-bottom: 16px;
 `;
 
+/* Contraste fixo (branco sempre, sombra sempre escura) em vez de cor de tema:
+   os pontinhos ficam pequenos demais pra um cartão opaco atrás fazer sentido,
+   então a borda escura é o que garante ver o ponto apagado tanto no céu claro
+   quanto no céu estrelado. */
 export const Dot = styled.View`
   width: 8px;
   height: 8px;
   border-radius: 4px;
-  background-color: ${(props) => (props.$active ? props.theme.primaryColor : props.theme.borderColor)};
+  background-color: ${(props) => (props.$active ? props.theme.primaryColor : 'white')};
+  elevation: 2;
 `;
 
 export const ActionWrapper = styled.View`
   padding: 0px 24px 24px;
+  align-items: center;
 `;
 
 export const ActionHintText = styled.Text`
-  height: 64px;
   text-align: center;
-  text-align-vertical: center;
-  color: ${(props) => props.theme.textSecondary};
+  color: ${(props) => props.theme.textPrimary};
   font-size: 14px;
   font-family: ${fonts.semiBold};
+  background-color: ${(props) => props.theme.bgSurface};
+  padding: 12px 20px;
+  border-radius: 9999px;
+  overflow: hidden;
+  elevation: 3;
 `;
 
 export const DoneButton = styled.View`

@@ -20,11 +20,17 @@ export function setUnauthorizedHandler(fn) {
   unauthorizedHandler = fn;
 }
 
+// 401 e 403 derrubam a sessão. A API segue a convenção da §5.1 da monografia, que
+// separa "credenciais inválidas" (401, só no login) de "token ausente ou expirado"
+// (403). Antes daqui só olhar o 401, um token expirado devolvia 403 e o app ficava
+// preso numa tela vazia em vez de mandar o usuário para o login.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      const isAuthUrl = error.config.url.includes('/auth/login') || error.config.url.includes('/auth/register');
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      const url = error.config?.url || '';
+      const isAuthUrl = url.includes('/auth/login') || url.includes('/auth/register');
       if (!isAuthUrl && unauthorizedHandler) {
         unauthorizedHandler();
       }
@@ -53,8 +59,21 @@ export const updateHabit = async (id, data) => api.put(`/habits/${id}`, data);
 
 export const archiveHabit = async (id) => api.delete(`/habits/${id}`);
 
-export const getWeeklyStats = async (habitoId) => api.get('/stats/weekly', { params: { habitoId } });
+// A janela virou mensal (30 dias). /stats/weekly continua existindo como alias no
+// backend, mas o nome canônico é este.
+export const getMonthlyStats = async (habitoId) => api.get('/stats/monthly', { params: { habitoId } });
 
 export const getPreTaskPriming = async (id) => api.get(`/habits/${id}/priming`);
+
+// Calibração assistida de metas (RF20/RNF04).
+//
+// O questionário inteiro vem do servidor: perguntas, rótulos, opções e pesos moram
+// em resources/calibracao/catalogo-v1.json, não aqui. O app só sabe desenhar os cinco
+// TIPOS de resposta — trocar as perguntas não exige publicar versão nova do app.
+export const getCalibrationQuestions = async (categoria) =>
+  api.get('/calibration/questions', { params: { categoria } });
+
+export const submitCalibration = async (categoria, respostas) =>
+  api.post('/calibration', { categoria, respostas });
 
 export default api;

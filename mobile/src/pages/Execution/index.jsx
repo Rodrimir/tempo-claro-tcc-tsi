@@ -14,6 +14,7 @@ import CircularProgress from '../../components/common/CircularProgress';
 import MonospaceTimer from '../../components/common/MonospaceTimer';
 import GiveUpModal from '../../components/common/GiveUpModal';
 import LoadingScreen from '../../components/common/LoadingScreen';
+import { useI18n } from '../../contexts/LanguageContext';
 import {
   ExecutionContainer,
   HeaderWrapper,
@@ -35,6 +36,7 @@ import {
 
 const ExecutionScreen = () => {
   const router = useRouter();
+  const { t } = useI18n();
   const { currentHabit, setCurrentHabit } = useCurrentHabit();
   const [habit, setHabit] = useState(currentHabit || null);
   const [fase, setFase] = useState(currentHabit ? 'pronto' : 'recuperando');
@@ -79,7 +81,7 @@ const ExecutionScreen = () => {
   }, [currentHabit]);
 
   if (fase !== 'pronto' || !habit) {
-    return <LoadingScreen message="Retomando sua execução" />;
+    return <LoadingScreen message={t('execucao.retomandoExecucao')} />;
   }
 
   return <ExecutionActive habit={habit} />;
@@ -89,12 +91,17 @@ const ExecutionActive = ({ habit }) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { addToast } = useToast();
+  const { t } = useI18n();
   const { setExecutionResult } = useExecutionResult();
   const [executionToken, setExecutionToken] = useState('');
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
   const [quantity, setQuantity] = useState(0);
 
+  // Unidade de domínio: MINUTOS para TEMPO, ml para QUANTIDADE. É o que o wizard
+  // rotula, o que a calibração devolve ("unidade": "min") e o que o backend guarda
+  // em hab_meta_base/sub_alvo. O cronômetro é o único que fala em segundos.
   const metaOcorrenciaAtual = habit.alvo_ocorrencia_atual ?? habit.meta_base;
+  const alvoEmSegundos = metaOcorrenciaAtual * 60;
   const passo = Math.max(1, Math.round(metaOcorrenciaAtual / 10));
 
   useEffect(() => {
@@ -102,7 +109,7 @@ const ExecutionActive = ({ habit }) => {
   }, []);
 
   const { timeLeft, overachieveTime, isOverachieving, pause, resume, clearTimerState } = useTimer(
-    habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual : 0,
+    habit.tipo_medida === 'TEMPO' ? alvoEmSegundos : 0,
     habit.id,
     executionToken,
     habit.tipo_medida === 'TEMPO'
@@ -135,7 +142,11 @@ const ExecutionActive = ({ habit }) => {
       pause();
       const payload = {
         execution_token: executionToken,
-        valor_realizado: habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual + overachieveTime : quantity,
+        // overachieveTime vem em segundos; o valor enviado é em minutos, a mesma
+        // unidade de sub_alvo — senão o servidor compararia grandezas diferentes
+        // ao decidir o bônus de 120% e ao ratear as moedas do dia.
+        valor_realizado:
+          habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual + Math.floor(overachieveTime / 60) : quantity,
       };
       const res = await submitExecution(habit.id, payload);
       await clearTimerState();
@@ -143,7 +154,7 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ feedback: res.data });
       router.replace('/success');
     } catch (err) {
-      addToast('Erro ao registrar conclusão. Tente novamente.', 'error');
+      addToast(err.response?.data?.message || t('execucao.erroConclusao'), 'error');
     }
   };
 
@@ -153,7 +164,8 @@ const ExecutionActive = ({ habit }) => {
       const payload = {
         execution_token: executionToken,
         tipo: type,
-        valor_realizado: habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual - timeLeft : quantity,
+        valor_realizado:
+          habit.tipo_medida === 'TEMPO' ? Math.floor((alvoEmSegundos - timeLeft) / 60) : quantity,
       };
       const res = await submitExecution(habit.id, payload);
       await clearTimerState();
@@ -161,18 +173,21 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ type, feedback: res.data });
       router.replace('/fail');
     } catch (err) {
-      addToast('Erro ao registrar desistência. Tente novamente.', 'error');
+      // Aqui cai o 422 de "nenhum escudo disponível" e o de "escudo já usado
+      // hoje" — ambos precisam chegar ao usuário com o texto do servidor.
+      addToast(err.response?.data?.message || t('execucao.erroDesistencia'), 'error');
+      resume();
     }
   };
 
   return (
     <ExecutionContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <HeaderWrapper>
-        <HeaderLabel>Focando em</HeaderLabel>
+        <HeaderLabel>{t('execucao.focandoEm')}</HeaderLabel>
         <HeaderTitle>{habit.titulo}</HeaderTitle>
         {habit.meta_frequencia_diaria > 1 ? (
           <HeaderLabel>
-            {habit.execucoes_hoje || 0} de {habit.meta_frequencia_diaria} hoje
+            {t('execucao.deHoje', { feito: habit.execucoes_hoje || 0, total: habit.meta_frequencia_diaria })}
           </HeaderLabel>
         ) : null}
       </HeaderWrapper>
@@ -199,7 +214,7 @@ const ExecutionActive = ({ habit }) => {
       <ActionsWrapper>
         <CompleteButtonWrapper style={estiloConcluir} pointerEvents={podeConcluir ? 'auto' : 'none'}>
           <CompleteButton onPress={handleComplete}>
-            <CompleteButtonText>CONCLUIR TAREFA</CompleteButtonText>
+            <CompleteButtonText>{t('execucao.concluirTarefa')}</CompleteButtonText>
           </CompleteButton>
         </CompleteButtonWrapper>
 
@@ -209,7 +224,7 @@ const ExecutionActive = ({ habit }) => {
             setShowGiveUpModal(true);
           }}
         >
-          <GiveUpButtonText>Desistir</GiveUpButtonText>
+          <GiveUpButtonText>{t('execucao.desistir')}</GiveUpButtonText>
         </GiveUpButton>
       </ActionsWrapper>
 

@@ -93,6 +93,16 @@ export const Divider = styled.View`
   background-color: rgba(255, 255, 255, 0.2);
 `;
 
+/* Explica que o número acima é previsão, não saldo. Sem isso o usuário lê "a
+   receber" como se já tivesse recebido. */
+export const RewardNote = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 13px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: -4px;
+`;
+
 export const BackButton = styled(Pressable)`
   width: 100%;
   padding: 20px;

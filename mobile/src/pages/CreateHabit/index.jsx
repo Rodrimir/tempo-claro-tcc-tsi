@@ -1,12 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { KeyboardAvoidingView, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
+import { avatarDe } from '../../assets/avatares';
+import TimePickerField from '../../components/common/TimePickerField';
 import { createHabit, updateHabit } from '../../services/api';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useI18n } from '../../contexts/LanguageContext';
 import {
   Container,
   Header,
@@ -16,16 +20,16 @@ import {
   Subtitle,
   StepContainer,
   StepTitle,
-  MoldeScrollContentContainer,
+  MoldeGrid,
   MoldeCard,
   MoldeEmoji,
+  MoldeAvatar,
   MoldeTitle,
   MoldeDesc,
   NextButton,
   NextButtonText,
   OptionsContainer,
   OptionCard,
-  StaticOptionCard,
   OptionIconWrapper,
   OptionText,
   OptionTitle,
@@ -34,6 +38,7 @@ import {
   FormCard,
   FormGroup,
   Label,
+  FieldHint,
   Input,
   ErrorText,
   GridRow,
@@ -43,6 +48,7 @@ import {
   DayButtonText,
   OcorrenciaRow,
   OcorrenciaAlvo,
+  OcorrenciaAviso,
   ReviewCard,
   ReviewText,
   ReviewStrong,
@@ -50,13 +56,17 @@ import {
   SubmitButtonText,
 } from './styles';
 
+// RF02 fixa três moldes. O quarto card existe para a grade fechar em 2x2 e para
+// deixar visível que o conjunto pode crescer — não é selecionável.
+// RF02 fixa três moldes. O quarto card existe para a grade fechar em 2x2 e para
+// deixar visível que o conjunto pode crescer — não é selecionável.
+// Título e descrição vêm do dicionário (criar.moldes.*), não daqui.
 const MOLDES = [
-  { id: 'AGUA', emoji: '💧', titulo: 'Gotinha', desc: 'Mantenha-se hidratado e evolua sua gotinha.' },
-  { id: 'ESTUDO', emoji: '📚', titulo: 'Livrinho', desc: 'Foco total nos estudos para evoluir seu livro.' },
-  { id: 'EXERCICIO', emoji: '🏋️', titulo: 'Homenzinho', desc: 'Construa disciplina física e evolua seu avatar.' },
+  { id: 'AGUA', emoji: '💧', chave: 'AGUA' },
+  { id: 'ESTUDO', emoji: '📚', chave: 'ESTUDO' },
+  { id: 'EXERCICIO', emoji: '🏋️', chave: 'EXERCICIO' },
+  { id: null, emoji: '🔒', chave: 'RESERVADO' },
 ];
-
-const DIAS_SEMANA = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 
 const TOTAL_STEPS = 4;
 const NOME_MAX_LENGTH = 60;
@@ -66,12 +76,13 @@ function horaCurta(valor) {
 }
 
 const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
-const MSG_HORA = 'Use o formato HH:MM (ex.: 08:00).';
 
-function mascaraHora(valor) {
-  const digitos = String(valor).replace(/\D/g, '').slice(0, 4);
-  if (digitos.length <= 2) return digitos;
-  return `${digitos.slice(0, 2)}:${digitos.slice(2)}`;
+
+function umaHoraDepois(horario) {
+  if (!RE_HORA.test(horario)) return '';
+  const [h, m] = horario.split(':').map(Number);
+  const total = (h * 60 + m + 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 function diasDaMascara(mascara) {
@@ -79,11 +90,28 @@ function diasDaMascara(mascara) {
   return [...mascara].reduce((acc, c, i) => (c === '1' ? [...acc, i] : acc), []);
 }
 
-function formDataInicial(editHabit, moldeInicial) {
+function formDataDaSugestao(sugestao, tituloPadrao) {
+  const vezes = sugestao.meta_frequencia_diaria || 1;
+  return {
+    titulo: tituloPadrao,
+    meta_base: String(sugestao.meta_base),
+    incremento: String(sugestao.incremento ?? 0),
+    dias_incremento: String(sugestao.dias_incremento ?? 10),
+    meta_maxima: sugestao.meta_maxima != null ? String(sugestao.meta_maxima) : '',
+    frequencia_semanal: diasDaMascara(sugestao.frequencia_semanal),
+    vezes_dia: String(vezes),
+    horario: vezes <= 1 ? horaCurta(sugestao.ocorrencias?.[0]?.horario_inicio) : '',
+    ocorrencias:
+      vezes > 1
+        ? sugestao.ocorrencias.map((o) => ({ horario_inicio: horaCurta(o.horario_inicio), horario_fim: '' }))
+        : [{ horario_inicio: '', horario_fim: '' }],
+  };
+}
+
+function formDataInicial(editHabit, tituloPadrao) {
   if (!editHabit) {
     return {
-      titulo: moldeInicial.titulo,
-      gatilho_ancora: '',
+      titulo: tituloPadrao,
       meta_base: '',
       incremento: '',
       dias_incremento: '10',
@@ -96,8 +124,7 @@ function formDataInicial(editHabit, moldeInicial) {
   }
   const vezesDia = editHabit.meta_frequencia_diaria || 1;
   return {
-    titulo: editHabit.titulo || moldeInicial.titulo,
-    gatilho_ancora: editHabit.gatilho_ancora || '',
+    titulo: editHabit.titulo || tituloPadrao,
     meta_base: editHabit.meta_base != null ? String(editHabit.meta_base) : '',
     incremento: editHabit.incremento != null ? String(editHabit.incremento) : '',
     dias_incremento: editHabit.dias_incremento != null ? String(editHabit.dias_incremento) : '10',
@@ -119,9 +146,22 @@ const CreateHabit = () => {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { modo } = useLocalSearchParams();
+  const { modo, categoria: categoriaParam, sugestao: sugestaoParam } = useLocalSearchParams();
+
+  // A calibração devolve a sugestão por parâmetro de rota. Ela pré-preenche o
+  // formulário do passo 3, que continua inteiramente editável — aceitar a sugestão
+  // não é um caminho separado, é o mesmo formulário já respondido.
+  const sugestao = useMemo(() => {
+    if (!sugestaoParam) return null;
+    try {
+      return JSON.parse(sugestaoParam);
+    } catch {
+      return null;
+    }
+  }, [sugestaoParam]);
   const { currentHabit } = useCurrentHabit();
   const { addToast } = useToast();
+  const { t } = useI18n();
 
   const currentHabitRef = useRef(currentHabit);
   useEffect(() => {
@@ -131,12 +171,23 @@ const CreateHabit = () => {
   const alvoInicial = modo === 'editar' ? currentHabit : null;
   const moldeDe = (alvo) => (alvo ? MOLDES.find((m) => m.id === alvo.categoria) || MOLDES[0] : MOLDES[0]);
 
+  // Molde pode vir da calibração ou da volta dela ("prefiro preencher na mão").
+  const moldeDeParam = categoriaParam ? MOLDES.find((m) => m.id === categoriaParam) : null;
+  const moldeDePartida = moldeDeParam || moldeDe(alvoInicial);
+
   const [editHabit, setEditHabit] = useState(alvoInicial);
-  const [step, setStep] = useState(alvoInicial ? 3 : 1);
-  const [molde, setMolde] = useState(() => moldeDe(alvoInicial));
+  // Com sugestão ou vindo da calibração, o molde já está escolhido: pula direto
+  // para o formulário, sem repetir passos que a pessoa acabou de responder.
+  const [step, setStep] = useState(alvoInicial || sugestao ? 3 : moldeDeParam ? 3 : 1);
+  const [molde, setMolde] = useState(moldeDePartida);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(() => formDataInicial(alvoInicial, moldeDe(alvoInicial)));
+  const tituloPadraoDoMolde = t(`criar.moldes.${moldeDePartida.chave}.titulo`);
+  const [formData, setFormData] = useState(() =>
+    sugestao
+      ? formDataDaSugestao(sugestao, tituloPadraoDoMolde)
+      : formDataInicial(alvoInicial, tituloPadraoDoMolde)
+  );
 
   const isEditMode = Boolean(editHabit);
 
@@ -158,7 +209,7 @@ const CreateHabit = () => {
 
   const handleSelecionarMolde = (m) => {
     setMolde(m);
-    setFormData((prev) => ({ ...prev, titulo: m.titulo }));
+    setFormData((prev) => ({ ...prev, titulo: t(`criar.moldes.${m.chave}.titulo`) }));
   };
 
   const atualizarCampo = (campo, valor) => {
@@ -228,37 +279,37 @@ const CreateHabit = () => {
     const erros = {};
 
     if (!formData.titulo.trim()) {
-      erros.titulo = 'Dê um nome para o hábito.';
+      erros.titulo = t('criar.erroNome');
     } else if (formData.titulo.length > NOME_MAX_LENGTH) {
-      erros.titulo = `O nome pode ter no máximo ${NOME_MAX_LENGTH} caracteres.`;
+      erros.titulo = t('criar.erroNomeMaximo', { max: NOME_MAX_LENGTH });
     }
 
     const metaBaseNum = formData.meta_base === '' ? NaN : Number(formData.meta_base);
     if (formData.meta_base === '' || !Number.isFinite(metaBaseNum) || metaBaseNum < 1) {
-      erros.meta_base = 'Informe uma meta válida (número maior ou igual a 1).';
+      erros.meta_base = t('criar.erroMeta');
     }
 
     const vezesDiaNum = formData.vezes_dia === '' ? NaN : Number(formData.vezes_dia);
     if (formData.vezes_dia === '' || !Number.isFinite(vezesDiaNum) || vezesDiaNum < 1 || vezesDiaNum > 12) {
-      erros.vezes_dia = 'Informe quantas vezes ao dia (entre 1 e 12).';
+      erros.vezes_dia = t('criar.erroVezes');
     }
 
     if (formData.frequencia_semanal.length === 0) {
-      erros.frequencia_semanal = 'Selecione ao menos um dia da semana.';
+      erros.frequencia_semanal = t('criar.erroDia');
     }
 
     if (vezesDiaNum <= 1 && formData.horario && !RE_HORA.test(formData.horario)) {
-      erros.horario = MSG_HORA;
+      erros.horario = t('criar.erroHora');
     }
 
     if (vezesDiaNum > 1) {
       formData.ocorrencias.forEach((ocorrencia, i) => {
         if (!ocorrencia.horario_inicio) {
-          erros[`ocorrencia_${i}`] = `Informe o horário de início da ocorrência ${i + 1}.`;
+          erros[`ocorrencia_${i}`] = t('criar.erroInicioOcorrencia', { n: i + 1 });
         } else if (!RE_HORA.test(ocorrencia.horario_inicio)) {
-          erros[`ocorrencia_${i}`] = MSG_HORA;
+          erros[`ocorrencia_${i}`] = t('criar.erroHora');
         } else if (ocorrencia.horario_fim && !RE_HORA.test(ocorrencia.horario_fim)) {
-          erros[`ocorrencia_${i}`] = MSG_HORA;
+          erros[`ocorrencia_${i}`] = t('criar.erroHora');
         }
       });
     }
@@ -266,7 +317,7 @@ const CreateHabit = () => {
     if (formData.meta_maxima !== '') {
       const metaMaximaNum = Number(formData.meta_maxima);
       if (Number.isFinite(metaBaseNum) && metaMaximaNum < metaBaseNum) {
-        erros.meta_maxima = 'A meta máxima não pode ser menor que a meta base.';
+        erros.meta_maxima = t('criar.erroTeto');
       }
     }
 
@@ -279,7 +330,7 @@ const CreateHabit = () => {
     if (Object.keys(erros).length === 0) {
       handleNext();
     } else {
-      addToast('Corrija os campos destacados antes de continuar.', 'error');
+      addToast(t('criar.corrijaCampos'), 'error');
     }
   };
 
@@ -291,9 +342,8 @@ const CreateHabit = () => {
       const payload = {
         categoria: molde.id,
         titulo: formData.titulo.trim(),
-        gatilho_ancora: formData.gatilho_ancora.trim() || null,
+        gatilho_ancora: null,
         tipo_medida: molde.id === 'AGUA' ? 'QUANTIDADE' : 'TEMPO',
-        modalidade: 'DIARIA',
         meta_base: parseInt(formData.meta_base, 10),
         incremento: parseInt(formData.incremento, 10) || 0,
         dias_incremento: parseInt(formData.dias_incremento, 10) || 10,
@@ -304,62 +354,90 @@ const CreateHabit = () => {
         ocorrencias: usaOcorrenciasIndividuais
           ? formData.ocorrencias.map((o) => ({
               horario_inicio: o.horario_inicio || null,
-              horario_fim: o.horario_fim || null,
+              horario_fim: molde.id === 'AGUA' ? umaHoraDepois(o.horario_inicio) || null : o.horario_fim || null,
             }))
           : null,
+        // Presente só quando o hábito nasceu de uma sugestão aceita: marca a
+        // calibração como aceita e a vincula ao hábito (RF20).
+        calibracao_id: sugestao?.calibracao_id ?? null,
       };
       if (isEditMode) {
         await updateHabit(editHabit.id, payload);
-        addToast('Hábito atualizado com sucesso!', 'success');
+        addToast(t('criar.atualizadoOk'), 'success');
       } else {
         await createHabit(payload);
-        addToast('Hábito criado com sucesso!', 'success');
+        addToast(t('criar.criadoOk'), 'success');
       }
       router.replace('/home');
     } catch (err) {
-      const mensagem = err.response?.data?.message || 'Erro ao salvar hábito. Tente novamente.';
+      const mensagem = err.response?.data?.message || t('criar.erroSalvar');
       addToast(mensagem, 'error');
       setIsSubmitting(false);
     }
   };
 
+  const nomesDiasSemana = t('diasSemanaMedio');
   const diasSelecionadosTexto =
-    formData.frequencia_semanal.length === 7 ? 'todos os dias' : formData.frequencia_semanal.map((i) => DIAS_SEMANA[i]).join(', ');
+    formData.frequencia_semanal.length === 7
+      ? t('criar.todosOsDias')
+      : formData.frequencia_semanal.map((i) => nomesDiasSemana[i]).join(', ');
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
+    >
     <Container $insetTop={insets.top}>
       <Header>
         {step > (isEditMode ? 3 : 1) ? (
-          <BackButton onPress={handleBack} accessibilityLabel="Voltar">
+          <BackButton onPress={handleBack} accessibilityLabel={t('comum.voltar')}>
             <Feather name="arrow-left" size={28} color={theme.textPrimary} />
           </BackButton>
         ) : (
-          <BackButton onPress={() => router.replace('/home')} accessibilityLabel="Voltar para Home">
+          <BackButton onPress={() => router.replace('/home')} accessibilityLabel={t('criar.voltarParaHome')}>
             <Feather name="arrow-left" size={28} color={theme.textPrimary} />
           </BackButton>
         )}
         <HeaderText>
-          <Title>{isEditMode ? 'Editar Hábito' : 'Novo Hábito'}</Title>
+          <Title>{isEditMode ? t('criar.editarHabito') : t('criar.novoHabito')}</Title>
           <Subtitle>
-            Passo {isEditMode ? step - 2 : step} de {isEditMode ? TOTAL_STEPS - 2 : TOTAL_STEPS}
+            {t('criar.passoDe', { atual: isEditMode ? step - 2 : step, total: isEditMode ? TOTAL_STEPS - 2 : TOTAL_STEPS })}
           </Subtitle>
         </HeaderText>
       </Header>
 
       {step === 1 && (
         <StepContainer>
-          <StepTitle>Escolha o Avatar do Hábito</StepTitle>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={MoldeScrollContentContainer}>
+          <StepTitle>{t('criar.escolhaMolde')}</StepTitle>
+          <MoldeGrid>
             {MOLDES.map((m) => (
-              <MoldeCard key={m.id} onPress={() => handleSelecionarMolde(m)} $active={molde.id === m.id}>
-                <MoldeEmoji>{m.emoji}</MoldeEmoji>
-                <MoldeTitle>{m.titulo}</MoldeTitle>
-                <MoldeDesc>{m.desc}</MoldeDesc>
+              <MoldeCard
+                key={m.id ?? 'reservado'}
+                onPress={() => m.id && handleSelecionarMolde(m)}
+                disabled={!m.id}
+                $disabled={!m.id}
+                $active={Boolean(m.id) && molde.id === m.id}
+                accessibilityLabel={m.id ? t(`criar.moldes.${m.chave}.titulo`) : t('criar.moldeReservado')}
+              >
+                {m.id ? (
+                  <MoldeAvatar>
+                    <Image
+                      source={avatarDe(m.id, 'normal', 1)}
+                      contentFit="contain"
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  </MoldeAvatar>
+                ) : (
+                  <MoldeEmoji>{m.emoji}</MoldeEmoji>
+                )}
+                <MoldeTitle>{t(`criar.moldes.${m.chave}.titulo`)}</MoldeTitle>
+                <MoldeDesc>{t(`criar.moldes.${m.chave}.desc`)}</MoldeDesc>
               </MoldeCard>
             ))}
-          </ScrollView>
+          </MoldeGrid>
           <NextButton onPress={handleNext}>
-            <NextButtonText>Continuar com {molde.titulo}</NextButtonText>
+            <NextButtonText>{t('criar.continuarCom', { molde: t(`criar.moldes.${molde.chave}.titulo`) })}</NextButtonText>
             <Feather name="chevron-right" size={20} color="white" />
           </NextButton>
         </StepContainer>
@@ -368,23 +446,26 @@ const CreateHabit = () => {
       {step === 2 && (
         <StepContainer>
           <OptionsContainer>
-            <StepTitle>Como vamos configurar a meta?</StepTitle>
-            <StaticOptionCard>
+            <StepTitle>{t('criar.comoConfigurar')}</StepTitle>
+            <OptionCard
+              onPress={() => router.push({ pathname: '/calibration', params: { categoria: molde.id } })}
+              $primary
+            >
               <OptionIconWrapper>
                 <MaterialCommunityIcons name="ruler" size={24} color={theme.primaryColor} />
               </OptionIconWrapper>
               <OptionText>
-                <OptionTitle>Calibração Automática</OptionTitle>
-                <OptionSubtitle>Em breve</OptionSubtitle>
+                <OptionTitle>{t('criar.calibrar')}</OptionTitle>
+                <OptionSubtitle>{t('criar.calibrarSub')}</OptionSubtitle>
               </OptionText>
-            </StaticOptionCard>
-            <OptionCard onPress={handleNext} $primary>
+            </OptionCard>
+            <OptionCard onPress={handleNext}>
               <OptionIconWrapper>
                 <Feather name="edit-3" size={24} color={theme.primaryColor} />
               </OptionIconWrapper>
               <OptionText>
-                <OptionTitle>Preencher Manualmente</OptionTitle>
-                <OptionSubtitle>Defina suas próprias regras</OptionSubtitle>
+                <OptionTitle>{t('criar.manual')}</OptionTitle>
+                <OptionSubtitle>{t('criar.manualSub')}</OptionSubtitle>
               </OptionText>
             </OptionCard>
           </OptionsContainer>
@@ -395,39 +476,29 @@ const CreateHabit = () => {
         <StepContainer>
           <FormSection>
             <StepTitle>
-              {isEditMode ? 'Editar' : 'Configuração Manual'} ({molde.titulo})
+              {isEditMode ? t('comum.editar') : t('criar.configManual')} ({t(`criar.moldes.${molde.chave}.titulo`)})
             </StepTitle>
 
             <FormCard>
               <FormGroup>
-                <Label>Nome do hábito</Label>
+                <Label>{t('criar.nomeHabito')}</Label>
                 <Input
                   maxLength={NOME_MAX_LENGTH}
-                  placeholder="Nome do hábito"
+                  placeholder={t("criar.nomeHabito")}
                   value={formData.titulo}
                   $error={Boolean(errors.titulo)}
                   onChangeText={(v) => atualizarCampo('titulo', v)}
                 />
                 {errors.titulo && <ErrorText>{errors.titulo}</ErrorText>}
               </FormGroup>
-
-              <FormGroup>
-                <Label>Gatilho (opcional)</Label>
-                <Input
-                  maxLength={120}
-                  placeholder="Depois do café da manhã"
-                  value={formData.gatilho_ancora}
-                  onChangeText={(v) => atualizarCampo('gatilho_ancora', v)}
-                />
-              </FormGroup>
             </FormCard>
 
             <FormCard>
               <FormGroup>
-                <Label>Meta Mínima Base (Próx. 10 dias)</Label>
+                <Label>{t('criar.metaMinima')}</Label>
                 <Input
                   keyboardType="numeric"
-                  placeholder={molde.id === 'AGUA' ? 'Ex: 250 (ml)' : 'Ex: 25 (min)'}
+                  placeholder={molde.id === 'AGUA' ? t('criar.exMl') : t('criar.exMin')}
                   value={formData.meta_base}
                   $error={Boolean(errors.meta_base)}
                   onChangeText={(v) => atualizarCampo('meta_base', v)}
@@ -435,45 +506,47 @@ const CreateHabit = () => {
                 {errors.meta_base && <ErrorText>{errors.meta_base}</ErrorText>}
               </FormGroup>
 
-              <GridRow>
-                <GridCell>
-                  <Label>Aumento a cada {formData.dias_incremento || 10} dias</Label>
-                  <Input
-                    keyboardType="numeric"
-                    placeholder="+10"
-                    value={formData.incremento}
-                    onChangeText={(v) => atualizarCampo('incremento', v)}
-                  />
-                </GridCell>
-                <GridCell>
-                  <Label>Meta Máxima (Teto)</Label>
-                  <Input
-                    keyboardType="numeric"
-                    placeholder="Sem limite"
-                    value={formData.meta_maxima}
-                    $error={Boolean(errors.meta_maxima)}
-                    onChangeText={(v) => atualizarCampo('meta_maxima', v)}
-                  />
-                  {errors.meta_maxima && <ErrorText>{errors.meta_maxima}</ErrorText>}
-                </GridCell>
-              </GridRow>
-
               <FormGroup>
-                <Label>A cada quantos dias de ofensiva</Label>
+                <Label>{t('criar.aCadaQuantosDias')}</Label>
                 <Input
                   keyboardType="numeric"
                   placeholder="10"
                   value={formData.dias_incremento}
                   onChangeText={(v) => atualizarCampo('dias_incremento', v)}
                 />
+                <FieldHint>{t('criar.aCadaQuantosDiasAjuda')}</FieldHint>
+              </FormGroup>
+
+              <FormGroup>
+                <Label>{t('criar.aumentoACada', { dias: formData.dias_incremento || 10 })}</Label>
+                <Input
+                  keyboardType="numeric"
+                  placeholder="+10"
+                  value={formData.incremento}
+                  onChangeText={(v) => atualizarCampo('incremento', v)}
+                />
+                <FieldHint>{t('criar.aumentoACadaAjuda', { unidade: unidadeMeta })}</FieldHint>
+              </FormGroup>
+
+              <FormGroup>
+                <Label>{t('criar.metaMaximaTeto')}</Label>
+                <Input
+                  keyboardType="numeric"
+                  placeholder={t("criar.semLimite")}
+                  value={formData.meta_maxima}
+                  $error={Boolean(errors.meta_maxima)}
+                  onChangeText={(v) => atualizarCampo('meta_maxima', v)}
+                />
+                {errors.meta_maxima && <ErrorText>{errors.meta_maxima}</ErrorText>}
+                <FieldHint>{t('criar.metaMaximaAjuda')}</FieldHint>
               </FormGroup>
             </FormCard>
 
             <FormCard>
               <FormGroup>
-                <Label>Frequência Semanal</Label>
+                <Label>{t('criar.frequenciaSemanal')}</Label>
                 <WeekDaysContainer>
-                  {DIAS_SEMANA.map((dia, index) => (
+                  {nomesDiasSemana.map((dia, index) => (
                     <DayButton key={dia} onPress={() => toggleDia(index)} $active={formData.frequencia_semanal.includes(index)}>
                       <DayButtonText $active={formData.frequencia_semanal.includes(index)}>{dia}</DayButtonText>
                     </DayButton>
@@ -484,7 +557,7 @@ const CreateHabit = () => {
 
               <GridRow>
                 <GridCell>
-                  <Label>Vezes ao Dia</Label>
+                  <Label>{t('criar.vezesAoDia')}</Label>
                   <Input
                     keyboardType="numeric"
                     value={formData.vezes_dia}
@@ -495,14 +568,13 @@ const CreateHabit = () => {
                 </GridCell>
                 {Number(formData.vezes_dia) <= 1 && (
                   <GridCell>
-                    <Label>Hora de Execução</Label>
-                    <Input
-                      placeholder="23:59"
-                      maxLength={5}
-                      keyboardType="number-pad"
+                    <Label>{t('criar.horaExecucao')}</Label>
+                    <TimePickerField
                       value={formData.horario}
-                      $error={Boolean(errors.horario)}
-                      onChangeText={(v) => atualizarCampo('horario', mascaraHora(v))}
+                      onChange={(v) => atualizarCampo('horario', v)}
+                      error={Boolean(errors.horario)}
+                      limpavel
+                      accessibilityLabel={t('criar.horaExecucao')}
                     />
                     {errors.horario && <ErrorText>{errors.horario}</ErrorText>}
                   </GridCell>
@@ -511,35 +583,39 @@ const CreateHabit = () => {
 
               {Number(formData.vezes_dia) > 1 && (
                 <FormGroup>
-                  <Label>Horários por Ocorrência</Label>
+                  <Label>{t('criar.horariosOcorrencia')}</Label>
                   {formData.ocorrencias.map((ocorrencia, i) => (
                     <OcorrenciaRow key={i} $primeira={i === 0}>
                       <OcorrenciaAlvo>
-                        Ocorrência {i + 1} — alvo: {calcularAlvos(formData.meta_base, formData.vezes_dia)[i]} {unidadeMeta}
+                        {t('criar.ocorrenciaAlvo', {
+                          n: i + 1,
+                          alvo: calcularAlvos(formData.meta_base, formData.vezes_dia)[i],
+                          unidade: unidadeMeta,
+                        })}
                       </OcorrenciaAlvo>
                       <GridRow>
                         <GridCell>
-                          <Label>Início</Label>
-                          <Input
-                            placeholder="08:00"
-                            maxLength={5}
-                            keyboardType="number-pad"
+                          <Label>{t('criar.inicio')}</Label>
+                          <TimePickerField
                             value={ocorrencia.horario_inicio}
-                            $error={Boolean(errors[`ocorrencia_${i}`])}
-                            onChangeText={(v) => atualizarOcorrencia(i, 'horario_inicio', mascaraHora(v))}
+                            onChange={(v) => atualizarOcorrencia(i, 'horario_inicio', v)}
+                            error={Boolean(errors[`ocorrencia_${i}`])}
+                            accessibilityLabel={t('criar.inicio')}
                           />
                         </GridCell>
-                        <GridCell>
-                          <Label>Fim (opcional)</Label>
-                          <Input
-                            placeholder="08:30"
-                            maxLength={5}
-                            keyboardType="number-pad"
-                            value={ocorrencia.horario_fim}
-                            onChangeText={(v) => atualizarOcorrencia(i, 'horario_fim', mascaraHora(v))}
-                          />
-                        </GridCell>
+                        {molde.id !== 'AGUA' && (
+                          <GridCell>
+                            <Label>{t('criar.fimOpcional')}</Label>
+                            <TimePickerField
+                              value={ocorrencia.horario_fim}
+                              onChange={(v) => atualizarOcorrencia(i, 'horario_fim', v)}
+                              limpavel
+                              accessibilityLabel={t('criar.fimOpcional')}
+                            />
+                          </GridCell>
+                        )}
                       </GridRow>
+                      {molde.id === 'AGUA' && <OcorrenciaAviso>{t('criar.aguaPrazoAutomatico')}</OcorrenciaAviso>}
                       {errors[`ocorrencia_${i}`] && <ErrorText>{errors[`ocorrencia_${i}`]}</ErrorText>}
                     </OcorrenciaRow>
                   ))}
@@ -548,7 +624,7 @@ const CreateHabit = () => {
             </FormCard>
 
             <SubmitButton onPress={handleRevisar}>
-              <SubmitButtonText>Revisar Hábito</SubmitButtonText>
+              <SubmitButtonText>{t('criar.revisarHabito')}</SubmitButtonText>
               <Feather name="chevron-right" size={20} color="white" />
             </SubmitButton>
           </FormSection>
@@ -558,27 +634,30 @@ const CreateHabit = () => {
       {step === 4 && (
         <StepContainer>
           <FormSection>
-            <StepTitle>Revise antes de {isEditMode ? 'salvar' : 'criar'}</StepTitle>
+            <StepTitle>{isEditMode ? t('criar.revisarTituloEditar') : t('criar.revisarTituloCriar')}</StepTitle>
             <ReviewCard>
               <ReviewText>
-                Você vai {isEditMode ? 'atualizar' : 'criar'} <ReviewStrong>{formData.titulo}</ReviewStrong> com meta de{' '}
+                {isEditMode ? t('criar.revisarVaiAtualizar') : t('criar.revisarVaiCriar')}{' '}
+                <ReviewStrong>{formData.titulo}</ReviewStrong> {t('criar.revisarComMetaDe')}{' '}
                 <ReviewStrong>
                   {formData.meta_base} {unidadeMeta}
                 </ReviewStrong>
-                , nos dias <ReviewStrong>{diasSelecionadosTexto}</ReviewStrong>, executando{' '}
-                <ReviewStrong>{formData.vezes_dia}</ReviewStrong> {Number(formData.vezes_dia) > 1 ? 'vezes' : 'vez'} ao dia.
+                , {t('criar.revisarNosDias', { dias: diasSelecionadosTexto })}, {t('criar.revisarExecutando')}{' '}
+                <ReviewStrong>{formData.vezes_dia}</ReviewStrong>{' '}
+                {Number(formData.vezes_dia) > 1 ? t('criar.revisarVezesAoDia') : t('criar.revisarVezAoDia')}
               </ReviewText>
             </ReviewCard>
 
             <SubmitButton onPress={handleSave} disabled={isSubmitting}>
               <SubmitButtonText disabled={isSubmitting}>
-                {isSubmitting ? (isEditMode ? 'Salvando...' : 'Criando...') : isEditMode ? 'Confirmar Alterações' : 'Confirmar e Criar Hábito'}
+                {isSubmitting ? (isEditMode ? t('criar.salvando') : t('criar.criando')) : isEditMode ? t('criar.confirmarAlteracoes') : t('criar.confirmarCriar')}
               </SubmitButtonText>
             </SubmitButton>
           </FormSection>
         </StepContainer>
       )}
     </Container>
+    </KeyboardAvoidingView>
   );
 };
 

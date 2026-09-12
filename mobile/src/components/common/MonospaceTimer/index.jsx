@@ -1,6 +1,8 @@
+import { useI18n } from '../../../contexts/LanguageContext';
 import { TimerContainer, TimeDisplay, BonusWrapper, BonusBadge, BonusText } from './styles';
 
 const MonospaceTimer = ({ isOverachieving, overachieveTime, timeLeft }) => {
+  const { t } = useI18n();
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
@@ -15,7 +17,7 @@ const MonospaceTimer = ({ isOverachieving, overachieveTime, timeLeft }) => {
       <BonusWrapper>
         {isOverachieving && (
           <BonusBadge>
-            <BonusText>⭐ Bônus Ativado</BonusText>
+            <BonusText>{t('timer.bonusAtivado')}</BonusText>
           </BonusBadge>
         )}
       </BonusWrapper>

@@ -1,8 +1,8 @@
-import { useRouter } from 'expo-router';
 import { useTheme } from 'styled-components/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCurrentHabit } from '../../../contexts/CurrentHabitContext';
+import { useI18n } from '../../../contexts/LanguageContext';
 import {
   HeaderContainer,
   HabitNameRow,
@@ -14,12 +14,11 @@ import {
   IconLabel,
   CoinsWrapper,
   FlameWrapper,
-  ShieldButton,
-  PlusIconWrapper,
+  ShieldWrapper,
 } from './styles';
 
 const LocalHeader = () => {
-  const router = useRouter();
+  const { t } = useI18n();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { currentHabit: activeHabit } = useCurrentHabit();
@@ -31,39 +30,38 @@ const LocalHeader = () => {
   return (
     <HeaderContainer style={{ paddingTop: insets.top + 12 }}>
       <HabitNameRow>
-        {activeHabit ? `Focando em ${activeHabit.titulo}` : 'Selecione um hábito'}
+        {activeHabit ? t('comum.focandoEmHabito', { titulo: activeHabit.titulo }) : t('comum.selecioneHabito')}
       </HabitNameRow>
 
       <IndicatorsRow>
         <SideSlotStart>
-          <CoinsWrapper accessibilityLabel="Moedas Locais">
+          <CoinsWrapper accessibilityLabel={t('comum.moedasLocais')}>
             <IconRow>
               <FontAwesome5 name="coins" size={18} color={theme.warningColor} />
               <IndicatorValue color={theme.warningColor}>{moedas}</IndicatorValue>
             </IconRow>
-            <IconLabel color={theme.warningColor}>Moedas</IconLabel>
+            <IconLabel color={theme.warningColor}>{t('comum.moedas')}</IconLabel>
           </CoinsWrapper>
         </SideSlotStart>
 
-        <FlameWrapper accessibilityLabel="Ofensiva (Dias Seguidos)">
+        <FlameWrapper accessibilityLabel={t('comum.ofensivaDiasSeguidos')}>
           <IconRow>
             <MaterialCommunityIcons name="fire" size={24} color={theme.dangerColor} />
             <IndicatorValue $size={18} color={theme.dangerColor}>{diasSeguidos}</IndicatorValue>
           </IconRow>
-          <IconLabel color={theme.dangerColor}>Ofensiva</IconLabel>
+          <IconLabel color={theme.dangerColor}>{t('comum.ofensiva')}</IconLabel>
         </FlameWrapper>
 
+        {/* Só indicador: comprar escudo é exclusivamente pela aba Loja, então o
+            "+" que existia aqui saiu para não sugerir uma compra pelo topo. */}
         <SideSlotEnd>
-          <ShieldButton onPress={() => router.push('/store')} accessibilityLabel="Bloqueios e Escudos">
+          <ShieldWrapper accessibilityLabel={t('comum.bloqueiosEscudos')}>
             <IconRow>
               <Feather name="shield" size={20} color={theme.primaryColor} />
               <IndicatorValue color={theme.primaryColor}>{escudos}</IndicatorValue>
-              <PlusIconWrapper>
-                <Feather name="plus" size={16} color="white" />
-              </PlusIconWrapper>
             </IconRow>
-            <IconLabel color={theme.primaryColor}>Escudos</IconLabel>
-          </ShieldButton>
+            <IconLabel color={theme.primaryColor}>{t('comum.escudos')}</IconLabel>
+          </ShieldWrapper>
         </SideSlotEnd>
       </IndicatorsRow>
     </HeaderContainer>

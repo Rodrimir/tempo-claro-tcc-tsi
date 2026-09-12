@@ -7,14 +7,18 @@ import { fonts } from '../../styles/fonts';
 export const LoginContainer = styled.View`
   flex: 1;
   padding: 24px;
-  justify-content: center;
   background-color: ${(props) => props.theme.bgPrimary};
 `;
+/* justify-content: center saiu daqui — agora é o contentContainerStyle do
+   ScrollView interno que centraliza o formulário quando ele cabe na tela e
+   permite rolar quando o teclado reduz o espaço disponível. */
 
 export const MenuBtn = styled(Pressable)`
   position: absolute;
   top: 24px;
   right: 24px;
+  z-index: 10;
+  elevation: 10;
 `;
 
 export const HeaderWrapper = styled.View`
@@ -82,7 +86,9 @@ export const Label = styled.Text`
   color: ${(props) => props.theme.textPrimary};
 `;
 
-export const Input = styled.TextInput`
+export const Input = styled.TextInput.attrs((props) => ({
+  placeholderTextColor: props.theme.textSecondary,
+}))`
   width: 100%;
   padding: 12px;
   border-width: 1px;
@@ -96,6 +102,25 @@ export const Input = styled.TextInput`
 export const ErrorText = styled.Text`
   font-size: 12px;
   color: ${(props) => props.theme.dangerColor};
+`;
+
+/* Regras da senha, conferidas enquanto se digita no cadastro — mesmo padrão da
+   troca de senha do Perfil: erro só no fim da digitação obriga a adivinhar o que
+   faltou. */
+export const Requisitos = styled.View`
+  gap: 6px;
+  margin-top: -4px;
+`;
+
+export const RequisitoLinha = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const RequisitoTexto = styled.Text`
+  font-size: 12px;
+  color: ${(props) => (props.$ok ? props.theme.successColor : props.theme.textSecondary)};
 `;
 
 export const SubmitButton = styled(Pressable)`
@@ -176,17 +201,21 @@ export const ThemeOptionButton = styled(Pressable)`
   background-color: ${(props) => (props.$active ? props.theme.bgSurface : 'transparent')};
 `;
 
-export const LanguageChip = styled.View`
-  background-color: ${(props) => props.theme.primaryLight};
-  border-width: 2px;
-  border-color: ${(props) => props.theme.primaryColor};
-  border-radius: 8px;
-  padding: 4px 8px;
+export const LanguageChip = styled(Pressable)`
+  background-color: ${(props) => (props.$active ? props.theme.bgSurface : 'transparent')};
+  border-radius: 10px;
+  padding: 7px 11px;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
 `;
 
+/* `font-weight` numérico não pega no Android quando a família é uma fonte
+   carregada por arquivo: o peso tem que vir da própria variante da família. */
 export const LanguageChipText = styled.Text`
-  font-size: 16px;
-  color: ${(props) => props.theme.textPrimary};
+  font-family: ${(props) => (props.$active ? fonts.bold : fonts.regular)};
+  font-size: 13px;
+  color: ${(props) => (props.$active ? props.theme.primaryColor : props.theme.textSecondary)};
 `;
 
 export const SettingsCloseButton = styled(Pressable)`

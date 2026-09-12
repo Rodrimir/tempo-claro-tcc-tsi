@@ -5,32 +5,44 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { Image } from 'expo-image';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
+import { useI18n } from '../../contexts/LanguageContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDashboard, archiveHabit } from '../../services/api';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import LocalHeader from '../../components/layout/LocalHeader';
 import { useFloat, usePulse } from '../../hooks/useFloat';
+import { ocorrenciaAtiva, horaCurta, minutosAteInicio, MINUTOS_ANTECEDENCIA_LIBERACAO } from '../../utils/ocorrencias';
 
 import solFlutuando from '../../../assets/sol_flutuando.webp';
 import luaFlutuando from '../../../assets/lua_flutuando.png';
-import gotinhaNormal from '../../../assets/gotinha/normal.png';
-import gotinhaFeliz from '../../../assets/gotinha/feliz.png';
+import cenarioDia from '../../../assets/cenario/dia.png';
+import cenarioNoite from '../../../assets/cenario/noite.png';
+import { avatarDe } from '../../assets/avatares';
 
 import {
   HomeContainer,
+  HomeVeu,
   HabitSlide,
   SlideInner,
   HabitCard,
   CardSubtitle,
-  CardTitle,
   GatilhoText,
-  ProgressoOcorrenciasText,
+  TarefaBloco,
+  TarefaLinha,
+  TarefaColuna,
+  TarefaLabel,
+  TarefaDetalhe,
+  ExpandirButton,
+  ExpandirTexto,
   UrgentBadge,
   UrgentBadgeText,
   AvatarWrapper,
   ShadowBlur,
+  ContadorWrapper,
+  ContadorTexto,
   SunWrapper,
+  EmptyTextCard,
   EmptyTitle,
   EmptySubtitle,
   CreateHabitButton,
@@ -62,50 +74,132 @@ import {
 
 const CRIAR_SLIDE = { id: '__criar__' };
 
-const isDiaProgramado = (habit) => {
+/* Máscara de 7 posições, domingo(0) a sábado(6) — mesma convenção do backend
+   (FrequenciaSemanal.java) e do seletor de dias. Recebe o instante de referência
+   para não ler o relógio por conta própria: na virada da meia-noite, a expressão
+   do avatar e o contador precisam concordar sobre que dia é hoje. */
+const isDiaProgramado = (habit, agora = new Date()) => {
   if (!habit.frequencia_semanal || habit.frequencia_semanal.length !== 7) return true;
-  return habit.frequencia_semanal[new Date().getDay()] === '1';
+  return habit.frequencia_semanal[agora.getDay()] === '1';
 };
 
-const getAvatarExpression = (habit) => {
+/* A unidade da meta, pra rotular cada linha da lista de tarefas. */
+const unidadeDoHabito = (habit, t) => {
+  if (habit.tipo_medida === 'TEMPO') return t('comum.min');
+  return habit.categoria === 'AGUA' ? t('comum.ml') : t('comum.vezes');
+};
+
+/**
+ * A expressão precisa concordar com o que o Play realmente permite — antes
+ * disso "preocupado"/"desesperado" mentiam pressa numa tarefa que "programada
+ * para HH:MM" dizia, no mesmo balão, ainda não ter liberado (proximo_vencimento
+ * usava uma janela de 2h, bem mais larga que os 15 min de liberação real).
+ * Alinhado a ocorrenciaAtiva + MINUTOS_ANTECEDENCIA_LIBERACAO: "preocupado" só
+ * começa quando o Play já está prestes a liberar.
+ */
+const getAvatarExpression = (habit, agora = new Date()) => {
   if (habit.status === 'COMPLETED') return 'feliz';
-  if (!isDiaProgramado(habit)) return 'normal';
-  if (!habit.proximo_vencimento) return 'normal';
-  const now = new Date();
-  const due = new Date(habit.proximo_vencimento);
-  const diffMin = (due - now) / 60000;
-  if (diffMin < -60) return 'falha';
-  if (diffMin <= 0 && diffMin >= -60) return 'desesperado';
-  if (diffMin > 0 && diffMin <= 120) return 'preocupado';
-  return 'normal';
-};
+  if (!isDiaProgramado(habit, agora)) return 'normal';
 
-const EMOJIS = { normal: '🌱', preocupado: '😰', desesperado: '😱', feliz: '✨', falha: '☠️' };
-
-function AvatarImage({ habit }) {
-  const flutuando = useFloat(3000, 8);
-  const expression = getAvatarExpression(habit);
-
-  if (habit.categoria === 'AGUA' && (expression === 'normal' || expression === 'feliz')) {
-    return (
-      <AvatarWrapper style={flutuando}>
-        <Image
-          source={expression === 'feliz' ? gotinhaFeliz : gotinhaNormal}
-          contentFit="contain"
-          style={{ width: '100%', height: '100%' }}
-        />
-      </AvatarWrapper>
-    );
+  const ativa = ocorrenciaAtiva(habit);
+  if (!ativa) {
+    const teveFalha = habit.ocorrencias?.some((o) => o.status === 'FALHOU');
+    return teveFalha ? 'falha' : 'normal';
   }
 
+  const faltam = minutosAteInicio(ativa, agora);
+  if (faltam > MINUTOS_ANTECEDENCIA_LIBERACAO) return 'normal';
+  if (faltam > 0) return 'preocupado';
+  return 'desesperado';
+};
+
+/**
+ * Conta quanto falta para a próxima ocorrência. Devolve null quando não há prazo
+ * a mostrar — dia já cumprido, dia de folga, ou nenhuma ocorrência ativa hoje
+ * (todas feitas ou falhas).
+ *
+ * Fora da janela de liberação (mais de 15 min antes do início), a mensagem é
+ * "programada para HH:MM" — a tarefa ainda não abriu, não faz sentido contar
+ * "faltam". Dentro da janela, passado vira "atrasado há X": some o prazo, mas o
+ * que a pessoa precisa saber continua sendo o tamanho do atraso.
+ */
+function tempoRestante(habit, agora, t) {
+  if (habit.status === 'COMPLETED' || !isDiaProgramado(habit, agora)) return null;
+
+  const ativa = ocorrenciaAtiva(habit);
+  if (!ativa) return null;
+
+  const faltamParaLiberar = minutosAteInicio(ativa, agora);
+  if (faltamParaLiberar > MINUTOS_ANTECEDENCIA_LIBERACAO) {
+    return { texto: t('home.programadaPara', { hora: horaCurta(ativa.horario_inicio) }), atrasado: false, programada: true };
+  }
+
+  const minutos = faltamParaLiberar;
+  const abs = Math.abs(minutos);
+  const horas = Math.floor(abs / 60);
+  const min = abs % 60;
+
+  let quanto;
+  if (abs < 1) quanto = t('home.menosDeUmMin');
+  else if (horas === 0) quanto = `${min} ${t('comum.min')}`;
+  else if (min === 0) quanto = `${horas}h`;
+  else quanto = `${horas}h ${min}${t('comum.min')}`;
+
+  return minutos >= 0
+    ? { texto: t('home.faltam', { tempo: quanto }), atrasado: false }
+    : { texto: t('home.atrasado', { tempo: quanto }), atrasado: true };
+}
+
+const ICONE_POR_STATUS = { FEITO: 'check-circle', FALHOU: 'x-circle' };
+
+function corDaOcorrencia(status, completed, theme) {
+  if (completed) return 'rgba(255,255,255,0.85)';
+  if (status === 'FEITO') return theme.successColor;
+  if (status === 'ATIVA') return theme.primaryColor;
+  return theme.textSecondary;
+}
+
+function TarefaLinhaDe({ ocorrencia, rotulo, completed, theme, unidade }) {
+  return (
+    <TarefaLinha>
+      <Feather
+        name={ICONE_POR_STATUS[ocorrencia.status] || 'circle'}
+        size={14}
+        color={corDaOcorrencia(ocorrencia.status, completed, theme)}
+      />
+      <TarefaColuna>
+        {rotulo ? (
+          <TarefaLabel $completed={completed} $ativa={ocorrencia.status === 'ATIVA'} $falhou={ocorrencia.status === 'FALHOU'}>
+            {rotulo}
+          </TarefaLabel>
+        ) : null}
+        <TarefaDetalhe $completed={completed} $falhou={ocorrencia.status === 'FALHOU'}>
+          {horaCurta(ocorrencia.horario_inicio)} · {ocorrencia.alvo} {unidade}
+        </TarefaDetalhe>
+      </TarefaColuna>
+    </TarefaLinha>
+  );
+}
+
+function AvatarImage({ habit, expression }) {
+  const flutuando = useFloat(3000, 8);
+
+  // A arte sai toda do registro em src/assets/avatares.js — trocar as imagens é
+  // mexer só lá. O nível (1 a 5) sobe a cada 10 dias de ofensiva (RF14).
   return (
     <AvatarWrapper style={flutuando}>
-      <CardTitle style={{ fontSize: 100 }}>{EMOJIS[expression] || '🌱'}</CardTitle>
+      <Image
+        source={avatarDe(habit.categoria, expression, habit.nivel_avatar)}
+        contentFit="contain"
+        style={{ width: '100%', height: '100%' }}
+        transition={200}
+      />
     </AvatarWrapper>
   );
 }
 
 function CriarHabitoSlide({ width, isDark, onPress }) {
+  const { t } = useI18n();
   const flutuando = useFloat(4000, 8);
   return (
     <HabitSlide $width={width}>
@@ -113,8 +207,10 @@ function CriarHabitoSlide({ width, isDark, onPress }) {
         <SunWrapper style={flutuando}>
           <Image source={isDark ? luaFlutuando : solFlutuando} contentFit="contain" style={{ width: '100%', height: '100%' }} />
         </SunWrapper>
-        <EmptyTitle>Começar um novo hábito?</EmptyTitle>
-        <EmptySubtitle>Configure um novo ecossistema.</EmptySubtitle>
+        <EmptyTextCard>
+          <EmptyTitle>{t('home.novoHabitoTitulo')}</EmptyTitle>
+          <EmptySubtitle>{t('home.novoHabitoSub')}</EmptySubtitle>
+        </EmptyTextCard>
         <CreateHabitButton onPress={onPress} style={{ marginTop: 24 }}>
           <Feather name="play" size={32} color="white" style={{ transform: [{ rotate: '90deg' }] }} />
         </CreateHabitButton>
@@ -125,18 +221,33 @@ function CriarHabitoSlide({ width, isDark, onPress }) {
 
 function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, onEditar, onArquivar }) {
   const theme = useTheme();
-  const expression = getAvatarExpression(habit);
+  const { t } = useI18n();
+
+  // Um tick por minuto: é a menor granularidade que o contador exibe, então
+  // atualizar mais que isso só gastaria bateria.
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const restante = tempoRestante(habit, agora, t);
+  const expression = getAvatarExpression(habit, agora);
   const completed = habit.status === 'COMPLETED';
   const urgent = expression === 'preocupado' || expression === 'desesperado';
-  const folga = !completed && !isDiaProgramado(habit);
+  const folga = !completed && !isDiaProgramado(habit, agora);
   const pulso = usePulse();
   const badgeFlutuando = useFloat(3000, 8);
+  const [detalhesAbertos, setDetalhesAbertos] = useState(false);
+  const temMaisDeUma = (habit.ocorrencias?.length || 0) > 1;
+  const ocorrenciaAtivaDoHabito = ocorrenciaAtiva(habit);
+  const unidade = unidadeDoHabito(habit, t);
 
   return (
     <HabitSlide $width={width}>
       <SlideInner>
         <HabitCard $completed={completed} $urgent={urgent} style={urgent && !completed ? pulso : undefined}>
-          <MenuButton onPress={() => onAbrirMenu(habit.id)} accessibilityLabel={`Mais opções para ${habit.titulo}`}>
+          <MenuButton onPress={() => onAbrirMenu(habit.id)} accessibilityLabel={t('home.maisOpcoesPara', { titulo: habit.titulo })}>
             <Feather name="more-vertical" size={18} color={completed ? 'rgba(255,255,255,0.85)' : theme.textSecondary} />
           </MenuButton>
           {menuAberto && (
@@ -145,42 +256,93 @@ function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, o
               <ContextMenu>
                 <ContextMenuItem onPress={() => onEditar(habit)}>
                   <Feather name="edit-3" size={16} color={theme.textPrimary} />
-                  <ContextMenuItemText>Editar</ContextMenuItemText>
+                  <ContextMenuItemText>{t('comum.editar')}</ContextMenuItemText>
                 </ContextMenuItem>
                 <ContextMenuItem onPress={() => onArquivar(habit)}>
                   <Feather name="archive" size={16} color={theme.dangerColor} />
-                  <ContextMenuItemText $danger>Arquivar</ContextMenuItemText>
+                  <ContextMenuItemText $danger>{t('comum.arquivar')}</ContextMenuItemText>
                 </ContextMenuItem>
               </ContextMenu>
             </>
           )}
           <CardSubtitle $completed={completed} $urgent={urgent}>
-            {completed ? 'Concluído Hoje' : folga ? 'Folga Programada' : urgent ? 'Atenção!' : 'Sua Tarefa'}
+            {completed
+              ? t('home.concluidoHoje')
+              : folga
+                ? t('home.folgaProgramada')
+                : urgent
+                  ? t('home.atencao')
+                  : t('home.suaTarefa')}
           </CardSubtitle>
-          <CardTitle $completed={completed}>{habit.titulo}</CardTitle>
           {habit.gatilho_ancora ? <GatilhoText $completed={completed}>⚓ {habit.gatilho_ancora}</GatilhoText> : null}
-          {habit.meta_frequencia_diaria > 1 ? (
-            <ProgressoOcorrenciasText $completed={completed}>
-              {habit.execucoes_hoje || 0} de {habit.meta_frequencia_diaria} hoje
-            </ProgressoOcorrenciasText>
+          {/* Só a próxima tarefa aparece por padrão — a lista das N ocorrências
+              inteira estourava o balão em hábitos de 3x/dia. O detalhe completo
+              (✓ feita, ✗ falhou) mora atrás do "ver todas". O dia se fecha pelo
+              TOTAL realizado (RF07/RF13) — uma falha aqui não derruba a meta se
+              o total do dia bateu por outro lado. */}
+          {habit.ocorrencias?.length > 0 ? (
+            <TarefaBloco>
+              {temMaisDeUma && !detalhesAbertos ? (
+                ocorrenciaAtivaDoHabito ? (
+                  <TarefaLinhaDe
+                    ocorrencia={ocorrenciaAtivaDoHabito}
+                    rotulo={t('home.proximaTarefa')}
+                    completed={completed}
+                    theme={theme}
+                    unidade={unidade}
+                  />
+                ) : null
+              ) : (
+                habit.ocorrencias.map((ocorrencia, i) => (
+                  <TarefaLinhaDe
+                    key={i}
+                    ocorrencia={ocorrencia}
+                    rotulo={temMaisDeUma ? t('home.tarefaN', { n: i + 1 }) : null}
+                    completed={completed}
+                    theme={theme}
+                    unidade={unidade}
+                  />
+                ))
+              )}
+              {temMaisDeUma ? (
+                <ExpandirButton onPress={() => setDetalhesAbertos((v) => !v)}>
+                  <ExpandirTexto $completed={completed}>
+                    {detalhesAbertos ? t('home.verMenos') : t('home.verTodasTarefas')}
+                  </ExpandirTexto>
+                  <Feather
+                    name={detalhesAbertos ? 'chevron-up' : 'chevron-down'}
+                    size={13}
+                    color={completed ? 'rgba(255,255,255,0.85)' : theme.primaryColor}
+                  />
+                </ExpandirButton>
+              ) : null}
+            </TarefaBloco>
           ) : null}
         </HabitCard>
         {expression === 'preocupado' && (
           <UrgentBadge style={badgeFlutuando}>
-            <UrgentBadgeText>A hora está chegando!</UrgentBadgeText>
+            <UrgentBadgeText>{t('home.horaChegando')}</UrgentBadgeText>
           </UrgentBadge>
         )}
         {expression === 'desesperado' && (
           <UrgentBadge style={badgeFlutuando}>
-            <UrgentBadgeText>Faça agora ou perca a ofensiva!</UrgentBadgeText>
+            <UrgentBadgeText>{t('home.facaAgora')}</UrgentBadgeText>
           </UrgentBadge>
         )}
-        {expression === 'falha' && (
-          <UrgentBadge style={badgeFlutuando}>
-            <UrgentBadgeText>Tempo esgotado. Falha!</UrgentBadgeText>
-          </UrgentBadge>
-        )}
-        <AvatarImage habit={habit} />
+        <AvatarImage habit={habit} expression={expression} />
+        {/* Quanto falta para a próxima ocorrência, logo abaixo do avatar: é a
+            informação que decide "faço agora ou depois", e ficava só implícita
+            na expressão do personagem. */}
+        {restante ? (
+          <ContadorWrapper>
+            <Feather
+              name={restante.atrasado ? 'alert-circle' : restante.programada ? 'calendar' : 'clock'}
+              size={14}
+              color={restante.atrasado ? theme.dangerColor : theme.textSecondary}
+            />
+            <ContadorTexto $atrasado={restante.atrasado}>{restante.texto}</ContadorTexto>
+          </ContadorWrapper>
+        ) : null}
         <ShadowBlur />
       </SlideInner>
     </HabitSlide>
@@ -188,6 +350,8 @@ function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, o
 }
 
 const HomeScreen = () => {
+  const { t } = useI18n();
+  const theme = useTheme();
   const { width } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -196,6 +360,7 @@ const HomeScreen = () => {
   const router = useRouter();
   const { setCurrentHabit } = useCurrentHabit();
   const { isDark } = useThemeToggle();
+  const cenarioFonte = isDark ? cenarioNoite : cenarioDia;
   const { addToast } = useToast();
   const [localHabits, setLocalHabits] = useState([]);
   const [limiteHabitos, setLimiteHabitos] = useState(2);
@@ -222,7 +387,7 @@ const HomeScreen = () => {
         setLocalHabits(data);
       }
     } catch (error) {
-      addToast('Não foi possível carregar seus hábitos.', 'error');
+      addToast(t('home.erroCarregarHabitos'), 'error');
       setLoadError(true);
     } finally {
       if (!silencioso) setLoading(false);
@@ -270,63 +435,70 @@ const HomeScreen = () => {
     setArquivando(true);
     try {
       await archiveHabit(habitoParaArquivar.id);
-      addToast('Hábito arquivado.', 'success');
+      addToast(t('home.arquivadoOk'), 'success');
       setHabitoParaArquivar(null);
       setActiveIndex(0);
       listRef.current?.scrollToOffset({ offset: 0 });
       await loadData();
     } catch (err) {
-      const mensagem = err.response?.data?.message || 'Erro ao arquivar hábito. Tente novamente.';
+      const mensagem = err.response?.data?.message || t('home.erroArquivar');
       addToast(mensagem, 'error');
     } finally {
       setArquivando(false);
     }
   };
 
-  if (loading) return <LoadingScreen message="Carregando Hábitos" />;
+  if (loading) return <LoadingScreen message={t('home.carregandoHabitos')} />;
 
   if (loadError) {
     return (
-      <HomeContainer>
+      <HomeContainer source={cenarioFonte}>
+        <HomeVeu>
         <LocalHeader />
         <ErrorStateContainer>
           <IconWrapper>
-            <Feather name="alert-triangle" size={32} color="#b91c1c" />
+            <Feather name="alert-triangle" size={32} color={theme.dangerColor} />
           </IconWrapper>
-          <EmptyTitle>Não foi possível carregar</EmptyTitle>
-          <EmptySubtitle>Verifique sua conexão e tente novamente.</EmptySubtitle>
+          <EmptyTextCard>
+            <EmptyTitle>{t('stats.erroTitulo')}</EmptyTitle>
+            <EmptySubtitle>{t('stats.erroTexto')}</EmptySubtitle>
+          </EmptyTextCard>
           <RetryButton onPress={() => loadData()}>
-            <RetryButtonText>Tentar novamente</RetryButtonText>
+            <RetryButtonText>{t('comum.tentarNovamente')}</RetryButtonText>
           </RetryButton>
         </ErrorStateContainer>
+        </HomeVeu>
       </HomeContainer>
     );
   }
 
   if (localHabits.length === 0) {
     return (
-      <HomeContainer>
+      <HomeContainer source={cenarioFonte}>
+        <HomeVeu>
         <LocalHeader />
         <ErrorStateContainer>
           <IconWrapper>
-            <Feather name="target" size={32} color="#4f46e5" />
+            <Feather name="target" size={32} color={theme.primaryColor} />
           </IconWrapper>
-          <EmptyTitle>Bem-vindo ao Tempo Claro</EmptyTitle>
-          <EmptySubtitle>
-            Diferente de uma lista de tarefas cheia, aqui você foca em no máximo {limiteHabitos} hábito
-            {limiteHabitos === 1 ? '' : 's'} por vez — sem dispersão, sem sobrecarga. Crie o primeiro pra
-            começar.
-          </EmptySubtitle>
+          <EmptyTextCard>
+            <EmptyTitle>{t('home.boasVindasTitulo')}</EmptyTitle>
+            <EmptySubtitle>
+              {t('home.boasVindasTexto', { limite: limiteHabitos, plural: limiteHabitos === 1 ? '' : 's' })}
+            </EmptySubtitle>
+          </EmptyTextCard>
           <CreateHabitButton onPress={() => router.push({ pathname: '/create', params: { modo: 'criar' } })} style={{ marginTop: 24 }}>
             <Feather name="play" size={32} color="white" style={{ transform: [{ rotate: '90deg' }] }} />
           </CreateHabitButton>
         </ErrorStateContainer>
+        </HomeVeu>
       </HomeContainer>
     );
   }
 
   return (
-    <HomeContainer>
+    <HomeContainer source={cenarioFonte}>
+      <HomeVeu>
       <LocalHeader />
       <FlatList
         ref={listRef}
@@ -364,17 +536,15 @@ const HomeScreen = () => {
         {activeIndex < localHabits.length && localHabits[activeIndex]?.status !== 'COMPLETED' ? (
           <ActionHintText>
             {isDiaProgramado(localHabits[activeIndex])
-              ? 'Use o botão Play na barra inferior'
-              : 'Hoje é opcional — toque em Play se quiser praticar'}
+              ? t('home.dicaPlay')
+              : t('home.dicaOpcional')}
           </ActionHintText>
         ) : activeIndex < localHabits.length ? (
           <DoneButton>
-            <Feather name="check" size={24} color="#64748b" />
-            <DoneButtonText>TAREFA FEITA</DoneButtonText>
+            <Feather name="check" size={24} color={theme.textSecondary} />
+            <DoneButtonText>{t('home.tarefaFeita')}</DoneButtonText>
           </DoneButton>
-        ) : (
-          <ActionHintText> </ActionHintText>
-        )}
+        ) : null}
       </ActionWrapper>
 
       <Modal
@@ -385,22 +555,20 @@ const HomeScreen = () => {
       >
         <ArchiveModalOverlay>
           <ArchiveModalContent>
-            <ArchiveModalTitle>Arquivar "{habitoParaArquivar?.titulo}"?</ArchiveModalTitle>
-            <ArchiveModalText>
-              O histórico de execuções e moedas fica preservado — nada é apagado. Isso libera uma vaga entre
-              os {limiteHabitos} hábitos ativos para você criar outro.
-            </ArchiveModalText>
+            <ArchiveModalTitle>{t('home.arquivarPergunta', { titulo: habitoParaArquivar?.titulo ?? '' })}</ArchiveModalTitle>
+            <ArchiveModalText>{t('home.arquivarDetalhe', { limite: limiteHabitos })}</ArchiveModalText>
             <ArchiveModalActions>
               <ArchiveCancelButton onPress={() => setHabitoParaArquivar(null)} disabled={arquivando}>
-                <ArchiveCancelButtonText>Cancelar</ArchiveCancelButtonText>
+                <ArchiveCancelButtonText>{t('comum.cancelar')}</ArchiveCancelButtonText>
               </ArchiveCancelButton>
               <ArchiveConfirmButton onPress={handleConfirmarArquivar} disabled={arquivando}>
-                <ArchiveConfirmButtonText>{arquivando ? 'Arquivando...' : 'Arquivar'}</ArchiveConfirmButtonText>
+                <ArchiveConfirmButtonText>{arquivando ? t('home.arquivando') : t('comum.arquivar')}</ArchiveConfirmButtonText>
               </ArchiveConfirmButton>
             </ArchiveModalActions>
           </ArchiveModalContent>
         </ArchiveModalOverlay>
       </Modal>
+      </HomeVeu>
     </HomeContainer>
   );
 };

@@ -14,6 +14,7 @@ import {
   ZoomIn,
 } from 'react-native-reanimated';
 import { useExecutionResult } from '../../contexts/ExecutionResultContext';
+import { useI18n } from '../../contexts/LanguageContext';
 import {
   SuccessContainer,
   ParticlesWrapper,
@@ -28,6 +29,7 @@ import {
   Value,
   ValueText,
   Divider,
+  RewardNote,
   BackButton,
   BackButtonText,
 } from './styles';
@@ -68,12 +70,20 @@ const Success = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { executionResult } = useExecutionResult();
+  const { t } = useI18n();
 
   const feedback = executionResult?.feedback;
   const isBonus = Boolean(feedback?.bonus);
-  const moedasGanhas = feedback?.moedas_ganhas ?? 0;
-  const diasSeguidos = feedback?.dias_seguidos || 1;
-  const subtitleText = feedback?.texto_feedback || 'A excelência é um hábito.';
+  // A execução não credita mais moedas: o crédito é do dia inteiro e acontece no
+  // fechamento (RF11/RF12). O que vem aqui é a PREVISÃO do que o dia renderá se
+  // fechar como está agora — por isso o rótulo diz "a receber", não "recompensa".
+  const moedasPrevistas = feedback?.moedas_previstas_hoje ?? 0;
+  const acumuladoHoje = feedback?.valor_acumulado_hoje ?? 0;
+  const metaDoDia = feedback?.meta_base ?? 0;
+  const diasSeguidos = feedback?.dias_seguidos ?? 0;
+  const metaBatida = metaDoDia > 0 && acumuladoHoje >= metaDoDia;
+  // texto_feedback vem da biblioteca do servidor, já no idioma do usuário.
+  const subtitleText = feedback?.texto_feedback || t('sucesso.subtituloPadrao');
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -102,29 +112,52 @@ const Success = () => {
 
       <ContentWrapper>
         <IconWrapper entering={ZoomIn.duration(500)}>{isBonus ? '🌟' : '✨'}</IconWrapper>
-        <Title>{isBonus ? 'Incrível!' : 'Tarefa Concluída!'}</Title>
+        <Title>{isBonus ? t('sucesso.tituloBonus') : t('sucesso.tituloPadrao')}</Title>
         <Subtitle>{subtitleText}</Subtitle>
 
         <RewardCard>
           <Row>
-            <Label>Recompensa</Label>
+            <Label>{t('sucesso.aReceber')}</Label>
             <Value>
               <FontAwesome5 name="coins" size={22} color="white" />
-              <ValueText>+{moedasGanhas}</ValueText>
+              <ValueText>{moedasPrevistas}</ValueText>
             </Value>
           </Row>
+          <RewardNote>
+            {metaBatida
+              ? t('sucesso.notaMetaBatida')
+              : t('sucesso.notaEmAndamento')}
+          </RewardNote>
           <Divider />
+          {metaDoDia > 0 ? (
+            <>
+              <Row>
+                <Label>{t('sucesso.progressoHoje')}</Label>
+                <Value>
+                  <MaterialCommunityIcons
+                    name={metaBatida ? 'check-circle' : 'progress-clock'}
+                    size={24}
+                    color="white"
+                  />
+                  <ValueText>
+                    {acumuladoHoje}/{metaDoDia}
+                  </ValueText>
+                </Value>
+              </Row>
+              <Divider />
+            </>
+          ) : null}
           <Row>
-            <Label>Ofensiva Atual</Label>
+            <Label>{t('sucesso.ofensiva')}</Label>
             <Value>
               <MaterialCommunityIcons name="fire" size={28} color="white" />
-              <ValueText>{diasSeguidos} dias</ValueText>
+              <ValueText>{diasSeguidos} {t('comum.dias')}</ValueText>
             </Value>
           </Row>
         </RewardCard>
 
         <BackButton onPress={() => router.replace('/home')}>
-          <BackButtonText $isBonus={isBonus}>VOLTAR PARA A HOME</BackButtonText>
+          <BackButtonText $isBonus={isBonus}>{t('sucesso.voltar')}</BackButtonText>
         </BackButton>
       </ContentWrapper>
     </SuccessContainer>

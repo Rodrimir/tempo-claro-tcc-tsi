@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { getPreTaskPriming } from '../../services/api';
+import { useI18n } from '../../contexts/LanguageContext';
 import {
   PreTaskContainer,
   BackButtonWrapper,
@@ -18,9 +19,10 @@ import {
 } from './styles';
 
 const PreTask = () => {
+  const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [text, setText] = useState('Carregando...');
+  const [text, setText] = useState(t('preTask.carregando'));
   const { currentHabit } = useCurrentHabit();
 
   useEffect(() => {
@@ -33,7 +35,7 @@ const PreTask = () => {
         setText(`"${res.data.texto}"`);
       })
       .catch(() => {
-        setText('"A excelência não é um ato, mas um hábito."');
+        setText(t('preTask.fraseFallback'));
       });
   }, [currentHabit]);
 
@@ -44,7 +46,7 @@ const PreTask = () => {
   return (
     <PreTaskContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <BackButtonWrapper style={{ top: insets.top + 24 }}>
-        <BackButton onPress={() => router.push('/home')} accessibilityLabel="Voltar para a Home">
+        <BackButton onPress={() => router.push('/home')} accessibilityLabel={t('preTask.voltarParaHome')}>
           <Feather name="arrow-left" size={32} color="white" />
         </BackButton>
       </BackButtonWrapper>
@@ -58,7 +60,7 @@ const PreTask = () => {
 
       <ActionWrapper>
         <ReadyButton onPress={() => router.push('/execute')}>
-          <ReadyButtonText>ESTOU PRONTO</ReadyButtonText>
+          <ReadyButtonText>{t('preTask.estouPronto')}</ReadyButtonText>
         </ReadyButton>
       </ActionWrapper>
     </PreTaskContainer>

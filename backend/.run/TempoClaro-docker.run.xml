@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TempoClaro-docker" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="tempo-claro" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.rodrigo.backend2java.BackEndIiApplication" />
+    <envs>
+      <env name="SPRING_PROFILES_ACTIVE" value="docker" />
+    </envs>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

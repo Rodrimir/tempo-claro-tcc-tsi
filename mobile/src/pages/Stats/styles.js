@@ -2,9 +2,13 @@ import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
 import { fonts } from '../../styles/fonts';
 
-export const StatsContainer = styled.View`
+/* Virou ScrollView: com recordes + gráfico de 30 dias, o conteúdo passava da
+   tela em aparelhos menores e não havia como rolar até o fim. */
+export const StatsContainer = styled.ScrollView.attrs((props) => ({
+  contentContainerStyle: { padding: 24, paddingTop: 24 + (props.$insetTop || 0), paddingBottom: 60 },
+}))`
   flex: 1;
-  padding: 24px;
+  background-color: ${(props) => props.theme.bgPrimary};
 `;
 
 export const Title = styled.Text`
@@ -14,10 +18,20 @@ export const Title = styled.Text`
   color: ${(props) => props.theme.textPrimary};
 `;
 
+/* Agora é um seletor, não só um rótulo: existe mais de um hábito ativo
+   possível (RF03), e antes só dava pra ver as estatísticas do que estivesse
+   focado na Home. */
+export const HabitTitleButton = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  align-self: flex-start;
+`;
+
 export const HabitTitle = styled.Text`
   color: ${(props) => props.theme.primaryColor};
   font-family: ${fonts.semiBold};
-  margin-bottom: 24px;
   font-size: 18px;
 `;
 
@@ -65,6 +79,38 @@ export const CardSubtext = styled.Text`
   margin-top: 4px;
 `;
 
+/* Pódio dos três melhores dias do mês (F18). O primeiro lugar ganha destaque de cor
+   e peso; os outros dois ficam em texto secundário, para o olho achar o topo antes
+   de ler a lista. */
+export const RecordeRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.borderColor};
+`;
+
+export const RecordePosicao = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 14px;
+  width: 28px;
+  color: ${(props) => (props.$first ? props.theme.warningColor : props.theme.textSecondary)};
+`;
+
+export const RecordeData = styled.Text`
+  flex: 1;
+  font-family: ${fonts.regular};
+  font-size: 14px;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const RecordeValor = styled.Text`
+  font-family: ${(props) => (props.$first ? fonts.bold : fonts.semiBold)};
+  font-size: 15px;
+  color: ${(props) => (props.$first ? props.theme.textPrimary : props.theme.textSecondary)};
+`;
+
 export const ChartCard = styled.View`
   background-color: ${(props) => props.theme.bgSurface};
   padding: 20px;
@@ -85,12 +131,6 @@ export const ChartWrapper = styled.View`
   flex-direction: row;
 `;
 
-export const BarColumn = styled.View`
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
-`;
-
 export const BarLabel = styled.Text`
   font-size: 12px;
   margin-top: 8px;
@@ -102,6 +142,7 @@ export const EmptyStateContainer = styled.View`
   padding: 24px;
   justify-content: center;
   align-items: center;
+  background-color: ${(props) => props.theme.bgPrimary};
 `;
 
 export const EmptyIconWrapper = styled.View`
@@ -140,4 +181,42 @@ export const RetryButton = styled(Pressable)`
 export const RetryButtonText = styled.Text`
   font-family: ${fonts.bold};
   color: white;
+`;
+
+export const PickerOverlay = styled(Pressable)`
+  flex: 1;
+  background-color: rgba(15, 23, 42, 0.85);
+  justify-content: flex-end;
+`;
+
+export const PickerSheet = styled.View`
+  background-color: ${(props) => props.theme.bgSurface};
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 20px;
+  max-height: 70%;
+`;
+
+export const PickerTitulo = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 18px;
+  color: ${(props) => props.theme.textPrimary};
+  margin-bottom: 12px;
+`;
+
+export const PickerOption = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 8px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.borderColor};
+`;
+
+export const PickerOptionText = styled.Text`
+  flex: 1;
+  font-size: 16px;
+  font-family: ${(props) => (props.$active ? fonts.bold : fonts.regular)};
+  color: ${(props) => (props.$active ? props.theme.primaryColor : props.theme.textPrimary)};
 `;

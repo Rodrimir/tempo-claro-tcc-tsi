@@ -1,222 +1,296 @@
 import { useState, useEffect } from 'react';
 import { Modal, View, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SlideInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../contexts/LanguageContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
 import { updateProfile, getMe } from '../../services/api';
-import { profileSchema } from './validation';
 import { FUSOS } from './timezones';
 import {
-  ProfileContainer,
-  Title,
-  FormContainer,
+  Scrim,
+  Panel,
+  PanelScroll,
+  IdentidadeBloco,
+  Avatar,
+  AvatarLetra,
+  IdentidadeTexto,
+  Nome,
+  Email,
+  FecharButton,
   SectionTitle,
-  FormGroup,
-  Label,
-  Input,
-  ErrorText,
-  SelectField,
-  SelectFieldText,
-  SubmitButton,
-  SubmitButtonText,
-  LogoutButton,
-  LogoutButtonText,
-  SettingsRow,
-  SettingsRowLabel,
-  SettingsRowLabelText,
+  MenuRow,
+  MenuIcone,
+  MenuTexto,
+  MenuLabel,
+  MenuValor,
+  Separador,
+  SegmentedControl,
   LanguageChip,
   LanguageChipText,
-  ThemeSegmentedControl,
   ThemeOptionButton,
   PickerOverlay,
   PickerSheet,
+  PickerTitulo,
   PickerGroupLabel,
   PickerOption,
   PickerOptionText,
+  CenterOverlay,
+  DialogCard,
+  DialogTitle,
+  DialogText,
+  DialogInput,
+  DialogActions,
+  DialogCancel,
+  DialogCancelText,
+  DialogConfirm,
+  DialogConfirmText,
 } from './styles';
 
+/**
+ * Perfil como gaveta lateral.
+ *
+ * Cada ajuste tem o seu próprio caminho, escolhido pelo peso da decisão: idioma e
+ * tema resolvem na própria gaveta (um toque, reversível na hora), fuso e nome
+ * abrem popup, e trocar senha abre um fluxo de tela cheia — é a única mudança que
+ * precisa de confirmação de identidade antes de acontecer.
+ */
 const Profile = () => {
+  const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { logout, user, updateLocalUser } = useAuth();
   const { isDark, tema, setTema } = useThemeToggle();
   const { addToast } = useToast();
-  const [pickerAberto, setPickerAberto] = useState(false);
+  const { idioma, setIdioma, idiomas, t } = useI18n();
 
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: yupResolver(profileSchema),
-    defaultValues: {
-      nome: user?.name || '',
-      senhaAtual: '',
-      novaSenha: '',
-      confirmarNovaSenha: '',
-      fusoHorario: 'America/Sao_Paulo',
-    },
-  });
-
-  const fusoAtual = watch('fusoHorario');
-  const fusoLabel = FUSOS.find((f) => f.value === fusoAtual)?.label || fusoAtual;
+  const [nome, setNome] = useState(user?.name || '');
+  const [fusoHorario, setFusoHorario] = useState('America/Sao_Paulo');
+  const [fusoAberto, setFusoAberto] = useState(false);
+  const [nomeAberto, setNomeAberto] = useState(false);
+  const [rascunhoNome, setRascunhoNome] = useState('');
+  const [sairAberto, setSairAberto] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     getMe()
       .then((res) => {
-        if (res.data.nome) setValue('nome', res.data.nome);
-        setValue('fusoHorario', res.data.fuso_horario || 'America/Sao_Paulo');
+        if (res.data.nome) setNome(res.data.nome);
+        setFusoHorario(res.data.fuso_horario || 'America/Sao_Paulo');
         if (res.data.tema) setTema(res.data.tema);
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSubmit = async (data) => {
+  const fechar = () => router.replace('/home');
+
+  const fusoLabel = FUSOS.find((f) => f.value === fusoHorario)?.label || fusoHorario;
+
+  // Trocar o idioma salva no servidor na hora: usu_preferencia_idioma é o que faz
+  // a API devolver as frases motivacionais e o questionário de calibração no
+  // idioma certo (RNF13).
+  const trocarIdioma = async (codigo) => {
+    if (codigo === idioma) return;
+    const anterior = idioma;
+    setIdioma(codigo);
     try {
-      const trocandoSenha = Boolean(data.novaSenha);
-      await updateProfile({
-        nome: data.nome,
-        fuso_horario: data.fusoHorario,
-        tema,
-        ...(trocandoSenha && {
-          senha_atual: data.senhaAtual,
-          nova_senha: data.novaSenha,
-        }),
-      });
-      updateLocalUser({ name: data.nome });
-      addToast(trocandoSenha ? 'Senha alterada com sucesso!' : 'Perfil atualizado com sucesso!', 'success');
-      reset({ ...data, senhaAtual: '', novaSenha: '', confirmarNovaSenha: '' });
+      await updateProfile({ preferencia_idioma: codigo });
+      updateLocalUser({ preferencia_idioma: codigo });
     } catch (err) {
-      const mensagem = err.response?.data?.message || 'Erro ao atualizar perfil. Verifique seus dados.';
-      addToast(mensagem, 'error');
+      setIdioma(anterior);
+      addToast(err.response?.data?.message || t('perfil.erroIdioma'), 'error');
     }
   };
 
+  const trocarTema = async (novo) => {
+    const anterior = tema;
+    setTema(novo);
+    try {
+      await updateProfile({ tema: novo });
+    } catch (err) {
+      setTema(anterior);
+      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+    }
+  };
+
+  const salvarFuso = async (valor) => {
+    const anterior = fusoHorario;
+    setFusoHorario(valor);
+    setFusoAberto(false);
+    try {
+      await updateProfile({ fuso_horario: valor });
+      addToast(t('perfil.salvoOk'), 'success');
+    } catch (err) {
+      setFusoHorario(anterior);
+      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+    }
+  };
+
+  const salvarNome = async () => {
+    const limpo = rascunhoNome.trim();
+    if (!limpo) return;
+    setSalvando(true);
+    try {
+      await updateProfile({ nome: limpo });
+      updateLocalUser({ name: limpo });
+      setNome(limpo);
+      setNomeAberto(false);
+      addToast(t('perfil.salvoOk'), 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const inicial = (nome || user?.email || '?').trim().charAt(0).toUpperCase();
+
   return (
-    <ProfileContainer $insetTop={insets.top}>
-      <Title>Seu Perfil</Title>
+    <View style={{ flex: 1 }}>
+      <Scrim onPress={fechar} accessibilityLabel={t('comum.fechar')} />
 
-      <FormContainer>
-        <SectionTitle>Preferências do App</SectionTitle>
+      <Panel entering={SlideInRight.duration(220)}>
+        <PanelScroll $insetTop={insets.top}>
+          <IdentidadeBloco>
+            <Avatar>
+              <AvatarLetra>{inicial}</AvatarLetra>
+            </Avatar>
+            <IdentidadeTexto>
+              <Nome numberOfLines={1}>{nome || t('perfil.titulo')}</Nome>
+              <Email numberOfLines={1}>{user?.email}</Email>
+            </IdentidadeTexto>
+            <FecharButton onPress={fechar} accessibilityLabel={t('comum.fechar')}>
+              <Feather name="x" size={20} color={theme.textPrimary} />
+            </FecharButton>
+          </IdentidadeBloco>
 
-        <SettingsRow>
-          <SettingsRowLabel>
-            <Feather name="globe" size={20} color={theme.textPrimary} />
-            <SettingsRowLabelText>Idioma</SettingsRowLabelText>
-          </SettingsRowLabel>
-          <LanguageChip>
-            <LanguageChipText>🇧🇷 PT</LanguageChipText>
-          </LanguageChip>
-        </SettingsRow>
+          <SectionTitle>{t('perfil.preferencias')}</SectionTitle>
 
-        <SettingsRow $last>
-          <SettingsRowLabel>
-            <Feather name={isDark ? 'moon' : 'sun'} size={20} color={theme.textPrimary} />
-            <SettingsRowLabelText>Tema</SettingsRowLabelText>
-          </SettingsRowLabel>
-          <ThemeSegmentedControl>
-            <ThemeOptionButton $active={tema === 'claro'} accessibilityLabel="Tema claro" onPress={() => setTema('claro')}>
-              <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
-            </ThemeOptionButton>
-            <ThemeOptionButton $active={tema === 'escuro'} accessibilityLabel="Tema escuro" onPress={() => setTema('escuro')}>
-              <Feather name="moon" size={16} color={tema === 'escuro' ? theme.primaryColor : theme.textSecondary} />
-            </ThemeOptionButton>
-            <ThemeOptionButton $active={tema === 'sistema'} accessibilityLabel="Tema do sistema" onPress={() => setTema('sistema')}>
-              <Feather name="monitor" size={16} color={tema === 'sistema' ? theme.primaryColor : theme.textSecondary} />
-            </ThemeOptionButton>
-          </ThemeSegmentedControl>
-        </SettingsRow>
+          <MenuRow>
+            <MenuIcone>
+              <Feather name="globe" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.idioma')}</MenuLabel>
+            </MenuTexto>
+            <SegmentedControl>
+              {Object.entries(idiomas).map(([codigo, info]) => (
+                <LanguageChip
+                  key={codigo}
+                  $active={idioma === codigo}
+                  accessibilityLabel={info.nome}
+                  onPress={() => trocarIdioma(codigo)}
+                >
+                  <LanguageChipText $active={idioma === codigo}>{info.bandeira}</LanguageChipText>
+                  <LanguageChipText $active={idioma === codigo}>{info.curto}</LanguageChipText>
+                </LanguageChip>
+              ))}
+            </SegmentedControl>
+          </MenuRow>
 
-        <SectionTitle style={{ marginTop: 24 }}>Seus Dados</SectionTitle>
+          <Separador />
 
-        <FormGroup>
-          <Label>Nome</Label>
-          <Controller
-            control={control}
-            name="nome"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input value={value} onChangeText={onChange} onBlur={onBlur} />
-            )}
-          />
-        </FormGroup>
+          <MenuRow>
+            <MenuIcone>
+              <Feather name={isDark ? 'moon' : 'sun'} size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.tema')}</MenuLabel>
+            </MenuTexto>
+            <SegmentedControl>
+              <ThemeOptionButton
+                $active={tema === 'claro'}
+                accessibilityLabel={t('perfil.temaClaroLabel')}
+                onPress={() => trocarTema('claro')}
+              >
+                <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+              <ThemeOptionButton
+                $active={tema === 'escuro'}
+                accessibilityLabel={t('perfil.temaEscuroLabel')}
+                onPress={() => trocarTema('escuro')}
+              >
+                <Feather name="moon" size={16} color={tema === 'escuro' ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+            </SegmentedControl>
+          </MenuRow>
 
-        <FormGroup>
-          <Label>Fuso Horário</Label>
-          <SelectField onPress={() => setPickerAberto(true)}>
-            <SelectFieldText>{fusoLabel}</SelectFieldText>
-          </SelectField>
-        </FormGroup>
+          <SectionTitle>{t('perfil.seusDados')}</SectionTitle>
 
-        <FormGroup>
-          <Label>Senha Atual</Label>
-          <Controller
-            control={control}
-            name="senhaAtual"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input secureTextEntry value={value} onChangeText={onChange} onBlur={onBlur} />
-            )}
-          />
-          {errors.senhaAtual && <ErrorText>{errors.senhaAtual.message}</ErrorText>}
-        </FormGroup>
+          <MenuRow
+            onPress={() => {
+              setRascunhoNome(nome);
+              setNomeAberto(true);
+            }}
+          >
+            <MenuIcone>
+              <Feather name="user" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.nome')}</MenuLabel>
+              <MenuValor numberOfLines={1}>{nome || '—'}</MenuValor>
+            </MenuTexto>
+            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+          </MenuRow>
 
-        <FormGroup>
-          <Label>Nova Senha</Label>
-          <Controller
-            control={control}
-            name="novaSenha"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input secureTextEntry value={value} onChangeText={onChange} onBlur={onBlur} />
-            )}
-          />
-          {errors.novaSenha && <ErrorText>{errors.novaSenha.message}</ErrorText>}
-        </FormGroup>
+          <Separador />
 
-        <FormGroup>
-          <Label>Confirmar Nova Senha</Label>
-          <Controller
-            control={control}
-            name="confirmarNovaSenha"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input secureTextEntry value={value} onChangeText={onChange} onBlur={onBlur} />
-            )}
-          />
-          {errors.confirmarNovaSenha && <ErrorText>{errors.confirmarNovaSenha.message}</ErrorText>}
-        </FormGroup>
+          <MenuRow onPress={() => setFusoAberto(true)}>
+            <MenuIcone>
+              <Feather name="clock" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.fuso')}</MenuLabel>
+              <MenuValor numberOfLines={1}>{fusoLabel}</MenuValor>
+            </MenuTexto>
+            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+          </MenuRow>
 
-        <SubmitButton disabled={isSubmitting} onPress={handleSubmit(onSubmit)}>
-          <SubmitButtonText>{isSubmitting ? 'Salvando...' : 'Salvar Alterações'}</SubmitButtonText>
-        </SubmitButton>
-      </FormContainer>
+          <Separador />
 
-      <LogoutButton onPress={logout} accessibilityLabel="Sair da sua conta">
-        <LogoutButtonText>Sair do Aplicativo</LogoutButtonText>
-      </LogoutButton>
+          <MenuRow onPress={() => router.push('/change-password')}>
+            <MenuIcone>
+              <Feather name="lock" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.trocarSenha')}</MenuLabel>
+              <MenuValor>{t('perfil.trocarSenhaSub')}</MenuValor>
+            </MenuTexto>
+            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+          </MenuRow>
 
-      <Modal visible={pickerAberto} transparent animationType="fade" onRequestClose={() => setPickerAberto(false)}>
-        <PickerOverlay onPress={() => setPickerAberto(false)}>
-          <PickerSheet>
+          <SectionTitle>{t('perfil.conta')}</SectionTitle>
+
+          <MenuRow $danger onPress={() => setSairAberto(true)}>
+            <MenuIcone $danger>
+              <Feather name="log-out" size={18} color={theme.dangerColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel $danger>{t('perfil.sair')}</MenuLabel>
+            </MenuTexto>
+          </MenuRow>
+        </PanelScroll>
+      </Panel>
+
+      <Modal visible={fusoAberto} transparent animationType="fade" onRequestClose={() => setFusoAberto(false)}>
+        <PickerOverlay onPress={() => setFusoAberto(false)}>
+          <PickerSheet onStartShouldSetResponder={() => true}>
+            <PickerTitulo>{t('perfil.fuso')}</PickerTitulo>
             <ScrollView>
-              {['Brasil', 'Outros'].map((grupo) => (
+              {['brasil', 'outros'].map((grupo) => (
                 <View key={grupo}>
-                  <PickerGroupLabel>{grupo}</PickerGroupLabel>
+                  <PickerGroupLabel>{t(`perfil.grupoFuso.${grupo}`)}</PickerGroupLabel>
                   {FUSOS.filter((f) => f.group === grupo).map((f) => (
-                    <PickerOption
-                      key={f.value}
-                      onPress={() => {
-                        setValue('fusoHorario', f.value);
-                        setPickerAberto(false);
-                      }}
-                    >
-                      <PickerOptionText>{f.label}</PickerOptionText>
+                    <PickerOption key={f.value} onPress={() => salvarFuso(f.value)}>
+                      <PickerOptionText $active={f.value === fusoHorario}>{f.label}</PickerOptionText>
+                      {f.value === fusoHorario ? (
+                        <Feather name="check" size={18} color={theme.primaryColor} />
+                      ) : null}
                     </PickerOption>
                   ))}
                 </View>
@@ -225,7 +299,47 @@ const Profile = () => {
           </PickerSheet>
         </PickerOverlay>
       </Modal>
-    </ProfileContainer>
+
+      <Modal visible={nomeAberto} transparent animationType="fade" onRequestClose={() => setNomeAberto(false)}>
+        <CenterOverlay>
+          <DialogCard>
+            <DialogTitle>{t('perfil.nome')}</DialogTitle>
+            <DialogInput
+              value={rascunhoNome}
+              onChangeText={setRascunhoNome}
+              autoFocus
+              maxLength={60}
+              placeholder={t('perfil.nome')}
+            />
+            <DialogActions>
+              <DialogCancel onPress={() => setNomeAberto(false)}>
+                <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
+              </DialogCancel>
+              <DialogConfirm onPress={salvarNome} disabled={salvando || !rascunhoNome.trim()}>
+                <DialogConfirmText>{salvando ? t('perfil.salvando') : t('comum.salvar')}</DialogConfirmText>
+              </DialogConfirm>
+            </DialogActions>
+          </DialogCard>
+        </CenterOverlay>
+      </Modal>
+
+      <Modal visible={sairAberto} transparent animationType="fade" onRequestClose={() => setSairAberto(false)}>
+        <CenterOverlay>
+          <DialogCard>
+            <DialogTitle>{t('perfil.sair')}</DialogTitle>
+            <DialogText>{t('perfil.sairConfirmacao')}</DialogText>
+            <DialogActions>
+              <DialogCancel onPress={() => setSairAberto(false)}>
+                <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
+              </DialogCancel>
+              <DialogConfirm $danger onPress={logout}>
+                <DialogConfirmText>{t('perfil.sairConfirmar')}</DialogConfirmText>
+              </DialogConfirm>
+            </DialogActions>
+          </DialogCard>
+        </CenterOverlay>
+      </Modal>
+    </View>
   );
 };
 

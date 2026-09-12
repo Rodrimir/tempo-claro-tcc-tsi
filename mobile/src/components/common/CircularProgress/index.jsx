@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '../../../contexts/LanguageContext';
 import {
   ProgressContainer,
   SvgElement,
@@ -14,6 +15,7 @@ const RAIO = 90;
 const CIRCUNFERENCIA = 565;
 
 const CircularProgress = ({ quantity, meta_base, onQuantityChange }) => {
+  const { t } = useI18n();
   const [editando, setEditando] = useState(false);
   const [valorDigitado, setValorDigitado] = useState('');
 
@@ -61,7 +63,7 @@ const CircularProgress = ({ quantity, meta_base, onQuantityChange }) => {
           <QuantityText
             onPress={onQuantityChange ? iniciarEdicao : undefined}
             accessibilityRole={onQuantityChange ? 'button' : undefined}
-            accessibilityLabel={onQuantityChange ? 'Editar quantidade manualmente' : undefined}
+            accessibilityLabel={onQuantityChange ? t('comum.editarQuantidade') : undefined}
           >
             {quantity}
           </QuantityText>

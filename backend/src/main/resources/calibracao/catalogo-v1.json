@@ -1,0 +1,986 @@
+{
+  "versao": 1,
+  "_leia_me": [
+    "Este arquivo É o questionário de calibração (RF20/RNF04). Trocar perguntas,",
+    "rótulos, pesos ou faixas de meta se faz aqui, sem recompilar regra nenhuma.",
+    "Só se mexe em código para inventar um TIPO de resposta novo.",
+    "",
+    "BILÍNGUE: enunciado, rotulo e detalhe são objetos {pt-BR, en-US}. O servidor",
+    "resolve pelo idioma do usuário (usu_preferencia_idioma) antes de responder —",
+    "o app recebe texto pronto e não precisa saber traduzir nada (RNF13).",
+    "",
+    "tipo: ESCOLHA_UNICA  -> botões empilhados, um toque seleciona e avança",
+    "      DIAS_SEMANA    -> 7 botões (domingo a sábado) viram a máscara '0111110'",
+    "      VEZES_AO_DIA   -> chips com o número de ocorrências do dia",
+    "      HORARIOS       -> um seletor de hora por ocorrência escolhida acima",
+    "      RITMO          -> define incremento e dias_incremento de uma vez",
+    "",
+    "peso: soma na pontuação, que escolhe a faixa de meta. Zero é resposta válida",
+    "      (quem nunca praticou começa no menor degrau), não resposta vazia.",
+    "",
+    "teto_resposta: em ESCOLHA_UNICA, o máximo que a meta sugerida pode assumir se",
+    "      esta opção for escolhida. É a 3ª lei de Clear virando regra: a sugestão",
+    "      nunca nasce acima do que a pessoa declarou aguentar."
+  ],
+  "categorias": {
+    "EXERCICIO": {
+      "unidade": "min",
+      "tipo_medida": "TEMPO",
+      "teto_multiplicador": 4,
+      "faixas_meta": [
+        {
+          "ate": 3,
+          "meta": 1
+        },
+        {
+          "ate": 6,
+          "meta": 5
+        },
+        {
+          "ate": 9,
+          "meta": 10
+        },
+        {
+          "ate": 12,
+          "meta": 20
+        },
+        {
+          "ate": 99,
+          "meta": 30
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "EXPERIENCIA_PREVIA",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Você já pratica exercício hoje?",
+            "en-US": "Do you exercise today?"
+          },
+          "opcoes": [
+            {
+              "valor": "NUNCA",
+              "rotulo": {
+                "pt-BR": "Nunca pratiquei",
+                "en-US": "Never have"
+              },
+              "detalhe": {
+                "pt-BR": "Vamos começar bem pequeno, só para criar o hábito",
+                "en-US": "We'll start really small, just to build the habit"
+              },
+              "peso": 0
+            },
+            {
+              "valor": "PAREI",
+              "rotulo": {
+                "pt-BR": "Já pratiquei e parei",
+                "en-US": "I used to, then stopped"
+              },
+              "detalhe": {
+                "pt-BR": "Começamos leve, para o hábito pegar antes de aumentar",
+                "en-US": "We'll start light, so the habit sticks before increasing"
+              },
+              "peso": 1
+            },
+            {
+              "valor": "AS_VEZES",
+              "rotulo": {
+                "pt-BR": "Às vezes",
+                "en-US": "Sometimes"
+              },
+              "detalhe": {
+                "pt-BR": "A meta parte de um ponto intermediário",
+                "en-US": "The goal starts from a middle ground"
+              },
+              "peso": 2
+            },
+            {
+              "valor": "REGULAR",
+              "rotulo": {
+                "pt-BR": "Com regularidade",
+                "en-US": "Regularly"
+              },
+              "detalhe": {
+                "pt-BR": "A meta já pode começar mais alta",
+                "en-US": "The goal can start higher"
+              },
+              "peso": 3
+            }
+          ]
+        },
+        {
+          "codigo": "DESEJO",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "O quanto você quer fazer isso?",
+            "en-US": "How much do you want this?"
+          },
+          "opcoes": [
+            {
+              "valor": "FORCANDO",
+              "rotulo": {
+                "pt-BR": "Estou me forçando",
+                "en-US": "I am forcing myself"
+              },
+              "detalhe": {
+                "pt-BR": "A meta começa pequena para pesar menos",
+                "en-US": "The goal starts small so it weighs less"
+              },
+              "peso": 0
+            },
+            {
+              "valor": "CUSTA",
+              "rotulo": {
+                "pt-BR": "Quero, mas custa começar",
+                "en-US": "I want to, but starting is hard"
+              },
+              "detalhe": {
+                "pt-BR": "Meta moderada, para o começo custar menos",
+                "en-US": "A moderate goal, so starting costs less"
+              },
+              "peso": 1
+            },
+            {
+              "valor": "GOSTO",
+              "rotulo": {
+                "pt-BR": "Gosto quando faço",
+                "en-US": "I enjoy it once I start"
+              },
+              "detalhe": {
+                "pt-BR": "Dá para pedir um pouco mais desde já",
+                "en-US": "We can ask for a bit more right away"
+              },
+              "peso": 2
+            },
+            {
+              "valor": "AMO",
+              "rotulo": {
+                "pt-BR": "É meu momento do dia",
+                "en-US": "It is my moment of the day"
+              },
+              "detalhe": {
+                "pt-BR": "A meta pode ser mais ambiciosa desde já",
+                "en-US": "The goal can be more ambitious right away"
+              },
+              "peso": 3
+            }
+          ]
+        },
+        {
+          "codigo": "TEMPO_DISPONIVEL",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Quanto tempo dá pra reservar, de verdade?",
+            "en-US": "How much time can you really set aside?"
+          },
+          "opcoes": [
+            {
+              "valor": "ATE_5",
+              "rotulo": {
+                "pt-BR": "Até 5 minutos",
+                "en-US": "Up to 5 minutes"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 5 minutos",
+                "en-US": "The suggestion will not exceed 5 minutes"
+              },
+              "peso": 0,
+              "teto_resposta": 5
+            },
+            {
+              "valor": "ATE_10",
+              "rotulo": {
+                "pt-BR": "Uns 10 minutos",
+                "en-US": "About 10 minutes"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 10 minutos",
+                "en-US": "The suggestion will not exceed 10 minutes"
+              },
+              "peso": 1,
+              "teto_resposta": 10
+            },
+            {
+              "valor": "ATE_20",
+              "rotulo": {
+                "pt-BR": "Uns 20 minutos",
+                "en-US": "About 20 minutes"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 20 minutos",
+                "en-US": "The suggestion will not exceed 20 minutes"
+              },
+              "peso": 2,
+              "teto_resposta": 20
+            },
+            {
+              "valor": "MAIS_30",
+              "rotulo": {
+                "pt-BR": "30 minutos ou mais",
+                "en-US": "30 minutes or more"
+              },
+              "detalhe": {
+                "pt-BR": "Sem teto de tempo — a meta segue só a pontuação",
+                "en-US": "No time cap — the goal follows only the score"
+              },
+              "peso": 3
+            }
+          ]
+        },
+        {
+          "codigo": "DIAS_SEMANA",
+          "tipo": "DIAS_SEMANA",
+          "enunciado": {
+            "pt-BR": "Em quais dias você pode?",
+            "en-US": "Which days can you do it?"
+          }
+        },
+        {
+          "codigo": "VEZES_AO_DIA",
+          "tipo": "VEZES_AO_DIA",
+          "enunciado": {
+            "pt-BR": "Quer dividir em quantas atividades?",
+            "en-US": "How many activities would you like to split it into?"
+          },
+          "maximo": 8
+        },
+        {
+          "codigo": "HORARIOS",
+          "tipo": "HORARIOS",
+          "enunciado": {
+            "pt-BR": "Em que horário vai fazer cada atividade?",
+            "en-US": "What time will you do each activity?"
+          }
+        },
+        {
+          "codigo": "ESTRATEGIA",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Qual vai ser o seu gatilho para começar?",
+            "en-US": "What will be your trigger to start?"
+          },
+          "opcoes": [
+            {
+              "valor": "AMBIENTE",
+              "rotulo": {
+                "pt-BR": "Deixar a roupa de treino separada",
+                "en-US": "Lay out your workout clothes"
+              },
+              "detalhe": {
+                "pt-BR": "O que está à vista pesa mais que força de vontade",
+                "en-US": "What's in sight weighs more than willpower"
+              }
+            },
+            {
+              "valor": "EMPILHAMENTO",
+              "rotulo": {
+                "pt-BR": "Encaixar depois de um hábito que já tenho",
+                "en-US": "Stack it after a habit you already have"
+              },
+              "detalhe": {
+                "pt-BR": "Ex.: depois de escovar os dentes",
+                "en-US": "E.g.: after brushing your teeth"
+              }
+            },
+            {
+              "valor": "LEMBRETE",
+              "rotulo": {
+                "pt-BR": "Configurar um alarme ou notificação",
+                "en-US": "Set an alarm or notification"
+              },
+              "detalhe": {
+                "pt-BR": "Um gatilho externo substitui a lembrança",
+                "en-US": "An external trigger stands in for remembering"
+              }
+            },
+            {
+              "valor": "REDUZIR_ATRITO",
+              "rotulo": {
+                "pt-BR": "Deixar tudo pronto com antecedência",
+                "en-US": "Get everything ready ahead of time"
+              },
+              "detalhe": {
+                "pt-BR": "Menos passos entre você e o começo",
+                "en-US": "Fewer steps between you and starting"
+              }
+            }
+          ]
+        },
+        {
+          "codigo": "RITMO",
+          "tipo": "RITMO",
+          "enunciado": {
+            "pt-BR": "Quer evoluir rápido ou com calma?",
+            "en-US": "Do you want to progress fast or slowly?"
+          },
+          "opcoes": [
+            {
+              "valor": "DEVAGAR",
+              "rotulo": {
+                "pt-BR": "Bem devagar",
+                "en-US": "Nice and slow"
+              },
+              "detalhe": {
+                "pt-BR": "+1 minuto a cada 14 dias",
+                "en-US": "+1 minute every 14 days"
+              },
+              "incremento": 1,
+              "dias_incremento": 14
+            },
+            {
+              "valor": "EQUILIBRADO",
+              "rotulo": {
+                "pt-BR": "Equilibrado",
+                "en-US": "Balanced"
+              },
+              "detalhe": {
+                "pt-BR": "+2 minutos a cada 10 dias",
+                "en-US": "+2 minutes every 10 days"
+              },
+              "incremento": 2,
+              "dias_incremento": 10
+            },
+            {
+              "valor": "RAPIDO",
+              "rotulo": {
+                "pt-BR": "Rápido",
+                "en-US": "Fast"
+              },
+              "detalhe": {
+                "pt-BR": "+5 minutos a cada 7 dias",
+                "en-US": "+5 minutes every 7 days"
+              },
+              "incremento": 5,
+              "dias_incremento": 7
+            }
+          ]
+        }
+      ]
+    },
+    "AGUA": {
+      "unidade": "ml",
+      "tipo_medida": "QUANTIDADE",
+      "teto_multiplicador": 2,
+      "faixas_meta": [
+        {
+          "ate": 2,
+          "meta": 500
+        },
+        {
+          "ate": 4,
+          "meta": 1000
+        },
+        {
+          "ate": 6,
+          "meta": 1500
+        },
+        {
+          "ate": 99,
+          "meta": 2100
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "CONSUMO_ATUAL",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Quanta água você bebe hoje, mais ou menos?",
+            "en-US": "Roughly how much water do you drink today?"
+          },
+          "opcoes": [
+            {
+              "valor": "QUASE_NADA",
+              "rotulo": {
+                "pt-BR": "Quase nada",
+                "en-US": "Almost none"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 500 ml por dia",
+                "en-US": "The suggestion will not exceed 500 ml a day"
+              },
+              "peso": 0,
+              "teto_resposta": 500
+            },
+            {
+              "valor": "UM_COPO",
+              "rotulo": {
+                "pt-BR": "Um copo por dia",
+                "en-US": "One glass a day"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 1000 ml por dia",
+                "en-US": "The suggestion will not exceed 1000 ml a day"
+              },
+              "peso": 1,
+              "teto_resposta": 1000
+            },
+            {
+              "valor": "TRES_COPOS",
+              "rotulo": {
+                "pt-BR": "Três ou quatro copos",
+                "en-US": "Three or four glasses"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 1500 ml por dia",
+                "en-US": "The suggestion will not exceed 1500 ml a day"
+              },
+              "peso": 2,
+              "teto_resposta": 1500
+            },
+            {
+              "valor": "BASTANTE",
+              "rotulo": {
+                "pt-BR": "Já bebo bastante",
+                "en-US": "I already drink plenty"
+              },
+              "detalhe": {
+                "pt-BR": "Sem teto — a meta segue só a pontuação",
+                "en-US": "No cap — the goal follows only the score"
+              },
+              "peso": 3
+            }
+          ]
+        },
+        {
+          "codigo": "LEMBRA_SOZINHO",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Você costuma lembrar de beber?",
+            "en-US": "Do you usually remember to drink?"
+          },
+          "opcoes": [
+            {
+              "valor": "NUNCA",
+              "rotulo": {
+                "pt-BR": "Nunca lembro",
+                "en-US": "I never remember"
+              },
+              "detalhe": {
+                "pt-BR": "Tudo bem — o app te lembra nos horários escolhidos",
+                "en-US": "That's fine — the app will remind you at your chosen times"
+              },
+              "peso": 0
+            },
+            {
+              "valor": "AS_VEZES",
+              "rotulo": {
+                "pt-BR": "Às vezes",
+                "en-US": "Sometimes"
+              },
+              "detalhe": {
+                "pt-BR": "Os lembretes ajudam a fechar essa lacuna",
+                "en-US": "Reminders help close that gap"
+              },
+              "peso": 1
+            },
+            {
+              "valor": "QUASE_SEMPRE",
+              "rotulo": {
+                "pt-BR": "Quase sempre",
+                "en-US": "Almost always"
+              },
+              "detalhe": {
+                "pt-BR": "Você já tem uma boa base para uma meta maior",
+                "en-US": "You already have a good base for a bigger goal"
+              },
+              "peso": 2
+            }
+          ]
+        },
+        {
+          "codigo": "GARRAFA_POR_PERTO",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Tem garrafa por perto durante o dia?",
+            "en-US": "Do you keep a bottle nearby during the day?"
+          },
+          "_lei": "1ª lei de Clear: tornar evidente. Quem tem a garrafa à vista aguenta uma meta maior.",
+          "opcoes": [
+            {
+              "valor": "NAO",
+              "rotulo": {
+                "pt-BR": "Não",
+                "en-US": "No"
+              },
+              "detalhe": {
+                "pt-BR": "Vale a pena deixar uma garrafa à vista — ajuda mais que lembrete",
+                "en-US": "Worth keeping a bottle in sight — it helps more than a reminder"
+              },
+              "peso": 0
+            },
+            {
+              "valor": "AS_VEZES",
+              "rotulo": {
+                "pt-BR": "Às vezes",
+                "en-US": "Sometimes"
+              },
+              "detalhe": {
+                "pt-BR": "Ter a garrafa por perto na maior parte do tempo já ajuda",
+                "en-US": "Having the bottle nearby most of the time already helps"
+              },
+              "peso": 1
+            },
+            {
+              "valor": "SEMPRE",
+              "rotulo": {
+                "pt-BR": "Sempre",
+                "en-US": "Always"
+              },
+              "detalhe": {
+                "pt-BR": "Isso sustenta uma meta mais alta desde o início",
+                "en-US": "That supports a higher goal from the start"
+              },
+              "peso": 2
+            }
+          ]
+        },
+        {
+          "codigo": "DIAS_SEMANA",
+          "tipo": "DIAS_SEMANA",
+          "enunciado": {
+            "pt-BR": "Em quais dias você quer acompanhar?",
+            "en-US": "Which days do you want to track?"
+          }
+        },
+        {
+          "codigo": "VEZES_AO_DIA",
+          "tipo": "VEZES_AO_DIA",
+          "enunciado": {
+            "pt-BR": "Em quantas vezes ao dia quer beber água?",
+            "en-US": "How many times a day do you want to drink water?"
+          },
+          "maximo": 8
+        },
+        {
+          "codigo": "HORARIOS",
+          "tipo": "HORARIOS",
+          "enunciado": {
+            "pt-BR": "Em que horário vai beber água?",
+            "en-US": "What time will you drink water?"
+          }
+        },
+        {
+          "codigo": "ESTRATEGIA",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Qual vai ser o seu gatilho para lembrar de beber água?",
+            "en-US": "What will be your trigger to remember to drink water?"
+          },
+          "opcoes": [
+            {
+              "valor": "AMBIENTE",
+              "rotulo": {
+                "pt-BR": "Deixar a garrafa sempre visível",
+                "en-US": "Keep the bottle always in sight"
+              },
+              "detalhe": {
+                "pt-BR": "O que está à vista, acontece",
+                "en-US": "What's in sight gets done"
+              }
+            },
+            {
+              "valor": "EMPILHAMENTO",
+              "rotulo": {
+                "pt-BR": "Beber um copo após um hábito que já tenho",
+                "en-US": "Drink a glass after a habit you already have"
+              },
+              "detalhe": {
+                "pt-BR": "Ex.: ao acordar, antes de cada refeição",
+                "en-US": "E.g.: on waking up, before each meal"
+              }
+            },
+            {
+              "valor": "LEMBRETE",
+              "rotulo": {
+                "pt-BR": "Configurar lembretes ao longo do dia",
+                "en-US": "Set reminders throughout the day"
+              },
+              "detalhe": {
+                "pt-BR": "Um alarme substitui a lembrança",
+                "en-US": "An alarm stands in for remembering"
+              }
+            },
+            {
+              "valor": "SUBSTITUICAO",
+              "rotulo": {
+                "pt-BR": "Trocar outra bebida por água nas refeições",
+                "en-US": "Swap another drink for water at meals"
+              },
+              "detalhe": {
+                "pt-BR": "Menos decisão, mais consistência",
+                "en-US": "Less deciding, more consistency"
+              }
+            }
+          ]
+        },
+        {
+          "codigo": "RITMO",
+          "tipo": "RITMO",
+          "enunciado": {
+            "pt-BR": "Quer aumentar rápido ou com calma?",
+            "en-US": "Do you want to increase fast or slowly?"
+          },
+          "opcoes": [
+            {
+              "valor": "DEVAGAR",
+              "rotulo": {
+                "pt-BR": "Bem devagar",
+                "en-US": "Nice and slow"
+              },
+              "detalhe": {
+                "pt-BR": "+100 ml a cada 14 dias",
+                "en-US": "+100 ml every 14 days"
+              },
+              "incremento": 100,
+              "dias_incremento": 14
+            },
+            {
+              "valor": "EQUILIBRADO",
+              "rotulo": {
+                "pt-BR": "Equilibrado",
+                "en-US": "Balanced"
+              },
+              "detalhe": {
+                "pt-BR": "+200 ml a cada 10 dias",
+                "en-US": "+200 ml every 10 days"
+              },
+              "incremento": 200,
+              "dias_incremento": 10
+            },
+            {
+              "valor": "RAPIDO",
+              "rotulo": {
+                "pt-BR": "Rápido",
+                "en-US": "Fast"
+              },
+              "detalhe": {
+                "pt-BR": "+300 ml a cada 7 dias",
+                "en-US": "+300 ml every 7 days"
+              },
+              "incremento": 300,
+              "dias_incremento": 7
+            }
+          ]
+        }
+      ]
+    },
+    "ESTUDO": {
+      "unidade": "min",
+      "tipo_medida": "TEMPO",
+      "teto_multiplicador": 4,
+      "faixas_meta": [
+        {
+          "ate": 2,
+          "meta": 5
+        },
+        {
+          "ate": 5,
+          "meta": 10
+        },
+        {
+          "ate": 8,
+          "meta": 25
+        },
+        {
+          "ate": 99,
+          "meta": 45
+        }
+      ],
+      "perguntas": [
+        {
+          "codigo": "ROTINA_ATUAL",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Você estuda hoje?",
+            "en-US": "Do you study today?"
+          },
+          "opcoes": [
+            {
+              "valor": "NAO_COMECO",
+              "rotulo": {
+                "pt-BR": "Não consigo começar",
+                "en-US": "I cannot get started"
+              },
+              "detalhe": {
+                "pt-BR": "Começamos com uma meta bem curta, só para tirar do zero",
+                "en-US": "We'll start with a very short goal, just to get off zero"
+              },
+              "peso": 0
+            },
+            {
+              "valor": "PERTO_DA_PROVA",
+              "rotulo": {
+                "pt-BR": "Só perto da prova",
+                "en-US": "Only near exams"
+              },
+              "detalhe": {
+                "pt-BR": "Meta pequena, para virar rotina mesmo fora da prova",
+                "en-US": "A small goal, to become routine even outside exam time"
+              },
+              "peso": 1
+            },
+            {
+              "valor": "ALGUMAS_VEZES",
+              "rotulo": {
+                "pt-BR": "Algumas vezes na semana",
+                "en-US": "A few times a week"
+              },
+              "detalhe": {
+                "pt-BR": "Meta intermediária, para consolidar o que já existe",
+                "en-US": "A middle-ground goal, to build on what's already there"
+              },
+              "peso": 2
+            },
+            {
+              "valor": "QUASE_TODO_DIA",
+              "rotulo": {
+                "pt-BR": "Quase todo dia",
+                "en-US": "Almost every day"
+              },
+              "detalhe": {
+                "pt-BR": "A meta já pode começar mais alta",
+                "en-US": "The goal can start higher"
+              },
+              "peso": 3
+            }
+          ]
+        },
+        {
+          "codigo": "FOCO",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Quanto tempo você aguenta focado antes de dispersar?",
+            "en-US": "How long can you stay focused before drifting off?"
+          },
+          "opcoes": [
+            {
+              "valor": "MENOS_5",
+              "rotulo": {
+                "pt-BR": "Menos de 5 minutos",
+                "en-US": "Less than 5 minutes"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 5 minutos",
+                "en-US": "The suggestion will not exceed 5 minutes"
+              },
+              "peso": 0,
+              "teto_resposta": 5
+            },
+            {
+              "valor": "UNS_10",
+              "rotulo": {
+                "pt-BR": "Uns 10 minutos",
+                "en-US": "About 10 minutes"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 10 minutos",
+                "en-US": "The suggestion will not exceed 10 minutes"
+              },
+              "peso": 1,
+              "teto_resposta": 10
+            },
+            {
+              "valor": "UNS_25",
+              "rotulo": {
+                "pt-BR": "Uns 25 minutos",
+                "en-US": "About 25 minutes"
+              },
+              "detalhe": {
+                "pt-BR": "A sugestão não vai passar de 25 minutos",
+                "en-US": "The suggestion will not exceed 25 minutes"
+              },
+              "peso": 2,
+              "teto_resposta": 25
+            },
+            {
+              "valor": "MAIS_40",
+              "rotulo": {
+                "pt-BR": "Mais de 40 minutos",
+                "en-US": "More than 40 minutes"
+              },
+              "detalhe": {
+                "pt-BR": "Sem teto de tempo — a meta segue só a pontuação",
+                "en-US": "No time cap — the goal follows only the score"
+              },
+              "peso": 3
+            }
+          ]
+        },
+        {
+          "codigo": "MOTIVACAO",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "O que te move agora?",
+            "en-US": "What is driving you right now?"
+          },
+          "opcoes": [
+            {
+              "valor": "OBRIGACAO",
+              "rotulo": {
+                "pt-BR": "Obrigação",
+                "en-US": "Obligation"
+              },
+              "detalhe": {
+                "pt-BR": "Começamos pequeno para não pesar",
+                "en-US": "We'll start small so it doesn't feel heavy"
+              },
+              "peso": 0
+            },
+            {
+              "valor": "META",
+              "rotulo": {
+                "pt-BR": "Uma meta específica",
+                "en-US": "A specific goal"
+              },
+              "detalhe": {
+                "pt-BR": "Dá para mirar um pouco mais alto",
+                "en-US": "We can aim a bit higher"
+              },
+              "peso": 1
+            },
+            {
+              "valor": "CURIOSIDADE",
+              "rotulo": {
+                "pt-BR": "Curiosidade",
+                "en-US": "Curiosity"
+              },
+              "detalhe": {
+                "pt-BR": "Isso sustenta sessões mais longas",
+                "en-US": "That supports longer sessions"
+              },
+              "peso": 2
+            }
+          ]
+        },
+        {
+          "codigo": "DIAS_SEMANA",
+          "tipo": "DIAS_SEMANA",
+          "enunciado": {
+            "pt-BR": "Em quais dias você pode estudar?",
+            "en-US": "Which days can you study?"
+          }
+        },
+        {
+          "codigo": "VEZES_AO_DIA",
+          "tipo": "VEZES_AO_DIA",
+          "enunciado": {
+            "pt-BR": "Quer dividir em quantas sessões de estudo?",
+            "en-US": "How many study sessions would you like?"
+          },
+          "maximo": 8
+        },
+        {
+          "codigo": "HORARIOS",
+          "tipo": "HORARIOS",
+          "enunciado": {
+            "pt-BR": "Em que horário vai estudar ou ler?",
+            "en-US": "What time will you study or read?"
+          }
+        },
+        {
+          "codigo": "ESTRATEGIA",
+          "tipo": "ESCOLHA_UNICA",
+          "enunciado": {
+            "pt-BR": "Qual vai ser o seu gatilho para começar?",
+            "en-US": "What will be your trigger to start?"
+          },
+          "opcoes": [
+            {
+              "valor": "AMBIENTE",
+              "rotulo": {
+                "pt-BR": "Deixar o material já aberto e visível",
+                "en-US": "Leave your material open and visible"
+              },
+              "detalhe": {
+                "pt-BR": "Reduz o atrito de começar",
+                "en-US": "Reduces the friction of starting"
+              }
+            },
+            {
+              "valor": "EMPILHAMENTO",
+              "rotulo": {
+                "pt-BR": "Estudar logo depois de um hábito que já tenho",
+                "en-US": "Study right after a habit you already have"
+              },
+              "detalhe": {
+                "pt-BR": "Ex.: depois do jantar",
+                "en-US": "E.g.: after dinner"
+              }
+            },
+            {
+              "valor": "LEMBRETE",
+              "rotulo": {
+                "pt-BR": "Configurar um alarme ou notificação",
+                "en-US": "Set an alarm or notification"
+              },
+              "detalhe": {
+                "pt-BR": "Um gatilho externo substitui a lembrança",
+                "en-US": "An external trigger stands in for remembering"
+              }
+            },
+            {
+              "valor": "LUGAR_FIXO",
+              "rotulo": {
+                "pt-BR": "Definir um lugar fixo só para estudar",
+                "en-US": "Set a fixed place just for studying"
+              },
+              "detalhe": {
+                "pt-BR": "O lugar certo já coloca você no clima",
+                "en-US": "The right place already sets the mood"
+              }
+            }
+          ]
+        },
+        {
+          "codigo": "RITMO",
+          "tipo": "RITMO",
+          "enunciado": {
+            "pt-BR": "Quer aumentar rápido ou com calma?",
+            "en-US": "Do you want to increase fast or slowly?"
+          },
+          "opcoes": [
+            {
+              "valor": "DEVAGAR",
+              "rotulo": {
+                "pt-BR": "Bem devagar",
+                "en-US": "Nice and slow"
+              },
+              "detalhe": {
+                "pt-BR": "+2 minutos a cada 14 dias",
+                "en-US": "+2 minutes every 14 days"
+              },
+              "incremento": 2,
+              "dias_incremento": 14
+            },
+            {
+              "valor": "EQUILIBRADO",
+              "rotulo": {
+                "pt-BR": "Equilibrado",
+                "en-US": "Balanced"
+              },
+              "detalhe": {
+                "pt-BR": "+5 minutos a cada 10 dias",
+                "en-US": "+5 minutes every 10 days"
+              },
+              "incremento": 5,
+              "dias_incremento": 10
+            },
+            {
+              "valor": "RAPIDO",
+              "rotulo": {
+                "pt-BR": "Rápido",
+                "en-US": "Fast"
+              },
+              "detalhe": {
+                "pt-BR": "+10 minutos a cada 7 dias",
+                "en-US": "+10 minutes every 7 days"
+              },
+              "incremento": 10,
+              "dias_incremento": 7
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

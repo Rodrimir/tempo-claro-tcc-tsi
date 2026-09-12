@@ -16,6 +16,9 @@ export const ToastMessage = styled(Animated.View)`
       : props.$type === 'success'
         ? props.theme.successStrong
         : props.theme.bgSurface};
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   padding: 16px 24px;
   border-radius: 12px;
   elevation: 8;
@@ -23,6 +26,7 @@ export const ToastMessage = styled(Animated.View)`
 `;
 
 export const ToastText = styled.Text`
+  flex-shrink: 1;
   font-family: ${fonts.semiBold};
   font-size: 14px;
   color: ${(props) => (props.$type === 'default' ? props.theme.textPrimary : 'white')};

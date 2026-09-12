@@ -10,9 +10,12 @@ const TEMAS_VALIDOS = ['claro', 'escuro', 'sistema'];
 const STORAGE_KEY = 'tema';
 
 export const ThemeToggleProvider = ({ children }) => {
-  const [tema, setTemaState] = useState('sistema');
+  // Sem nada salvo (primeiro uso, ou cache limpo), o padrão é claro — não mais
+  // "sistema": a escolha de seguir o tema do aparelho passou a ser só para quem
+  // já tinha 'sistema' persistido antes da opção sair da UI (compatibilidade).
+  const [tema, setTemaState] = useState('claro');
   const colorSchemeDoSistema = useColorScheme();
-  const [isDark, setIsDark] = useState(colorSchemeDoSistema === 'dark');
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((salvo) => {

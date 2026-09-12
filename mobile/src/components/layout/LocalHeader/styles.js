@@ -1,5 +1,4 @@
 import styled from 'styled-components/native';
-import { Pressable } from 'react-native';
 import { fonts } from '../../../styles/fonts';
 
 export const HeaderContainer = styled.View`
@@ -66,21 +65,12 @@ export const FlameWrapper = styled.View`
   gap: 8px;
 `;
 
-export const ShieldButton = styled(Pressable)`
+export const ShieldWrapper = styled.View`
   align-items: center;
   gap: 8px;
   background-color: ${(props) => props.theme.primaryLight};
-  padding: 6px 8px 8px 16px;
+  padding: 6px 16px 8px 16px;
   border-radius: 20px;
   border-width: 1px;
   border-color: ${(props) => props.theme.primaryColor};
-`;
-
-export const PlusIconWrapper = styled.View`
-  background-color: ${(props) => props.theme.primaryStrong};
-  border-radius: 12px;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
 `;
