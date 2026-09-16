@@ -6,6 +6,7 @@ import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useExecutionResult } from '../../contexts/ExecutionResultContext';
 import { useI18n } from '../../contexts/LanguageContext';
+import { useSfx } from '../../contexts/SoundContext';
 import { useFloat } from '../../hooks/useFloat';
 import {
   FailContainer,
@@ -25,6 +26,7 @@ const Fail = () => {
   const theme = useTheme();
   const { executionResult } = useExecutionResult();
   const { t } = useI18n();
+  const { tocar } = useSfx();
   const flutuando = useFloat(4000, 10);
 
   const type = executionResult?.type || 'FAIL_TIMEOUT';
@@ -40,6 +42,10 @@ const Fail = () => {
     });
     return () => subscription.remove();
   }, [router]);
+
+  useEffect(() => {
+    tocar('fail');
+  }, [tocar]);
 
   let icon, title, subtitle, bgColor;
 

@@ -14,7 +14,11 @@ import org.springframework.test.context.ActiveProfiles;
 
 import com.rodrigo.backend2java.autenticacao.RegisterRequestDTO;
 import com.rodrigo.backend2java.autenticacao.AuthResponseDTO;
+import com.rodrigo.backend2java.autenticacao.VerifyEmailRequestDTO;
+import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.usuario.UsuarioResponseDTO;
+import com.rodrigo.backend2java.verificacao.FakeEmailService;
+import com.rodrigo.backend2java.verificacao.TipoCodigo;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.http.HttpMethod.DELETE;
@@ -30,11 +34,19 @@ public abstract class BaseAPIIntegracaoTest {
     @Autowired
     protected TestRestTemplate rest;
 
+    @Autowired
+    protected FakeEmailService fakeEmailService;
+
     protected String jwtToken;
     protected String emailUsuarioTeste;
     protected UUID idUsuarioTeste;
     protected String senhaUsuarioTeste = "Senha@123";
 
+    // PLANO_REESTRUTURACAO.md, C — desde que o cadastro passou a exigir
+    // verificação de e-mail (@see AuthService.cadastrar), toda suíte precisa
+    // andar o fluxo completo register -> pegar o código (via FakeEmailService,
+    // nunca SMTP de verdade) -> verify-email para só então ter um token. Isto
+    // faz cada teste da suíte também exercitar o fluxo real de verificação.
     @BeforeEach
     void autenticarUsuarioDeTeste() {
         emailUsuarioTeste = "teste-" + UUID.randomUUID() + "@tempoclaro.test";
@@ -45,9 +57,16 @@ public abstract class BaseAPIIntegracaoTest {
                 .password(senhaUsuarioTeste)
                 .build();
 
-        final var respostaRegistro = rest.postForEntity("/api/auth/register", registro, AuthResponseDTO.class);
+        final var respostaRegistro = rest.postForEntity("/api/auth/register", registro, MessageResponseDTO.class);
         assertNotNull(respostaRegistro.getBody());
-        jwtToken = respostaRegistro.getBody().token();
+
+        final var codigo = fakeEmailService.ultimoCodigo(emailUsuarioTeste, TipoCodigo.VERIFICACAO_EMAIL);
+        assertNotNull(codigo);
+
+        final var verificacao = VerifyEmailRequestDTO.builder().email(emailUsuarioTeste).codigo(codigo).build();
+        final var respostaVerificacao = rest.postForEntity("/api/auth/verify-email", verificacao, AuthResponseDTO.class);
+        assertNotNull(respostaVerificacao.getBody());
+        jwtToken = respostaVerificacao.getBody().token();
         assertNotNull(jwtToken);
 
         final var me = get("/api/me", UsuarioResponseDTO.class);

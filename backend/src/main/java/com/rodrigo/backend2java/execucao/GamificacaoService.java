@@ -38,7 +38,14 @@ import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 public class GamificacaoService {
 
     private static final double MULTIPLICADOR_EXTRA = 1.2;
-    private static final int CUSTO_ESCUDO = 1500;
+
+    /**
+     * Público de propósito, igual {@code HabitoService.LIMITE_HABITOS_ATIVOS}: o
+     * dashboard expõe este valor (ver {@code DashboardResponseDTO.custo_escudo})
+     * pra loja nunca precisar repetir o preço numa constante própria — o texto
+     * "Custa X moedas" no app é montado com este número, não com um hardcoded.
+     */
+    public static final int CUSTO_ESCUDO = 400;
 
     private static final String TEXTO_PRE_TAREFA_PADRAO_PT = "Concentre-se e respire fundo. Você consegue!";
     private static final String TEXTO_PRE_TAREFA_PADRAO_EN = "Focus and take a deep breath. You've got this!";

@@ -122,6 +122,62 @@ export const ExpandirTexto = styled.Text`
   color: ${(props) => (props.$completed ? 'rgba(255,255,255,0.85)' : props.theme.primaryColor)};
 `;
 
+/* Resumo compacto de UMA linha só — o que o balão mostra por padrão. A lista
+   inteira das N ocorrências, com rótulo e detalhe empilhados, mora só no popup
+   ("ver todas"), onde há espaço de sobra pra isso não estourar o balão. */
+export const TarefaResumoTexto = styled.Text`
+  flex: 1;
+  font-family: ${fonts.semiBold};
+  font-size: 13px;
+  color: ${(props) => (props.$completed ? 'white' : props.theme.textPrimary)};
+`;
+
+/* Popup de tarefas do dia e popup de opções (editar/arquivar) — mesma folha
+   deslizando de baixo, conteúdo diferente. */
+export const BottomSheetOverlay = styled(Pressable)`
+  flex: 1;
+  background-color: rgba(15, 23, 42, 0.85);
+  justify-content: flex-end;
+`;
+
+export const BottomSheet = styled.View`
+  background-color: ${(props) => props.theme.bgSurface};
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 20px;
+  padding-bottom: 32px;
+  max-height: 70%;
+`;
+
+export const BottomSheetTitulo = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 18px;
+  color: ${(props) => props.theme.textPrimary};
+  margin-bottom: 16px;
+`;
+
+export const TarefaModalLinha = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${(props) => props.theme.borderColor};
+`;
+
+export const MenuOption = styled(Pressable)`
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 4px;
+`;
+
+export const MenuOptionText = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 16px;
+  color: ${(props) => (props.$danger ? props.theme.dangerColor : props.theme.textPrimary)};
+`;
+
 export const UrgentBadge = styled(Animated.View)`
   background-color: ${(props) => props.theme.dangerStrong};
   padding: 10px 20px;
@@ -311,41 +367,6 @@ export const MenuButton = styled(Pressable)`
   border-radius: 16px;
   align-items: center;
   justify-content: center;
-`;
-
-export const ContextMenuOverlay = styled(Pressable)`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-`;
-
-export const ContextMenu = styled.View`
-  position: absolute;
-  top: 46px;
-  right: 12px;
-  background-color: ${(props) => props.theme.bgSurface};
-  border-width: 1px;
-  border-color: ${(props) => props.theme.borderColor};
-  border-radius: 12px;
-  elevation: 8;
-  min-width: 160px;
-  padding: 6px;
-`;
-
-export const ContextMenuItem = styled(Pressable)`
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-`;
-
-export const ContextMenuItemText = styled.Text`
-  font-family: ${fonts.semiBold};
-  font-size: 14px;
-  color: ${(props) => (props.$danger ? props.theme.dangerColor : props.theme.textPrimary)};
 `;
 
 export const ArchiveModalOverlay = styled.View`

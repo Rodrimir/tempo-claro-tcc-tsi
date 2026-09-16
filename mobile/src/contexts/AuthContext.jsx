@@ -1,7 +1,14 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { useRouter } from 'expo-router';
-import { login as apiLogin, register as apiRegister, getDashboard, setUnauthorizedHandler } from '../services/api';
+import {
+  login as apiLogin,
+  register as apiRegister,
+  verifyEmail as apiVerifyEmail,
+  resetPassword as apiResetPassword,
+  getDashboard,
+  setUnauthorizedHandler,
+} from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { traduzir, IDIOMA_PADRAO } from '../i18n';
 import {
@@ -96,7 +103,16 @@ export const AuthProvider = ({ children }) => {
       password: data.senha,
       preferencia_idioma: data.idioma,
     };
-    const response = await apiRegister(payload);
+    await apiRegister(payload);
+  };
+
+  const confirmarEmail = async (email, codigo) => {
+    const response = await apiVerifyEmail({ email, codigo });
+    await persistSession(response);
+  };
+
+  const redefinirSenha = async (email, codigo, novaSenha) => {
+    const response = await apiResetPassword({ email, codigo, nova_senha: novaSenha });
     await persistSession(response);
   };
 
@@ -115,7 +131,17 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, loading, user, login, register, logout, updateLocalUser }}
+      value={{
+        isAuthenticated,
+        loading,
+        user,
+        login,
+        register,
+        confirmarEmail,
+        redefinirSenha,
+        logout,
+        updateLocalUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

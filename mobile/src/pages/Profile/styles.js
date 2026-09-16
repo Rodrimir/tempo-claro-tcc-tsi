@@ -124,6 +124,15 @@ export const MenuValor = styled.Text`
   color: ${(props) => props.theme.textSecondary};
 `;
 
+/* Legenda do tema dinâmico (G): só aparece quando ele está selecionado, sob a
+   linha de tema — explica o horário sem precisar de outra tela. */
+export const MenuValorDinamico = styled.Text`
+  font-size: 12px;
+  color: ${(props) => props.theme.textSecondary};
+  padding: 0px 20px 14px;
+  margin-top: -8px;
+`;
+
 export const Separador = styled.View`
   height: 1px;
   margin-left: 72px;

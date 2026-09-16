@@ -2,6 +2,7 @@ package com.rodrigo.backend2java.usuario;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
+import com.rodrigo.backend2java.infra.util.SenhaValidator;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,16 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UsuarioService {
 
-    // @audit-ok [E1.4 — mesmo mínimo que o front valida (Profile/index.jsx);
-    // duplicado aqui porque "não confie só no cliente" (item 6 da tarefa) —
-    // uma chamada direta à API (Postman, script) não pode gravar senha mais
-    // curta que o formulário permitiria.]
-    private static final int TAMANHO_MINIMO_SENHA = 8;
-
     // @audit-ok [E3.4 (item 2) — mesmo CHECK ck_usu_tema do schema v2.1.
     // Validado aqui, não com @Pattern no DTO, pra seguir o mesmo estilo que
     // fuso_horario/ZonaUsuario já usa neste service.]
-    private static final Set<String> TEMAS_VALIDOS = Set.of("claro", "escuro", "sistema");
+    // "dinamico" (PLANO_REESTRUTURACAO.md, G): claro/escuro decidido no app pelo
+    // horário local do fuso do usuário, não pelo tema do sistema operacional —
+    // por isso é um valor à parte de "sistema", não um sinônimo dele.
+    private static final Set<String> TEMAS_VALIDOS = Set.of("claro", "escuro", "sistema", "dinamico");
 
     /**
      * Os idiomas para os quais existe conteúdo — não basta a interface traduzir:
@@ -106,11 +104,12 @@ public class UsuarioService {
             if (request.senha_atual() == null || request.senha_atual().isBlank()) {
                 throw new ValidacaoException("Informe a senha atual para alterar a senha.");
             }
-            // @audit-ok [E1.4 (item 6) — comprimento mínimo validado no servidor,
-            // não só no formulário]
-            if (request.nova_senha().length() < TAMANHO_MINIMO_SENHA) {
-                throw new ValidacaoException(
-                        "A nova senha deve ter pelo menos " + TAMANHO_MINIMO_SENHA + " caracteres.");
+            // @audit-ok [E1.4 (item 6) — força da senha validada no servidor, não só
+            // no formulário. PLANO_REESTRUTURACAO.md (D): mesma regra de
+            // SenhaValidator usada em AuthService.cadastrar, um lugar só.]
+            final var motivoSenhaInvalida = SenhaValidator.motivoInvalida(request.nova_senha());
+            if (motivoSenhaInvalida != null) {
+                throw new ValidacaoException(motivoSenhaInvalida);
             }
             if (!passwordEncoder.matches(request.senha_atual(), usuario.getSenhaHash())) {
                 // 422, e não 401: a sessão é válida — quem falhou foi a regra "só

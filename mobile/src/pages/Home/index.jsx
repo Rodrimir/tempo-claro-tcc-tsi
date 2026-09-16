@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { FlatList, Modal, useWindowDimensions } from 'react-native';
+import { FlatList, Modal, ScrollView, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { Image } from 'expo-image';
@@ -33,8 +33,15 @@ import {
   TarefaColuna,
   TarefaLabel,
   TarefaDetalhe,
+  TarefaResumoTexto,
   ExpandirButton,
   ExpandirTexto,
+  BottomSheetOverlay,
+  BottomSheet,
+  BottomSheetTitulo,
+  TarefaModalLinha,
+  MenuOption,
+  MenuOptionText,
   UrgentBadge,
   UrgentBadgeText,
   AvatarWrapper,
@@ -57,10 +64,6 @@ import {
   RetryButton,
   RetryButtonText,
   MenuButton,
-  ContextMenuOverlay,
-  ContextMenu,
-  ContextMenuItem,
-  ContextMenuItemText,
   ArchiveModalOverlay,
   ArchiveModalContent,
   ArchiveModalTitle,
@@ -159,7 +162,35 @@ function corDaOcorrencia(status, completed, theme) {
   return theme.textSecondary;
 }
 
-function TarefaLinhaDe({ ocorrencia, rotulo, completed, theme, unidade }) {
+/* Usado só dentro do popup "ver todas" — rótulo e detalhe empilhados, com
+   respiro de sobra pra não precisar caber num balão pequeno. */
+function TarefaLinhaDe({ ocorrencia, rotulo, theme, unidade }) {
+  return (
+    <TarefaModalLinha>
+      <Feather
+        name={ICONE_POR_STATUS[ocorrencia.status] || 'circle'}
+        size={14}
+        color={corDaOcorrencia(ocorrencia.status, false, theme)}
+        style={{ marginTop: 2 }}
+      />
+      <TarefaColuna>
+        {rotulo ? (
+          <TarefaLabel $ativa={ocorrencia.status === 'ATIVA'} $falhou={ocorrencia.status === 'FALHOU'}>
+            {rotulo}
+          </TarefaLabel>
+        ) : null}
+        <TarefaDetalhe $falhou={ocorrencia.status === 'FALHOU'}>
+          {horaCurta(ocorrencia.horario_inicio)} · {ocorrencia.alvo} {unidade}
+        </TarefaDetalhe>
+      </TarefaColuna>
+    </TarefaModalLinha>
+  );
+}
+
+/* Uma linha só — o que o balão da Home mostra por padrão, sempre do mesmo
+   tamanho não importa quantas ocorrências o hábito tenha hoje. O detalhe de
+   cada uma mora no popup "ver todas". */
+function TarefaResumo({ ocorrencia, rotulo, completed, theme, unidade }) {
   return (
     <TarefaLinha>
       <Feather
@@ -167,16 +198,10 @@ function TarefaLinhaDe({ ocorrencia, rotulo, completed, theme, unidade }) {
         size={14}
         color={corDaOcorrencia(ocorrencia.status, completed, theme)}
       />
-      <TarefaColuna>
-        {rotulo ? (
-          <TarefaLabel $completed={completed} $ativa={ocorrencia.status === 'ATIVA'} $falhou={ocorrencia.status === 'FALHOU'}>
-            {rotulo}
-          </TarefaLabel>
-        ) : null}
-        <TarefaDetalhe $completed={completed} $falhou={ocorrencia.status === 'FALHOU'}>
-          {horaCurta(ocorrencia.horario_inicio)} · {ocorrencia.alvo} {unidade}
-        </TarefaDetalhe>
-      </TarefaColuna>
+      <TarefaResumoTexto $completed={completed}>
+        {rotulo ? `${rotulo} · ` : ''}
+        {horaCurta(ocorrencia.horario_inicio)} · {ocorrencia.alvo} {unidade}
+      </TarefaResumoTexto>
     </TarefaLinha>
   );
 }
@@ -238,9 +263,9 @@ function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, o
   const folga = !completed && !isDiaProgramado(habit, agora);
   const pulso = usePulse();
   const badgeFlutuando = useFloat(3000, 8);
-  const [detalhesAbertos, setDetalhesAbertos] = useState(false);
+  const [tarefasModalAberto, setTarefasModalAberto] = useState(false);
   const temMaisDeUma = (habit.ocorrencias?.length || 0) > 1;
-  const ocorrenciaAtivaDoHabito = ocorrenciaAtiva(habit);
+  const ocorrenciaParaResumo = temMaisDeUma ? ocorrenciaAtiva(habit) : habit.ocorrencias?.[0];
   const unidade = unidadeDoHabito(habit, t);
 
   return (
@@ -250,21 +275,6 @@ function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, o
           <MenuButton onPress={() => onAbrirMenu(habit.id)} accessibilityLabel={t('home.maisOpcoesPara', { titulo: habit.titulo })}>
             <Feather name="more-vertical" size={18} color={completed ? 'rgba(255,255,255,0.85)' : theme.textSecondary} />
           </MenuButton>
-          {menuAberto && (
-            <>
-              <ContextMenuOverlay onPress={onFecharMenu} />
-              <ContextMenu>
-                <ContextMenuItem onPress={() => onEditar(habit)}>
-                  <Feather name="edit-3" size={16} color={theme.textPrimary} />
-                  <ContextMenuItemText>{t('comum.editar')}</ContextMenuItemText>
-                </ContextMenuItem>
-                <ContextMenuItem onPress={() => onArquivar(habit)}>
-                  <Feather name="archive" size={16} color={theme.dangerColor} />
-                  <ContextMenuItemText $danger>{t('comum.arquivar')}</ContextMenuItemText>
-                </ContextMenuItem>
-              </ContextMenu>
-            </>
-          )}
           <CardSubtitle $completed={completed} $urgent={urgent}>
             {completed
               ? t('home.concluidoHoje')
@@ -275,45 +285,25 @@ function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, o
                   : t('home.suaTarefa')}
           </CardSubtitle>
           {habit.gatilho_ancora ? <GatilhoText $completed={completed}>⚓ {habit.gatilho_ancora}</GatilhoText> : null}
-          {/* Só a próxima tarefa aparece por padrão — a lista das N ocorrências
-              inteira estourava o balão em hábitos de 3x/dia. O detalhe completo
-              (✓ feita, ✗ falhou) mora atrás do "ver todas". O dia se fecha pelo
-              TOTAL realizado (RF07/RF13) — uma falha aqui não derruba a meta se
+          {/* Sempre UMA linha, do mesmo tamanho, não importa quantas ocorrências
+              o hábito tenha hoje — a lista das N ocorrências inteira estourava
+              o balão em hábitos de 3x/dia. O detalhe completo (✓ feita, ✗
+              falhou) mora no popup "ver todas". O dia se fecha pelo TOTAL
+              realizado (RF07/RF13) — uma falha lá dentro não derruba a meta se
               o total do dia bateu por outro lado. */}
-          {habit.ocorrencias?.length > 0 ? (
+          {ocorrenciaParaResumo ? (
             <TarefaBloco>
-              {temMaisDeUma && !detalhesAbertos ? (
-                ocorrenciaAtivaDoHabito ? (
-                  <TarefaLinhaDe
-                    ocorrencia={ocorrenciaAtivaDoHabito}
-                    rotulo={t('home.proximaTarefa')}
-                    completed={completed}
-                    theme={theme}
-                    unidade={unidade}
-                  />
-                ) : null
-              ) : (
-                habit.ocorrencias.map((ocorrencia, i) => (
-                  <TarefaLinhaDe
-                    key={i}
-                    ocorrencia={ocorrencia}
-                    rotulo={temMaisDeUma ? t('home.tarefaN', { n: i + 1 }) : null}
-                    completed={completed}
-                    theme={theme}
-                    unidade={unidade}
-                  />
-                ))
-              )}
+              <TarefaResumo
+                ocorrencia={ocorrenciaParaResumo}
+                rotulo={temMaisDeUma ? t('home.proximaTarefa') : null}
+                completed={completed}
+                theme={theme}
+                unidade={unidade}
+              />
               {temMaisDeUma ? (
-                <ExpandirButton onPress={() => setDetalhesAbertos((v) => !v)}>
-                  <ExpandirTexto $completed={completed}>
-                    {detalhesAbertos ? t('home.verMenos') : t('home.verTodasTarefas')}
-                  </ExpandirTexto>
-                  <Feather
-                    name={detalhesAbertos ? 'chevron-up' : 'chevron-down'}
-                    size={13}
-                    color={completed ? 'rgba(255,255,255,0.85)' : theme.primaryColor}
-                  />
+                <ExpandirButton onPress={() => setTarefasModalAberto(true)}>
+                  <ExpandirTexto $completed={completed}>{t('home.verTodasTarefas')}</ExpandirTexto>
+                  <Feather name="chevron-down" size={13} color={completed ? 'rgba(255,255,255,0.85)' : theme.primaryColor} />
                 </ExpandirButton>
               ) : null}
             </TarefaBloco>
@@ -345,6 +335,51 @@ function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, o
         ) : null}
         <ShadowBlur />
       </SlideInner>
+
+      <Modal visible={tarefasModalAberto} transparent animationType="fade" onRequestClose={() => setTarefasModalAberto(false)}>
+        <BottomSheetOverlay onPress={() => setTarefasModalAberto(false)}>
+          <BottomSheet onStartShouldSetResponder={() => true}>
+            <BottomSheetTitulo>{t('home.tarefasDoDia')}</BottomSheetTitulo>
+            <ScrollView>
+              {habit.ocorrencias?.map((ocorrencia, i) => (
+                <TarefaLinhaDe
+                  key={i}
+                  ocorrencia={ocorrencia}
+                  rotulo={t('home.tarefaN', { n: i + 1 })}
+                  theme={theme}
+                  unidade={unidade}
+                />
+              ))}
+            </ScrollView>
+          </BottomSheet>
+        </BottomSheetOverlay>
+      </Modal>
+
+      <Modal visible={menuAberto} transparent animationType="fade" onRequestClose={onFecharMenu}>
+        <BottomSheetOverlay onPress={onFecharMenu}>
+          <BottomSheet onStartShouldSetResponder={() => true}>
+            <BottomSheetTitulo numberOfLines={1}>{habit.titulo}</BottomSheetTitulo>
+            <MenuOption
+              onPress={() => {
+                onFecharMenu();
+                onEditar(habit);
+              }}
+            >
+              <Feather name="edit-3" size={18} color={theme.textPrimary} />
+              <MenuOptionText>{t('comum.editar')}</MenuOptionText>
+            </MenuOption>
+            <MenuOption
+              onPress={() => {
+                onFecharMenu();
+                onArquivar(habit);
+              }}
+            >
+              <Feather name="archive" size={18} color={theme.dangerColor} />
+              <MenuOptionText $danger>{t('comum.arquivar')}</MenuOptionText>
+            </MenuOption>
+          </BottomSheet>
+        </BottomSheetOverlay>
+      </Modal>
     </HabitSlide>
   );
 }

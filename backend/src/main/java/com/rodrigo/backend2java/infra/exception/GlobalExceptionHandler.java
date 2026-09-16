@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -59,6 +60,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<MessageResponseDTO> handleBadCredentialsException(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(MessageResponseDTO.builder().success(false).message("Erro credenciais invalidas!").build());
+    }
+
+    // PLANO_REESTRUTURACAO.md, C — Usuario.isEnabled() devolve
+    // usu_email_verificado; authenticationManager.authenticate() lança isto
+    // sozinho quando é false, ANTES de sequer checar a senha. 403, não 401:
+    // a senha pode estar certa, o problema é outro (o app decide levar pra
+    // tela de código em vez de "senha errada").
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<MessageResponseDTO> handleDisabledException(DisabledException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(MessageResponseDTO.builder().success(false)
+                        .message("E-mail ainda não verificado. Confirme o código enviado para poder entrar.").build());
     }
 
     // @audit-ok [Criar Hábito / Execução Timer — MethodArgumentNotValidException retorna 400 para falhas de @Valid]

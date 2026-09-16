@@ -43,6 +43,14 @@ export const login = async (data) => api.post('/auth/login', data);
 
 export const register = async (data) => api.post('/auth/register', data);
 
+export const verifyEmail = async (data) => api.post('/auth/verify-email', data);
+
+export const resendVerificationCode = async (data) => api.post('/auth/resend-code', data);
+
+export const forgotPassword = async (data) => api.post('/auth/forgot-password', data);
+
+export const resetPassword = async (data) => api.post('/auth/reset-password', data);
+
 export const getDashboard = async () => api.get('/dashboard');
 
 export const submitExecution = async (id, payload) => api.post(`/habits/${id}/executions`, payload);

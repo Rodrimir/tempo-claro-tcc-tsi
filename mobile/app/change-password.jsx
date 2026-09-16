@@ -1,3 +1,3 @@
-import ChangePassword from '../src/pages/ChangePassword';
+import ChangePassword from "../src/pages/ChangePassword";
 
 export default ChangePassword;

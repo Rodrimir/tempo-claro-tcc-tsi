@@ -8,8 +8,9 @@ import { PasswordInput } from '../../components/common/PasswordInput';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useI18n } from '../../contexts/LanguageContext';
+import { useSfx } from '../../contexts/SoundContext';
 import { login as apiLogin, updateProfile } from '../../services/api';
-import { TAMANHO_MINIMO_SENHA } from '../Login/validation';
+import { TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from '../Login/validation';
 import {
   Container,
   Header,
@@ -48,6 +49,7 @@ const ChangePassword = () => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const { t } = useI18n();
+  const { tocar } = useSfx();
 
   const [passo, setPasso] = useState(1);
   const [senhaAtual, setSenhaAtual] = useState('');
@@ -57,10 +59,14 @@ const ChangePassword = () => {
   const [ocupado, setOcupado] = useState(false);
 
   const tamanhoOk = novaSenha.length >= TAMANHO_MINIMO_SENHA;
+  const maiusculaOk = RE_MAIUSCULA.test(novaSenha);
+  const especialOk = RE_ESPECIAL.test(novaSenha);
   const confereOk = novaSenha.length > 0 && novaSenha === confirmacao;
   const diferenteOk = novaSenha.length > 0 && novaSenha !== senhaAtual;
+  const senhaValida = tamanhoOk && maiusculaOk && especialOk;
 
   const voltar = () => {
+    tocar('voltar');
     if (passo === 2) {
       setPasso(1);
       setErro('');
@@ -94,6 +100,14 @@ const ChangePassword = () => {
   const salvar = async () => {
     if (!tamanhoOk) {
       setErro(t('validacao.senhaCurta', { minimo: TAMANHO_MINIMO_SENHA }));
+      return;
+    }
+    if (!maiusculaOk) {
+      setErro(t('validacao.senhaSemMaiuscula'));
+      return;
+    }
+    if (!especialOk) {
+      setErro(t('validacao.senhaSemEspecial'));
       return;
     }
     if (!confereOk) {
@@ -163,7 +177,14 @@ const ChangePassword = () => {
               {erro ? <ErrorText>{erro}</ErrorText> : null}
             </FormGroup>
 
-            <PrimaryButton onPress={conferirSenhaAtual} disabled={ocupado} $disabled={ocupado}>
+            <PrimaryButton
+              onPress={() => {
+                tocar('continuar');
+                conferirSenhaAtual();
+              }}
+              disabled={ocupado}
+              $disabled={ocupado}
+            >
               {ocupado ? <ActivityIndicator color={theme.textSecondary} size="small" /> : null}
               <PrimaryButtonText $disabled={ocupado}>
                 {ocupado ? t('perfil.conferindo') : t('comum.continuar')}
@@ -201,6 +222,8 @@ const ChangePassword = () => {
 
             <Requisitos>
               {requisito(tamanhoOk, t('validacao.senhaCurta', { minimo: TAMANHO_MINIMO_SENHA }))}
+              {requisito(maiusculaOk, t('validacao.senhaSemMaiuscula'))}
+              {requisito(especialOk, t('validacao.senhaSemEspecial'))}
               {requisito(confereOk, t('perfil.requisitoConfere'))}
               {requisito(diferenteOk, t('perfil.requisitoDiferente'))}
             </Requisitos>
@@ -208,12 +231,15 @@ const ChangePassword = () => {
             {erro ? <ErrorText>{erro}</ErrorText> : null}
 
             <PrimaryButton
-              onPress={salvar}
-              disabled={ocupado || !tamanhoOk || !confereOk || !diferenteOk}
-              $disabled={ocupado || !tamanhoOk || !confereOk || !diferenteOk}
+              onPress={() => {
+                tocar('continuar');
+                salvar();
+              }}
+              disabled={ocupado || !senhaValida || !confereOk || !diferenteOk}
+              $disabled={ocupado || !senhaValida || !confereOk || !diferenteOk}
             >
               {ocupado ? <ActivityIndicator color={theme.textSecondary} size="small" /> : null}
-              <PrimaryButtonText $disabled={ocupado || !tamanhoOk || !confereOk || !diferenteOk}>
+              <PrimaryButtonText $disabled={ocupado || !senhaValida || !confereOk || !diferenteOk}>
                 {ocupado ? t('perfil.salvando') : t('perfil.salvarNovaSenha')}
               </PrimaryButtonText>
             </PrimaryButton>

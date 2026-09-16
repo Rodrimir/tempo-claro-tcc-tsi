@@ -18,6 +18,7 @@ import { ExecutionResultProvider } from '../src/contexts/ExecutionResultContext'
 import { ThemeToggleProvider, useThemeToggle } from '../src/contexts/ThemeToggleContext';
 import { ToastProvider } from '../src/contexts/ToastContext';
 import { LanguageProvider } from '../src/contexts/LanguageContext';
+import { SoundProvider } from '../src/contexts/SoundContext';
 import { lightTheme, darkTheme } from '../src/styles/theme';
 import LoadingScreen from '../src/components/common/LoadingScreen';
 
@@ -85,17 +86,19 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <CurrentHabitProvider>
-          <ExecutionResultProvider>
-            <LanguageProvider>
-              <ThemeToggleProvider>
-                <ThemedApp />
-              </ThemeToggleProvider>
-            </LanguageProvider>
-          </ExecutionResultProvider>
-        </CurrentHabitProvider>
-      </AuthProvider>
+      <SoundProvider>
+        <AuthProvider>
+          <CurrentHabitProvider>
+            <ExecutionResultProvider>
+              <LanguageProvider>
+                <ThemeToggleProvider>
+                  <ThemedApp />
+                </ThemeToggleProvider>
+              </LanguageProvider>
+            </ExecutionResultProvider>
+          </CurrentHabitProvider>
+        </AuthProvider>
+      </SoundProvider>
     </SafeAreaProvider>
   );
 }

@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useI18n } from '../../contexts/LanguageContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useSfx } from '../../contexts/SoundContext';
 import { updateProfile, getMe } from '../../services/api';
 import { FUSOS } from './timezones';
 import {
@@ -28,6 +29,7 @@ import {
   MenuTexto,
   MenuLabel,
   MenuValor,
+  MenuValorDinamico,
   Separador,
   SegmentedControl,
   LanguageChip,
@@ -65,6 +67,7 @@ const Profile = () => {
   const insets = useSafeAreaInsets();
   const { logout, user, updateLocalUser } = useAuth();
   const { isDark, tema, setTema } = useThemeToggle();
+  const { mudo, setMudo, tocar } = useSfx();
   const { addToast } = useToast();
   const { idioma, setIdioma, idiomas, t } = useI18n();
 
@@ -124,6 +127,10 @@ const Profile = () => {
     setFusoAberto(false);
     try {
       await updateProfile({ fuso_horario: valor });
+      // Sem isto, o tema dinâmico (G) continuaria calculando dia/noite pelo
+      // fuso ANTIGO até o próximo login — ThemeToggleContext lê user.fuso_horario
+      // do AuthContext, não busca de novo na API a cada minuto.
+      updateLocalUser({ fuso_horario: valor });
       addToast(t('perfil.salvoOk'), 'success');
     } catch (err) {
       setFusoHorario(anterior);
@@ -184,7 +191,10 @@ const Profile = () => {
                   key={codigo}
                   $active={idioma === codigo}
                   accessibilityLabel={info.nome}
-                  onPress={() => trocarIdioma(codigo)}
+                  onPress={() => {
+                    tocar('alternar');
+                    trocarIdioma(codigo);
+                  }}
                 >
                   <LanguageChipText $active={idioma === codigo}>{info.bandeira}</LanguageChipText>
                   <LanguageChipText $active={idioma === codigo}>{info.curto}</LanguageChipText>
@@ -206,16 +216,63 @@ const Profile = () => {
               <ThemeOptionButton
                 $active={tema === 'claro'}
                 accessibilityLabel={t('perfil.temaClaroLabel')}
-                onPress={() => trocarTema('claro')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarTema('claro');
+                }}
               >
                 <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
               <ThemeOptionButton
                 $active={tema === 'escuro'}
                 accessibilityLabel={t('perfil.temaEscuroLabel')}
-                onPress={() => trocarTema('escuro')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarTema('escuro');
+                }}
               >
                 <Feather name="moon" size={16} color={tema === 'escuro' ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+              <ThemeOptionButton
+                $active={tema === 'dinamico'}
+                accessibilityLabel={t('perfil.temaDinamicoLabel')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarTema('dinamico');
+                }}
+              >
+                <Feather name="clock" size={16} color={tema === 'dinamico' ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+            </SegmentedControl>
+          </MenuRow>
+          {tema === 'dinamico' ? <MenuValorDinamico>{t('perfil.temaDinamicoExplicacao')}</MenuValorDinamico> : null}
+
+          <Separador />
+
+          <MenuRow>
+            <MenuIcone>
+              <Feather name={mudo ? 'volume-x' : 'volume-2'} size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.som')}</MenuLabel>
+            </MenuTexto>
+            <SegmentedControl>
+              <ThemeOptionButton
+                $active={!mudo}
+                accessibilityLabel={t('perfil.somLigadoLabel')}
+                onPress={() => {
+                  setMudo(false);
+                  tocar('alternar');
+                }}
+              >
+                <Feather name="volume-2" size={16} color={!mudo ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+              <ThemeOptionButton
+                $active={mudo}
+                accessibilityLabel={t('perfil.somMudoLabel')}
+                onPress={() => setMudo(true)}
+              >
+                <Feather name="volume-x" size={16} color={mudo ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
             </SegmentedControl>
           </MenuRow>

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCurrentHabit } from '../../../contexts/CurrentHabitContext';
 import { useToast } from '../../../contexts/ToastContext';
+import { useSfx } from '../../../contexts/SoundContext';
 import { NavContainer, PlayButtonWrapper, PlayButton, NavItemContainer, NavLabel } from './styles';
 import { useI18n } from '../../../contexts/LanguageContext';
 import { ocorrenciaAtiva, horaCurta, minutosAteInicio, MINUTOS_ANTECEDENCIA_LIBERACAO } from '../../../utils/ocorrencias';
@@ -15,11 +16,13 @@ const BottomNav = ({ state, navigation }) => {
   const insets = useSafeAreaInsets();
   const { currentHabit: activeHabit } = useCurrentHabit();
   const { addToast } = useToast();
+  const { tocar } = useSfx();
 
   const isCompleted = activeHabit && activeHabit.status === 'COMPLETED';
   const nomeRotaAtiva = state.routes[state.index].name;
 
   const handlePlay = () => {
+    tocar('tap');
     if (!activeHabit) {
       addToast(t('nav2.semHabito'), 'error');
       return;
@@ -41,7 +44,12 @@ const BottomNav = ({ state, navigation }) => {
   const NavItem = ({ to, icon, label }) => {
     const isActive = nomeRotaAtiva === to;
     return (
-      <NavItemContainer onPress={() => navigation.navigate(to)}>
+      <NavItemContainer
+        onPress={() => {
+          tocar('tap');
+          navigation.navigate(to);
+        }}
+      >
         {icon(isActive ? theme.primaryColor : theme.textSecondary)}
         <NavLabel $active={isActive}>{label}</NavLabel>
       </NavItemContainer>

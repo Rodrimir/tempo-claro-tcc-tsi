@@ -10,6 +10,7 @@ import Drawer from '../../components/common/Drawer';
 import { useToast } from '../../contexts/ToastContext';
 import { useI18n } from '../../contexts/LanguageContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
+import { useSfx } from '../../contexts/SoundContext';
 import {
   StoreRoot,
   Fundo,
@@ -66,9 +67,11 @@ const Store = () => {
   const { addToast } = useToast();
   const { t } = useI18n();
   const { isDark } = useThemeToggle();
+  const { tocar } = useSfx();
   const fundoLoja = isDark ? FUNDO_LOJA_NOITE : FUNDO_LOJA_DIA;
   const [selectedHabitId, setSelectedHabitId] = useState('');
   const [habits, setHabits] = useState([]);
+  const [custoEscudo, setCustoEscudo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pickerAberto, setPickerAberto] = useState(false);
   const [inventarioAberto, setInventarioAberto] = useState(false);
@@ -80,6 +83,12 @@ const Store = () => {
       const data = response.data.habits || response.data || [];
       if (Array.isArray(data)) {
         setHabits(data);
+      }
+      // O preço vem do servidor (mesmo padrão de limite_habitos_ativos): a Loja
+      // nunca repete o número numa constante própria, que ficaria desatualizada
+      // em silêncio na próxima mudança de preço.
+      if (response.data.custo_escudo != null) {
+        setCustoEscudo(response.data.custo_escudo);
       }
     } catch (error) {
       addToast(t('loja.erroCarregar'), 'error');
@@ -117,6 +126,7 @@ const Store = () => {
     setComprando(true);
     try {
       await apiBuyShield(selectedHabitId);
+      tocar('coin');
       addToast(t('loja.compraOkHabito'), 'success');
       loadHabits(true);
     } catch (error) {
@@ -131,7 +141,14 @@ const Store = () => {
   if (loading) return <LoadingScreen message={t('loja.carregando')} />;
 
   const inventario = (
-    <Drawer visible={inventarioAberto} onClose={() => setInventarioAberto(false)} titulo={t('loja.meusEscudos')}>
+    <Drawer
+      visible={inventarioAberto}
+      onClose={() => {
+        tocar('close');
+        setInventarioAberto(false);
+      }}
+      titulo={t('loja.meusEscudos')}
+    >
       <DrawerResumo>
         <DrawerResumoValor>{totalEscudos}</DrawerResumoValor>
         <DrawerResumoRotulo>{t('loja.escudosNoTotal')}</DrawerResumoRotulo>
@@ -177,7 +194,13 @@ const Store = () => {
                 <PilulaRotulo>{t('comum.moedas')}</PilulaRotulo>
               </Pilula>
 
-              <Pilula onPress={() => setInventarioAberto(true)} accessibilityLabel={t('loja.meusEscudos')}>
+              <Pilula
+                onPress={() => {
+                  tocar('open');
+                  setInventarioAberto(true);
+                }}
+                accessibilityLabel={t('loja.meusEscudos')}
+              >
                 <Feather name="shield" size={16} color={theme.primaryColor} />
                 <PilulaValor>{totalEscudos}</PilulaValor>
                 <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.75)" />
@@ -203,11 +226,17 @@ const Store = () => {
                   </IconWrapper>
                   <CardTitle>{t('loja.comprarBloqueio')}</CardTitle>
                 </PainelCabecalho>
-                <CardText>{t('loja.escudoTexto')}</CardText>
+                <CardText>{t('loja.escudoTexto', { custo: custoEscudo })}</CardText>
 
                 <FormGroup>
                   <Label>{t('loja.paraQualHabito')}</Label>
-                  <SelectField onPress={() => setPickerAberto(true)} $aberto={pickerAberto}>
+                  <SelectField
+                    onPress={() => {
+                      tocar('open');
+                      setPickerAberto(true);
+                    }}
+                    $aberto={pickerAberto}
+                  >
                     <SelectFieldText $placeholder={!habitoSelecionado}>
                       {habitoSelecionado ? habitoSelecionado.titulo : t('loja.selecionePlaceholder')}
                     </SelectFieldText>
@@ -227,7 +256,7 @@ const Store = () => {
                 <BuyButton onPress={handleBuyShield} disabled={comprando} $disabled={comprando}>
                   <Feather name="shopping-bag" size={18} color={comprando ? theme.textSecondary : 'white'} />
                   <BuyButtonText $disabled={comprando}>
-                    {comprando ? t('loja.comprando') : t('loja.comprar')}
+                    {comprando ? t('loja.comprando') : t('loja.comprar', { custo: custoEscudo })}
                   </BuyButtonText>
                 </BuyButton>
               </PainelCompra>
@@ -238,8 +267,21 @@ const Store = () => {
 
       {inventario}
 
-      <Modal visible={pickerAberto} transparent animationType="fade" onRequestClose={() => setPickerAberto(false)}>
-        <PickerOverlay onPress={() => setPickerAberto(false)}>
+      <Modal
+        visible={pickerAberto}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          tocar('close');
+          setPickerAberto(false);
+        }}
+      >
+        <PickerOverlay
+          onPress={() => {
+            tocar('close');
+            setPickerAberto(false);
+          }}
+        >
           <PickerSheet onStartShouldSetResponder={() => true}>
             <PickerTitulo>{t('loja.paraQualHabito')}</PickerTitulo>
             <ScrollView>

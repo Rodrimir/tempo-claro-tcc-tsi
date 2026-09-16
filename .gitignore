@@ -16,3 +16,8 @@ node_modules/
 
 # Material do TCC que não vai para o repositório
 /docs/tcc
+
+# Configuração local do Spring (credenciais de SMTP etc.) — o Spring lê
+# ./config/application.properties automaticamente, com precedência sobre o
+# application.properties do classpath. Nunca versionar.
+/backend/config/

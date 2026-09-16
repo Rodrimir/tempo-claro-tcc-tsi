@@ -15,6 +15,7 @@ import {
 } from 'react-native-reanimated';
 import { useExecutionResult } from '../../contexts/ExecutionResultContext';
 import { useI18n } from '../../contexts/LanguageContext';
+import { useSfx } from '../../contexts/SoundContext';
 import {
   SuccessContainer,
   ParticlesWrapper,
@@ -71,9 +72,11 @@ const Success = () => {
   const insets = useSafeAreaInsets();
   const { executionResult } = useExecutionResult();
   const { t } = useI18n();
+  const { tocar } = useSfx();
 
   const feedback = executionResult?.feedback;
   const isBonus = Boolean(feedback?.bonus);
+  const subiuDeNivel = Boolean(executionResult?.subiuDeNivel);
   // A execução não credita mais moedas: o crédito é do dia inteiro e acontece no
   // fechamento (RF11/RF12). O que vem aqui é a PREVISÃO do que o dia renderá se
   // fechar como está agora — por isso o rótulo diz "a receber", não "recompensa".
@@ -92,6 +95,11 @@ const Success = () => {
     });
     return () => subscription.remove();
   }, [router]);
+
+  useEffect(() => {
+    tocar(isBonus ? 'bonus' : 'success');
+    if (subiuDeNivel) tocar('levelUp');
+  }, [isBonus, subiuDeNivel, tocar]);
 
   const particles = useMemo(() => {
     return Array.from({ length: 50 }).map(() => ({

@@ -19,7 +19,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
-import { criarLoginSchema, criarRegisterSchema, TAMANHO_MINIMO_SENHA } from './validation';
+import { useSfx } from '../../contexts/SoundContext';
+import { criarLoginSchema, criarRegisterSchema, TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from './validation';
 
 import luaFlutuando from '../../../assets/lua_flutuando.png';
 import solFlutuando from '../../../assets/sol_flutuando.webp';
@@ -58,6 +59,8 @@ import {
   LanguageChipText,
   SettingsCloseButton,
   SettingsCloseButtonText,
+  ForgotPasswordLink,
+  ForgotPasswordText,
 } from './styles';
 
 const Login = () => {
@@ -70,6 +73,7 @@ const Login = () => {
   const { isDark, tema, setTema } = useThemeToggle();
   const { login, register: registerConta } = useAuth();
   const { addToast } = useToast();
+  const { tocar } = useSfx();
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -90,6 +94,8 @@ const Login = () => {
   const senhaDigitada = watch('senha');
   const confirmacaoDigitada = watch('confirmarSenha');
   const tamanhoOk = (senhaDigitada || '').length >= TAMANHO_MINIMO_SENHA;
+  const maiusculaOk = RE_MAIUSCULA.test(senhaDigitada || '');
+  const especialOk = RE_ESPECIAL.test(senhaDigitada || '');
   const confereOk = Boolean(senhaDigitada) && senhaDigitada === confirmacaoDigitada;
 
   const flutuar = useSharedValue(0);
@@ -115,11 +121,19 @@ const Login = () => {
     try {
       if (isLoginTab) {
         await login(data);
+        router.replace('/home');
       } else {
         await registerConta({ ...data, idioma });
+        addToast(t('login.cadastroRecebido'), 'success');
+        router.replace({ pathname: '/verify-email', params: { email: data.email } });
       }
-      router.replace('/home');
     } catch (err) {
+      if (isLoginTab && err.response?.status === 403) {
+        addToast(err.response?.data?.message || t('login.erroAutenticar'), 'error');
+        router.replace({ pathname: '/verify-email', params: { email: data.email } });
+        return;
+      }
+      tocar('erro');
       addToast(err.response?.data?.message || err.message || t('login.erroAutenticar'), 'error');
     }
   };
@@ -128,7 +142,10 @@ const Login = () => {
     <LoginContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <MenuBtn
         style={{ top: insets.top + 24 }}
-        onPress={() => setShowSettings(true)}
+        onPress={() => {
+          tocar('open');
+          setShowSettings(true);
+        }}
         accessibilityLabel={t('login.abrirConfiguracoes')}
       >
         <Feather name="menu" size={28} color={theme.textPrimary} />
@@ -153,10 +170,22 @@ const Login = () => {
           </HeaderWrapper>
 
           <TabContainer>
-            <TabButton $active={isLoginTab} onPress={() => setIsLoginTab(true)}>
+            <TabButton
+              $active={isLoginTab}
+              onPress={() => {
+                tocar('alternar');
+                setIsLoginTab(true);
+              }}
+            >
               <TabButtonText $active={isLoginTab}>{t('login.tabEntrar')}</TabButtonText>
             </TabButton>
-            <TabButton $active={!isLoginTab} onPress={() => setIsLoginTab(false)}>
+            <TabButton
+              $active={!isLoginTab}
+              onPress={() => {
+                tocar('alternar');
+                setIsLoginTab(false);
+              }}
+            >
               <TabButtonText $active={!isLoginTab}>{t('login.criarConta')}</TabButtonText>
             </TabButton>
           </TabContainer>
@@ -183,7 +212,7 @@ const Login = () => {
                 name="email"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    placeholder="seu@email.com"
+                    placeholder={t('login.emailPlaceholder')}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={value}
@@ -217,7 +246,33 @@ const Login = () => {
                       {t('validacao.senhaCurta', { minimo: TAMANHO_MINIMO_SENHA })}
                     </RequisitoTexto>
                   </RequisitoLinha>
+                  <RequisitoLinha>
+                    <Feather
+                      name={maiusculaOk ? 'check-circle' : 'circle'}
+                      size={14}
+                      color={maiusculaOk ? theme.successColor : theme.textSecondary}
+                    />
+                    <RequisitoTexto $ok={maiusculaOk}>{t('validacao.senhaSemMaiuscula')}</RequisitoTexto>
+                  </RequisitoLinha>
+                  <RequisitoLinha>
+                    <Feather
+                      name={especialOk ? 'check-circle' : 'circle'}
+                      size={14}
+                      color={especialOk ? theme.successColor : theme.textSecondary}
+                    />
+                    <RequisitoTexto $ok={especialOk}>{t('validacao.senhaSemEspecial')}</RequisitoTexto>
+                  </RequisitoLinha>
                 </Requisitos>
+              )}
+              {isLoginTab && (
+                <ForgotPasswordLink
+                  onPress={() => {
+                    tocar('tap');
+                    router.push('/forgot-password');
+                  }}
+                >
+                  <ForgotPasswordText>{t('login.esqueciSenha')}</ForgotPasswordText>
+                </ForgotPasswordLink>
               )}
             </FormGroup>
 
@@ -245,7 +300,13 @@ const Login = () => {
               </FormGroup>
             )}
 
-            <SubmitButton disabled={isSubmitting} onPress={handleSubmit(onSubmit)}>
+            <SubmitButton
+              disabled={isSubmitting}
+              onPress={() => {
+                tocar('continuar');
+                handleSubmit(onSubmit)();
+              }}
+            >
               {isSubmitting ? (
                 <>
                   <ActivityIndicator color="white" size="small" />
@@ -274,7 +335,10 @@ const Login = () => {
                     key={codigo}
                     $active={idioma === codigo}
                     accessibilityLabel={info.nome}
-                    onPress={() => setIdioma(codigo)}
+                    onPress={() => {
+                      tocar('alternar');
+                      setIdioma(codigo);
+                    }}
                   >
                     <LanguageChipText $active={idioma === codigo}>{info.bandeira}</LanguageChipText>
                     <LanguageChipText $active={idioma === codigo}>{info.curto}</LanguageChipText>
@@ -291,20 +355,31 @@ const Login = () => {
                 <ThemeOptionButton
                   $active={tema === 'claro'}
                   accessibilityLabel={t('perfil.temaClaroLabel')}
-                  onPress={() => setTema('claro')}
+                  onPress={() => {
+                    tocar('alternar');
+                    setTema('claro');
+                  }}
                 >
                   <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
                 </ThemeOptionButton>
                 <ThemeOptionButton
                   $active={tema === 'escuro'}
                   accessibilityLabel={t('perfil.temaEscuroLabel')}
-                  onPress={() => setTema('escuro')}
+                  onPress={() => {
+                    tocar('alternar');
+                    setTema('escuro');
+                  }}
                 >
                   <Feather name="moon" size={16} color={tema === 'escuro' ? theme.primaryColor : theme.textSecondary} />
                 </ThemeOptionButton>
               </ThemeSegmentedControl>
             </SettingsRow>
-            <SettingsCloseButton onPress={() => setShowSettings(false)}>
+            <SettingsCloseButton
+              onPress={() => {
+                tocar('close');
+                setShowSettings(false);
+              }}
+            >
               <SettingsCloseButtonText>{t('login.fechar')}</SettingsCloseButtonText>
             </SettingsCloseButton>
           </SettingsModalContent>

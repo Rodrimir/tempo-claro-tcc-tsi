@@ -123,6 +123,12 @@ class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
     @Test
     void desistenciaComFailBloqueio_semEscudoDisponivel_retorna422() {
         final var habitoId = criarHabito(2000);
+        // PLANO_REESTRUTURACAO.md, H: hábito novo já nasce com 3 escudos — este
+        // teste existe pra cobrir o caminho SEM escudo, então zera de propósito
+        // em vez de herdar o padrão novo.
+        final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
+        status.setBloqueiosAcumulados(0);
+        statusHabitoRepository.save(status);
 
         final var resposta = post("/api/habits/" + habitoId + "/executions",
                 new ExecutionRequestDTO(UUID.randomUUID(), "FAIL_BLOQUEIO", 0), MessageResponseDTO.class);

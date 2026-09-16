@@ -9,6 +9,7 @@ import { submitExecution, getDashboard } from '../../services/api';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { useExecutionResult } from '../../contexts/ExecutionResultContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useSfx } from '../../contexts/SoundContext';
 import { saveExecutingHabitId, loadExecutingHabitId, clearExecutingHabitId } from '../../utils/storage';
 import CircularProgress from '../../components/common/CircularProgress';
 import MonospaceTimer from '../../components/common/MonospaceTimer';
@@ -92,6 +93,7 @@ const ExecutionActive = ({ habit }) => {
   const insets = useSafeAreaInsets();
   const { addToast } = useToast();
   const { t } = useI18n();
+  const { tocar } = useSfx();
   const { setExecutionResult } = useExecutionResult();
   const [executionToken, setExecutionToken] = useState('');
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
@@ -151,7 +153,8 @@ const ExecutionActive = ({ habit }) => {
       const res = await submitExecution(habit.id, payload);
       await clearTimerState();
       await clearExecutingHabitId();
-      setExecutionResult({ feedback: res.data });
+      const subiuDeNivel = (res.data.novo_nivel || 0) > (habit.nivel_avatar || 0);
+      setExecutionResult({ feedback: res.data, subiuDeNivel });
       router.replace('/success');
     } catch (err) {
       addToast(err.response?.data?.message || t('execucao.erroConclusao'), 'error');
@@ -201,10 +204,20 @@ const ExecutionActive = ({ habit }) => {
 
         {habit.tipo_medida === 'QUANTIDADE' && (
           <ControlsWrapper>
-            <SubButton onPress={() => setQuantity(Math.max(0, quantity - passo))}>
+            <SubButton
+              onPress={() => {
+                tocar('tap');
+                setQuantity(Math.max(0, quantity - passo));
+              }}
+            >
               <SubButtonText>-{passo}</SubButtonText>
             </SubButton>
-            <AddButton onPress={() => setQuantity(quantity + passo)}>
+            <AddButton
+              onPress={() => {
+                tocar('tap');
+                setQuantity(quantity + passo);
+              }}
+            >
               <AddButtonText>+{passo}</AddButtonText>
             </AddButton>
           </ControlsWrapper>
@@ -220,6 +233,7 @@ const ExecutionActive = ({ habit }) => {
 
         <GiveUpButton
           onPress={() => {
+            tocar('open');
             pause();
             setShowGiveUpModal(true);
           }}
@@ -233,6 +247,7 @@ const ExecutionActive = ({ habit }) => {
           bloqueiosAcumulados={habit.bloqueios_acumulados}
           handleGiveUp={handleGiveUp}
           onCancel={() => {
+            tocar('close');
             setShowGiveUpModal(false);
             resume();
           }}

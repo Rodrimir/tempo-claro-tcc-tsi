@@ -32,6 +32,7 @@ public class HabitoController {
         return ResponseEntity.ok(DashboardResponseDTO.builder()
                 .habits(habitoService.listarDashboard(emailContexto()))
                 .limite_habitos_ativos(HabitoService.LIMITE_HABITOS_ATIVOS)
+                .custo_escudo(GamificacaoService.CUSTO_ESCUDO)
                 .build());
     }
 
@@ -78,7 +79,7 @@ public class HabitoController {
         return ResponseEntity.ok(gamificacaoService.processarExecucao(id, emailContexto(), request));
     }
 
-    // @audit-ok [Loja Escudo (1) — compra 1 escudo debitando 1500 moedas do status do hábito]
+    // @audit-ok [Loja Escudo (1) — compra 1 escudo debitando GamificacaoService.CUSTO_ESCUDO moedas do status do hábito]
     @PostMapping("/habits/{id}/shield")
     public ResponseEntity<Map<String, Object>> buyShield(@PathVariable final UUID id) {
         gamificacaoService.comprarEscudo(id, emailContexto());

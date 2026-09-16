@@ -1,0 +1,27 @@
+Todos os arquivos deste diretório são CC0 (domínio público), de Kenney Vleugels
+(kenney.nl) — atribuição não é exigida, mas fica registrada aqui.
+
+Fonte: "Interface Sounds" — https://kenney.nl/assets/interface-sounds
+  tap.mp3            <- click_001.ogg
+  open.mp3           <- open_001.ogg
+  close.mp3          <- close_001.ogg
+  success.mp3        <- confirmation_001.ogg
+  bonus.mp3          <- confirmation_002.ogg
+  coin.mp3           <- confirmation_003.ogg
+  continuar.mp3      <- confirmation_004.ogg
+  fail.mp3           <- error_001.ogg
+  erro.mp3           <- error_003.ogg
+  voltar.mp3         <- back_001.ogg
+  alternar.mp3       <- toggle_001.ogg
+  moldeAgua.mp3      <- glass_001.ogg
+  moldeEstudo.mp3    <- pluck_001.ogg
+  moldeExercicio.mp3 <- switch_001.ogg
+  moldeBloqueado.mp3 <- question_001.ogg
+
+Fonte: "Music Jingles" — https://kenney.nl/assets/music-jingles
+  levelUp.mp3        <- Audio/Pizzicato jingles/jingles_PIZZI03.ogg
+
+Convertidos de .ogg para .mp3 (libmp3lame) para tocar em iOS também — o Vorbis
+não é suportado nativamente pelo AVFoundation da Apple.
+
+Licença original (CC0 1.0): http://creativecommons.org/publicdomain/zero/1.0/

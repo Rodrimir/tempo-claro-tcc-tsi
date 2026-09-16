@@ -1,11 +1,16 @@
 import * as yup from 'yup';
 
 /**
- * O backend recusa senha com menos de 8 caracteres na troca (UsuarioService).
- * Validar aqui também é o que faz o usuário descobrir isso enquanto digita, em
- * vez de só depois do erro do servidor.
+ * Mesma regra de SenhaValidator.java (backend/infra/util) — 3 exigências, não
+ * só tamanho. Duplicado aqui de propósito (front não importa Java): validar
+ * aqui é o que faz a pessoa descobrir o que falta enquanto digita, em vez de
+ * só depois de um 422 do servidor. As DUAS pontas precisam mudar juntas se a
+ * regra mudar — não existe um jeito de compartilhar isso entre Kotlin/Java e
+ * JS neste projeto.
  */
 export const TAMANHO_MINIMO_SENHA = 8;
+export const RE_MAIUSCULA = /[A-Z]/;
+export const RE_ESPECIAL = /[^A-Za-z0-9]/;
 
 /**
  * Os schemas são FUNÇÕES, não constantes de módulo: as mensagens precisam sair no
@@ -31,7 +36,9 @@ export const criarRegisterSchema = (t) =>
     senha: yup
       .string()
       .required(t('validacao.preenchaTudo'))
-      .min(TAMANHO_MINIMO_SENHA, t('validacao.senhaCurta', { minimo: TAMANHO_MINIMO_SENHA })),
+      .min(TAMANHO_MINIMO_SENHA, t('validacao.senhaCurta', { minimo: TAMANHO_MINIMO_SENHA }))
+      .matches(RE_MAIUSCULA, t('validacao.senhaSemMaiuscula'))
+      .matches(RE_ESPECIAL, t('validacao.senhaSemEspecial')),
     confirmarSenha: yup
       .string()
       .oneOf([yup.ref('senha')], t('validacao.senhasNaoConferem')),

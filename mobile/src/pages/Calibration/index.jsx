@@ -10,6 +10,7 @@ import { useToast } from '../../contexts/ToastContext';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import TimePickerField from '../../components/common/TimePickerField';
 import { useI18n } from '../../contexts/LanguageContext';
+import { useSfx } from '../../contexts/SoundContext';
 
 import {
   Container,
@@ -65,6 +66,7 @@ const Calibration = () => {
   const insets = useSafeAreaInsets();
   const { addToast } = useToast();
   const { t } = useI18n();
+  const { tocar } = useSfx();
   const { categoria } = useLocalSearchParams();
 
   const [questionario, setQuestionario] = useState(null);
@@ -193,7 +195,13 @@ const Calibration = () => {
             teria a saída de descartar tudo e preencher na mão. Voltar preserva as
             respostas — o estado do questionário continua montado. */}
         <TopBar>
-          <BackButton onPress={() => setSugestao(null)} accessibilityLabel={t('comum.voltar')}>
+          <BackButton
+            onPress={() => {
+              tocar('voltar');
+              setSugestao(null);
+            }}
+            accessibilityLabel={t('comum.voltar')}
+          >
             <Feather name="chevron-left" size={26} color={theme.textPrimary} />
           </BackButton>
         </TopBar>
@@ -241,16 +249,29 @@ const Calibration = () => {
           </SugestaoCard>
 
           <PrimaryButton
-            onPress={() =>
+            onPress={() => {
+              tocar('continuar');
+              // `categoria` vai junto de propósito: sem ela o /create não sabe
+              // QUAL molde foi calibrado e caía no primeiro da lista (AGUA),
+              // gravando o hábito na categoria errada — e com tipo_medida
+              // errado quando a calibração era de ESTUDO/EXERCICIO.
               router.replace({
                 pathname: '/create',
-                params: { sugestao: JSON.stringify({ ...s, calibracao_id: sugestao.calibracao_id }) },
-              })
-            }
+                params: {
+                  categoria,
+                  sugestao: JSON.stringify({ ...s, calibracao_id: sugestao.calibracao_id }),
+                },
+              });
+            }}
           >
             <PrimaryButtonText>{t('calibracao.usarSugestao')}</PrimaryButtonText>
           </PrimaryButton>
-          <SecondaryButton onPress={() => router.replace({ pathname: '/create', params: { categoria } })}>
+          <SecondaryButton
+            onPress={() => {
+              tocar('tap');
+              router.replace({ pathname: '/create', params: { categoria } });
+            }}
+          >
             <SecondaryButtonText>{t('calibracao.ajustarManual')}</SecondaryButtonText>
           </SecondaryButton>
         </Content>
@@ -269,7 +290,13 @@ const Calibration = () => {
     >
     <Container style={{ paddingTop: insets.top }}>
       <TopBar>
-        <BackButton onPress={voltar} accessibilityLabel={t("comum.voltar")}>
+        <BackButton
+          onPress={() => {
+            tocar('voltar');
+            voltar();
+          }}
+          accessibilityLabel={t('comum.voltar')}
+        >
           <Feather name="chevron-left" size={26} color={theme.textPrimary} />
         </BackButton>
       </TopBar>
@@ -288,6 +315,7 @@ const Calibration = () => {
                 key={opcao.valor}
                 $active={respostas[pergunta.codigo] === opcao.valor}
                 onPress={() => {
+                  tocar('tap');
                   responder(pergunta.codigo, opcao.valor);
                   // Um toque resolve a pergunta: seleciona e segue.
                   if (!ehUltima) {
@@ -311,7 +339,10 @@ const Calibration = () => {
                 <DiaCirculo
                   key={i}
                   $active={diasSelecionados[i]}
-                  onPress={() => alternarDia(i)}
+                  onPress={() => {
+                    tocar('alternar');
+                    alternarDia(i);
+                  }}
                   accessibilityLabel={`${t("calibracao.diasNaSemana")} ${i + 1}`}
                 >
                   <DiaTexto $active={diasSelecionados[i]}>{letra}</DiaTexto>
@@ -329,7 +360,10 @@ const Calibration = () => {
                 <Chip
                   key={n}
                   $active={Number(respostas.VEZES_AO_DIA) === n}
-                  onPress={() => responder('VEZES_AO_DIA', String(n))}
+                  onPress={() => {
+                    tocar('tap');
+                    responder('VEZES_AO_DIA', String(n));
+                  }}
                 >
                   <ChipTexto $active={Number(respostas.VEZES_AO_DIA) === n}>{n}</ChipTexto>
                 </Chip>
@@ -358,14 +392,28 @@ const Calibration = () => {
 
         {/* Escolha única resolve no toque; os outros tipos precisam de confirmação. */}
         {pergunta && pergunta.tipo !== 'ESCOLHA_UNICA' && pergunta.tipo !== 'RITMO' ? (
-          <PrimaryButton $disabled={!podeAvancar} disabled={!podeAvancar} onPress={ehUltima ? enviar : avancar}>
+          <PrimaryButton
+            $disabled={!podeAvancar}
+            disabled={!podeAvancar}
+            onPress={() => {
+              tocar('continuar');
+              return ehUltima ? enviar() : avancar();
+            }}
+          >
             <PrimaryButtonText>{ehUltima ? t('calibracao.verSugestao') : t('comum.continuar')}</PrimaryButtonText>
           </PrimaryButton>
         ) : null}
 
         {/* Na última pergunta de escolha única, o toque só seleciona — o envio é aqui. */}
         {ehUltima && (pergunta?.tipo === 'ESCOLHA_UNICA' || pergunta?.tipo === 'RITMO') ? (
-          <PrimaryButton $disabled={!podeAvancar || enviando} disabled={!podeAvancar || enviando} onPress={enviar}>
+          <PrimaryButton
+            $disabled={!podeAvancar || enviando}
+            disabled={!podeAvancar || enviando}
+            onPress={() => {
+              tocar('continuar');
+              enviar();
+            }}
+          >
             {enviando ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
@@ -373,10 +421,6 @@ const Calibration = () => {
             )}
           </PrimaryButton>
         ) : null}
-
-        <SecondaryButton onPress={() => router.replace({ pathname: '/create', params: { categoria } })}>
-          <SecondaryButtonText>{t('calibracao.preferirManual')}</SecondaryButtonText>
-        </SecondaryButton>
       </Content>
     </Container>
     </KeyboardAvoidingView>

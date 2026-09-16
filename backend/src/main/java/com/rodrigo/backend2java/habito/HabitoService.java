@@ -35,6 +35,15 @@ public class HabitoService {
          */
         public static final int LIMITE_HABITOS_ATIVOS = 2;
 
+        /**
+         * Todo hábito novo já nasce com alguns escudos, em vez de zero — dá pra
+         * proteger a ofensiva desde os primeiros dias, quando o hábito ainda não
+         * teve tempo de acumular moedas suficientes pra comprar um. Vale só para
+         * hábitos criados a partir desta mudança; os que já existiam não ganham
+         * escudos retroativos (decisão registrada no PLANO_REESTRUTURACAO.md, H.3).
+         */
+        private static final int ESCUDOS_INICIAIS = 3;
+
         // ck_sub_ordem do schema permite sub_ordem só entre 1 e 12.
         private static final int MAX_VEZES_AO_DIA = 12;
 
@@ -113,7 +122,7 @@ public class HabitoService {
                 final var status = StatusHabito.builder()
                                 .habitoId(habitoId)
                                 .moedasLocais(0)
-                                .bloqueiosAcumulados(0)
+                                .bloqueiosAcumulados(ESCUDOS_INICIAIS)
                                 .diasSeguidos(0)
                                 .execucoesHoje(0)
                                 .valorAcumuladoHoje(0)

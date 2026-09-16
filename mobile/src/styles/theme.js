@@ -19,6 +19,11 @@ export const lightTheme = {
   borderColor: '#e2e8f0',
   radiusMd: 12,
   radiusFull: 9999,
+  // PLANO_REESTRUTURACAO.md, A.1 — mesma cor de overlay que 9 arquivos
+  // escreviam à mão (rgba(15, 23, 42, 0.85)); scrimColor é o véu mais claro
+  // usado atrás de gavetas (Perfil, Loja).
+  overlayColor: 'rgba(15, 23, 42, 0.85)',
+  scrimColor: 'rgba(15, 23, 42, 0.55)',
 };
 
 export const darkTheme = {
@@ -42,4 +47,8 @@ export const darkTheme = {
   borderColor: '#1e293b',
   radiusMd: 12,
   radiusFull: 9999,
+  // Mesmo valor dos dois temas de propósito: é um véu que escurece o que está
+  // atrás, não uma cor de superfície — não faz sentido "clarear" no escuro.
+  overlayColor: 'rgba(15, 23, 42, 0.85)',
+  scrimColor: 'rgba(15, 23, 42, 0.55)',
 };

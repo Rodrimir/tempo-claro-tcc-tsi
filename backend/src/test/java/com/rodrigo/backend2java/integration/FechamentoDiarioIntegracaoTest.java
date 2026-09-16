@@ -152,6 +152,11 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         final var habitoId = criarHabito(1000, 1);
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
         status.setDiasSeguidos(4);
+        // PLANO_REESTRUTURACAO.md, H: todo hábito novo já nasce com 3 escudos:
+        // sem zerar aqui, o fechamento protegeria o dia sozinho (PROTEGIDO_
+        // AUTOMATICO) e a ofensiva NÃO zeraria — o oposto do que este teste
+        // existe para verificar (o caminho sem proteção nenhuma).
+        status.setBloqueiosAcumulados(0);
         statusHabitoRepository.save(status);
 
         registrarConclusao(habitoId, 0, ontem(), 600);
@@ -246,6 +251,10 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
         status.setDiasSeguidos(6);
         status.setUltimoReset(LocalDate.now(FUSO_PADRAO).minusDays(4));
+        // PLANO_REESTRUTURACAO.md, H: idem ao teste acima — sem zerar os 3
+        // escudos iniciais, o fechamento protegeria dias pulados sozinho e a
+        // ofensiva não chegaria a zero.
+        status.setBloqueiosAcumulados(0);
         statusHabitoRepository.save(status);
 
         fechamentoDiarioJob.apurarDiasFechados();

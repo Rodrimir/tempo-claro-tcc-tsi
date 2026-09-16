@@ -11,6 +11,7 @@ import { createHabit, updateHabit } from '../../services/api';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useI18n } from '../../contexts/LanguageContext';
+import { useSfx } from '../../contexts/SoundContext';
 import {
   Container,
   Header,
@@ -162,6 +163,7 @@ const CreateHabit = () => {
   const { currentHabit } = useCurrentHabit();
   const { addToast } = useToast();
   const { t } = useI18n();
+  const { tocar } = useSfx();
 
   const currentHabitRef = useRef(currentHabit);
   useEffect(() => {
@@ -191,8 +193,18 @@ const CreateHabit = () => {
 
   const isEditMode = Boolean(editHabit);
 
+  // Este efeito existe para zerar o formulário quando a pessoa volta para a aba
+  // "Criar" depois de já ter mexido nela — sem isso, o rascunho antigo
+  // reapareceria.
+  //
+  // Mas ele NÃO pode rodar quando a tela foi aberta pela calibração: o estado
+  // inicial já nasce no passo 3 com a sugestão preenchida, e resetar aqui
+  // jogava a pessoa de volta ao passo 1 com o formulário vazio — era por isso
+  // que "Usar esta sugestão" não criava hábito nenhum: a sugestão era
+  // descartada no mesmo instante em que a tela ganhava foco.
   useFocusEffect(
     useCallback(() => {
+      if (sugestaoParam || categoriaParam) return;
       const alvo = modo === 'editar' ? currentHabitRef.current : null;
       const moldeAlvo = moldeDe(alvo);
       setEditHabit(alvo);
@@ -201,13 +213,30 @@ const CreateHabit = () => {
       setFormData(formDataInicial(alvo, moldeAlvo));
       setErrors({});
       setIsSubmitting(false);
-    }, [modo])
+    }, [modo, sugestaoParam, categoriaParam])
   );
 
-  const handleNext = () => setStep((prev) => prev + 1);
-  const handleBack = () => setStep((prev) => prev - 1);
+  const handleNext = () => {
+    tocar('continuar');
+    setStep((prev) => prev + 1);
+  };
+  const handleBack = () => {
+    tocar('voltar');
+    setStep((prev) => prev - 1);
+  };
+
+  // Cada molde tem o seu próprio timbre, escolhido pelo tema: vidro para água,
+  // corda dedilhada para estudo, mecânico para exercício. O molde reservado
+  // (ainda bloqueado) responde com o som de recusa, para o toque não parecer
+  // que funcionou.
+  const SOM_DO_MOLDE = {
+    AGUA: 'moldeAgua',
+    ESTUDO: 'moldeEstudo',
+    EXERCICIO: 'moldeExercicio',
+  };
 
   const handleSelecionarMolde = (m) => {
+    tocar(SOM_DO_MOLDE[m.id] || 'tap');
     setMolde(m);
     setFormData((prev) => ({ ...prev, titulo: t(`criar.moldes.${m.chave}.titulo`) }));
   };
@@ -330,6 +359,7 @@ const CreateHabit = () => {
     if (Object.keys(erros).length === 0) {
       handleNext();
     } else {
+      tocar('erro');
       addToast(t('criar.corrijaCampos'), 'error');
     }
   };
@@ -368,9 +398,11 @@ const CreateHabit = () => {
         await createHabit(payload);
         addToast(t('criar.criadoOk'), 'success');
       }
+      tocar('success');
       router.replace('/home');
     } catch (err) {
       const mensagem = err.response?.data?.message || t('criar.erroSalvar');
+      tocar('erro');
       addToast(mensagem, 'error');
       setIsSubmitting(false);
     }
@@ -395,7 +427,13 @@ const CreateHabit = () => {
             <Feather name="arrow-left" size={28} color={theme.textPrimary} />
           </BackButton>
         ) : (
-          <BackButton onPress={() => router.replace('/home')} accessibilityLabel={t('criar.voltarParaHome')}>
+          <BackButton
+            onPress={() => {
+              tocar('voltar');
+              router.replace('/home');
+            }}
+            accessibilityLabel={t('criar.voltarParaHome')}
+          >
             <Feather name="arrow-left" size={28} color={theme.textPrimary} />
           </BackButton>
         )}
@@ -414,7 +452,7 @@ const CreateHabit = () => {
             {MOLDES.map((m) => (
               <MoldeCard
                 key={m.id ?? 'reservado'}
-                onPress={() => m.id && handleSelecionarMolde(m)}
+                onPress={() => (m.id ? handleSelecionarMolde(m) : tocar('moldeBloqueado'))}
                 disabled={!m.id}
                 $disabled={!m.id}
                 $active={Boolean(m.id) && molde.id === m.id}
@@ -448,7 +486,10 @@ const CreateHabit = () => {
           <OptionsContainer>
             <StepTitle>{t('criar.comoConfigurar')}</StepTitle>
             <OptionCard
-              onPress={() => router.push({ pathname: '/calibration', params: { categoria: molde.id } })}
+              onPress={() => {
+                tocar('continuar');
+                router.push({ pathname: '/calibration', params: { categoria: molde.id } });
+              }}
               $primary
             >
               <OptionIconWrapper>

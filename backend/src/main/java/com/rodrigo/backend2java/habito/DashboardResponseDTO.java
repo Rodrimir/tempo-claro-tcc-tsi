@@ -11,5 +11,9 @@ import lombok.Builder;
 @Builder
 public record DashboardResponseDTO(
         List<HabitoResponseDTO> habits,
-        Integer limite_habitos_ativos) {
+        Integer limite_habitos_ativos,
+        // Mesmo raciocínio de limite_habitos_ativos: a Loja mostra "Custa X moedas"
+        // com este número, não com uma constante duplicada no app que ficaria
+        // desatualizada silenciosamente na próxima mudança de preço.
+        Integer custo_escudo) {
 }

@@ -123,6 +123,18 @@ export const RequisitoTexto = styled.Text`
   color: ${(props) => (props.$ok ? props.theme.successColor : props.theme.textSecondary)};
 `;
 
+export const ForgotPasswordLink = styled(Pressable)`
+  align-self: flex-end;
+  padding: 4px;
+  margin-top: -8px;
+`;
+
+export const ForgotPasswordText = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 13px;
+  color: ${(props) => props.theme.primaryColor};
+`;
+
 export const SubmitButton = styled(Pressable)`
   width: 100%;
   padding: 16px;

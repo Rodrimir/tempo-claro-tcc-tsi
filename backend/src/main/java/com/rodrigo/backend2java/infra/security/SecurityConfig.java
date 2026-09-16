@@ -71,6 +71,13 @@ public class SecurityConfig {
                     ).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/login")).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/register")).permitAll();
+                    // PLANO_REESTRUTURACAO.md, B/C — as quatro rotas do fluxo de
+                    // verificação de e-mail e recuperação de senha só fazem sentido
+                    // para quem ainda não tem (ou perdeu) um token válido.
+                    authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/verify-email")).permitAll();
+                    authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/resend-code")).permitAll();
+                    authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/forgot-password")).permitAll();
+                    authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/reset-password")).permitAll();
                     authorize.anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2
