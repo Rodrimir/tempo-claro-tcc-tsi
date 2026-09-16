@@ -8,7 +8,10 @@ node_modules/
 /mobile/android/app/build/
 /frontend/dist/
 /frontend/android/app/build/
-
+/docs
+/.vscode
+/.idea
+/.claude
 # Variáveis de ambiente — jwt.secret e as credenciais do banco vêm daqui em prod
 .env
 .env.local

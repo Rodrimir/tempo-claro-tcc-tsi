@@ -394,3 +394,57 @@ VALUES
      'You beat today''s goal. Keep it up.',
      'You have not done today''s workout yet.')
 ON CONFLICT (bib_categoria, bib_idioma) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
+-- v3.1 — PLANO_REESTRUTURACAO.md, itens G (tema dinâmico), C (verificação de
+-- e-mail) e B (recuperação de senha).
+--
+-- Roda a cada boot (spring.sql.init.mode=always), por isso tudo aqui é
+-- idempotente. Sem esta seção, um banco criado por uma versão anterior sobe e
+-- morre em seguida: ddl-auto=validate não encontra usu_email_verificado nem
+-- codigos_verificacao, que as entidades JPA já declaram.
+-- -----------------------------------------------------------------------------
+
+-- G: o CHECK antigo recusa 'dinamico'. DROP + ADD porque o Postgres não tem
+-- "ALTER CONSTRAINT" para mudar a expressão de um CHECK.
+ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS ck_usu_tema;
+ALTER TABLE usuarios ADD CONSTRAINT ck_usu_tema
+    CHECK (usu_tema IN ('claro', 'escuro', 'sistema', 'dinamico'));
+
+-- C: contas que já existem precisam continuar entrando.
+--
+-- Sem bloco procedural (DO) de propósito: o inicializador do Spring Boot
+-- (ScriptUtils) separa os comandos por ";" e NAO entende o dollar-quoting do
+-- PostgreSQL, então os ";" de dentro do bloco viram separadores e o script
+-- quebra no boot. Testar com psql engana — o psql entende, o Spring não.
+--
+-- Estes dois comandos dispensam o bloco: ADD COLUMN com DEFAULT TRUE já
+-- preenche as linhas existentes com TRUE (Postgres faz o backfill sozinho),
+-- e o ALTER seguinte faz as contas FUTURAS nascerem FALSE. Não há UPDATE, então
+-- reexecutar a cada boot não re-verifica ninguém: o ADD vira no-op pelo
+-- IF NOT EXISTS e o SET DEFAULT é idempotente.
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS usu_email_verificado BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE usuarios ALTER COLUMN usu_email_verificado SET DEFAULT FALSE;
+
+COMMENT ON COLUMN usuarios.usu_email_verificado IS
+    'Usuario.isEnabled() devolve este valor, então o Spring Security recusa sozinho o login de conta não verificada.';
+
+-- B + C: uma linha por código emitido; cod_tipo separa os dois fluxos. Guarda
+-- o HASH do código, nunca o código em claro — mesmo motivo de usu_senha_hash.
+CREATE TABLE IF NOT EXISTS codigos_verificacao (
+    cod_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cod_email        VARCHAR(255) NOT NULL,
+    cod_codigo_hash  VARCHAR(255) NOT NULL,
+    cod_tipo         VARCHAR(30)  NOT NULL,
+    cod_expira_em    TIMESTAMPTZ  NOT NULL,
+    cod_tentativas   SMALLINT     NOT NULL DEFAULT 0,
+    cod_usado_em     TIMESTAMPTZ,
+    cod_criado_em    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_cod_tipo CHECK (cod_tipo IN ('VERIFICACAO_EMAIL', 'RECUPERACAO_SENHA'))
+);
+
+CREATE INDEX IF NOT EXISTS ix_cod_email_tipo
+    ON codigos_verificacao (cod_email, cod_tipo, cod_expira_em DESC);
+
+COMMENT ON TABLE codigos_verificacao IS
+    'Códigos de 6 dígitos para verificar e-mail e recuperar senha. Expiram em 15 min e travam em 5 tentativas (CodigoVerificacaoService).';
