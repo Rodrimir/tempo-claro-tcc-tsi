@@ -403,7 +403,15 @@ const HomeScreen = () => {
   const [habitoParaArquivar, setHabitoParaArquivar] = useState(null);
   const [arquivando, setArquivando] = useState(false);
 
+  // Trava de concorrencia: o useFocusEffect pode disparar duas vezes numa mesma
+  // abertura (remontagem da Stack, volta de outra aba), e sem esta guarda cada
+  // disparo virava uma requisicao e um toast de erro proprios — dai o mesmo
+  // "nao foi possivel carregar seus habitos" aparecer repetido.
+  const carregandoRef = useRef(false);
+
   const loadData = useCallback(async (silencioso = false) => {
+    if (carregandoRef.current) return;
+    carregandoRef.current = true;
     if (!silencioso) setLoading(true);
     setLoadError(false);
     try {
@@ -425,6 +433,7 @@ const HomeScreen = () => {
       addToast(t('home.erroCarregarHabitos'), 'error');
       setLoadError(true);
     } finally {
+      carregandoRef.current = false;
       if (!silencioso) setLoading(false);
     }
   }, [addToast]);

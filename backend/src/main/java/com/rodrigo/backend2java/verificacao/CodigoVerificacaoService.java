@@ -2,6 +2,7 @@ package com.rodrigo.backend2java.verificacao;
 import java.util.UUID;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,9 +26,28 @@ public class CodigoVerificacaoService {
     private final CodigoVerificacaoRepository repository;
     private final PasswordEncoder passwordEncoder;
 
-    public CodigoVerificacaoService(CodigoVerificacaoRepository repository, PasswordEncoder passwordEncoder) {
+    /**
+     * PROVISÓRIO. Quando preenchido, todo código emitido é este valor fixo em vez
+     * de um sorteio do {@link SecureRandom}.
+     *
+     * <p>Existe porque o plano gratuito do Render bloqueia as portas de saída de
+     * SMTP (25, 465 e 587) desde 26/09/2025: o e-mail simplesmente não sai em
+     * produção, e sem código ninguém conclui cadastro nem recupera senha.
+     *
+     * <p><b>Isto é uma porta dos fundos, não uma funcionalidade.</b> Com valor
+     * definido, qualquer pessoa que saiba o código assume QUALQUER conta pelo
+     * fluxo de recuperação de senha — basta o e-mail da vítima. Só deve ficar
+     * ligado enquanto o envio de e-mail não existir de fato; some sozinho ao
+     * apagar a propriedade (ou definir CODIGO_VERIFICACAO_FIXO vazio no Render),
+     * sem precisar editar esta classe.
+     */
+    private final String codigoFixo;
+
+    public CodigoVerificacaoService(CodigoVerificacaoRepository repository, PasswordEncoder passwordEncoder,
+            @Value("${app.verificacao.codigo-fixo:}") String codigoFixo) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.codigoFixo = codigoFixo == null ? "" : codigoFixo.trim();
     }
 
     /**
@@ -51,7 +71,9 @@ public class CodigoVerificacaoService {
 
         invalidarPendentes(email, tipo);
 
-        final var codigo = String.format("%06d", ALEATORIO.nextInt(1_000_000));
+        final var codigo = codigoFixo.isBlank()
+                ? String.format("%06d", ALEATORIO.nextInt(1_000_000))
+                : codigoFixo;
 
         repository.save(CodigoVerificacao.builder()
                 .id(UUID.randomUUID())

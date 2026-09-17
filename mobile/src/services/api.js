@@ -3,7 +3,12 @@ import { getAuthToken } from '../utils/storage';
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://tempo-claro-tcc-tsi.onrender.com/api',
-  timeout: 15000,
+  // 60s, nao 15s: o plano gratuito do Render hiberna depois de ~15 min sem
+  // trafego e a primeira requisicao seguinte leva 30-60s so para acordar o
+  // container. Com o timeout curto, essa primeira chamada estourava sempre —
+  // virava "erro de rede" na Home e, pior, derrubava a sessao na checagem de
+  // token da abertura do app.
+  timeout: 60000,
 });
 
 api.interceptors.request.use(async (config) => {

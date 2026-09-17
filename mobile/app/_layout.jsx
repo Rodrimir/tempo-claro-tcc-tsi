@@ -24,6 +24,13 @@ import LoadingScreen from '../src/components/common/LoadingScreen';
 
 SplashScreen.preventAutoHideAsync();
 
+// Rotas que funcionam SEM sessão. Verificar e-mail e recuperar senha são os dois
+// casos em que a pessoa legitimamente ainda não tem token: acabou de se cadastrar,
+// ou esqueceu a senha. Sem elas nesta lista, o guard devolvia ambas para /login no
+// mesmo frame em que abriam — o cadastro nunca mostrava o campo de código e o
+// "Esqueci minha senha" parecia apenas recarregar a tela de login.
+const ROTAS_PUBLICAS = ['login', 'verify-email', 'forgot-password'];
+
 function AuthGuard() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
@@ -31,8 +38,8 @@ function AuthGuard() {
 
   useEffect(() => {
     if (loading) return;
-    const noGrupoLogin = segments[0] === 'login';
-    if (!isAuthenticated && !noGrupoLogin) {
+    const emRotaPublica = ROTAS_PUBLICAS.includes(segments[0]);
+    if (!isAuthenticated && !emRotaPublica) {
       router.replace('/login');
     }
   }, [loading, isAuthenticated, segments]);
@@ -44,6 +51,9 @@ function AuthGuard() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
+      <Stack.Screen name="verify-email" />
+      <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="change-password" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="pretask" />
       <Stack.Screen name="execute" />
