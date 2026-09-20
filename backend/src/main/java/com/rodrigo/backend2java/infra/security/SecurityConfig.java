@@ -34,10 +34,6 @@ public class SecurityConfig {
 
     private final CustomJwtAuthenticationConverter customJwtAuthenticationConverter;
 
-    /**
-     * Origens que podem chamar a API. Era {@code "*"} — qualquer site do mundo podia
-     * disparar requisições autenticadas do navegador de um usuário logado.
-     */
     @Value("${app.cors.allowed-origins}")
     private List<String> origensPermitidas;
 
@@ -71,9 +67,6 @@ public class SecurityConfig {
                     ).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/login")).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/register")).permitAll();
-                    // PLANO_REESTRUTURACAO.md, B/C — as quatro rotas do fluxo de
-                    // verificação de e-mail e recuperação de senha só fazem sentido
-                    // para quem ainda não tem (ou perdeu) um token válido.
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/verify-email")).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/resend-code")).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/forgot-password")).permitAll();
@@ -82,9 +75,6 @@ public class SecurityConfig {
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtAuthenticationConverter))
-                        // §5.1 da monografia distingue 401 (credenciais inválidas, no
-                        // login) de 403 (token ausente ou expirado). O padrão do
-                        // resource server devolve 401 para os dois casos.
                         .authenticationEntryPoint(this::tokenAusenteOuExpirado));
 
         return http.build();

@@ -1,0 +1,296 @@
+# Tempo Claro — App Expo (`frontend/`)
+
+## Objetivo
+
+Reconstruir a camada de apresentação de `frontend-web/` (Vite + React + Capacitor) em Expo +
+React Native, entregando um APK **indistinguível do WebView atual**, tela por tela, fluxo por
+fluxo. Isto é uma portagem, não uma reforma.
+
+**Paridade inclui os defeitos.** Se uma tela do `frontend-web/` tem um estado vazio, um botão
+decorativo ou uma regra incompleta, a tela em `frontend/` tem exatamente o mesmo estado vazio, o
+mesmo botão decorativo, a mesma regra incompleta. Corrigir isso é trabalho de outra branch, com o
+`PLANO_EXECUCAO.md` retomado depois que a migração terminar. As limitações que precisam ser
+preservadas de propósito estão listadas em `frontend/PARIDADE.md`, tabela C — inclusive uma nota lá
+sobre três suposições do plano de migração que já estavam desatualizadas quando esta tarefa foi
+lida (dias da semana, editar/arquivar hábito e `GET /stats/weekly` deixaram de ser limitação).
+
+## Regras
+
+- **A migração terminou.** `frontend-web/` (o app Vite + React + Capacitor que este documento cita
+  em vários pontos como "a especificação") não existe mais neste repositório — foi substituído por
+  completo por `frontend/`. As seções abaixo que comparam "no web" com "aqui" são registro histórico
+  de decisões de portagem já tomadas, não uma instrução para ir consultar um diretório inexistente.
+- **`backend/` não é mais intocável.** Essa regra valia só durante a migração de tela (a API já
+  existia pronta, REST pura, autenticada por Bearer). Com a migração concluída, mudanças no
+  `backend/` são normais quando a tarefa pedir.
+- **Nenhum comentário explicativo no código.** Ver a seção "A regra 'nenhum comentário'" abaixo.
+- Instale pacotes sempre com `npx expo install <pacote>`, nunca `npm install` direto.
+
+## Matriz de substituição
+
+Toda vez que uma tarefa esbarrar em "e isso aqui vira o quê?", a resposta provavelmente está aqui.
+
+| Hoje (`frontend-web/`)                              | No Expo (`frontend/`)                                             |
+| ------------------------------------------------ | ----------------------------------------------------------------- |
+| `react-router-dom` v7 · `<BrowserRouter>`       | `expo-router` — rotas por arquivo em `app/`                     |
+| `navigate('/home')`                             | `router.replace('/home')` / `router.push(...)`                  |
+| `location.state`                                | `ExecutionResultContext` — **não** params de URL                |
+| `<div>` · `<p>`/`<span>` · `<button>` · `<img>` | `<View>` · `<Text>` · `<Pressable>` · `<Image>` (expo-image)    |
+| `styled.div` (web)                              | `styled.View` (`styled-components/native`)                      |
+| CSS custom properties (`--primary-color`)       | `props => props.theme.primaryColor` — **não existe var em RN**  |
+| `GlobalStyles.js` (reset + `@import` da fonte)  | `expo-font` + `ThemeProvider` no `_layout.jsx` raiz             |
+| SCSS da tela Fail                               | `styled-components/native`, como todas as outras                |
+| `@keyframes` / `transition`                     | `react-native-reanimated`                                       |
+| SVG inline (`CircularProgress`)                 | `react-native-svg`                                              |
+| `localStorage` + AES do `crypto-js`             | `expo-secure-store` (token) + `AsyncStorage` (timer, perfil)    |
+| `crypto.randomUUID()`                           | `Crypto.randomUUID()` do `expo-crypto`                          |
+| `navigator.vibrate(...)`                        | `Haptics.notificationAsync(...)`                                |
+| `document.visibilitychange`                     | `AppState` do `react-native`                                    |
+| `window.matchMedia('prefers-color-scheme')`     | `useColorScheme()` do `react-native`                            |
+| `window.location.href = '/login'` (401)         | Callback registrado pelo `AuthContext` → `router.replace`       |
+| `lucide-react` · `react-icons`                  | `@expo/vector-icons`                                            |
+| `recharts`                                      | `react-native-svg` desenhando as barras à mão                   |
+| `#root { max-width: 480px }`                    | Não se aplica — a tela **é** o celular. `SafeAreaView` no lugar |
+| `index.html` · `vite.config.js`                 | `app.json` · `app/_layout.jsx` · `metro.config.js` (padrão)     |
+| Capacitor + `npx cap sync` + Gradle             | `eas build -p android --profile preview`                        |
+
+## Regra de ouro do estilo
+
+Em React Native não existe CSS custom property. O tema chega por `props.theme`, nunca por
+`var(--...)`:
+
+```
+ERRADO:  color: var(--text-primary);
+CERTO:   color: ${props => props.theme.textPrimary};
+```
+
+`frontend/src/styles/theme.js` tem as mesmas 19 chaves de `frontend-web/src/styles/theme.js`, com os
+mesmos valores hex — exceto `radiusMd` e `radiusFull`, que em `frontend/` são números (`12` e
+`9999`), não strings com `"px"`. Não existe `GlobalStyles` em `frontend/`: reset, box-sizing e o
+`max-width` do `#root` não têm equivalente em React Native.
+
+## Armazenamento: `sessionStorage` não existe em RN
+
+`frontend-web/src/utils/storage.js` tem 3 funções a mais do que a tarefa que criou o equivalente em
+`frontend/` citava: `saveExecutingHabitId` / `loadExecutingHabitId` / `clearExecutingHabitId`
+(adicionadas na E1.2, depois de o plano de migração ter sido escrito). No web elas usam
+`sessionStorage` — guardam qual hábito está em execução para a tela `/execute` se recuperar de um
+F5 sem perder o hábito nem o tempo decorrido, e somem sozinhas ao fechar a aba.
+
+React Native não tem equivalente de `sessionStorage` (não existe "aba"). `frontend/src/utils/
+storage.js` usa `AsyncStorage` para essa chave também — funcionalmente cobre o caso análogo (app
+morto pelo sistema e reaberto), mas com uma diferença real: no web o dado some ao fechar a aba, em
+`frontend/` ele sobrevive até `clearExecutingHabitId` ser chamado explicitamente. Ao portar M3.4/M3.5,
+não deixe de chamar `clearExecutingHabitId` nos mesmos pontos onde o web chama (junto com
+`clearExecutionState`, na conclusão ou desistência) — sem isso, um hábito já encerrado poderia ser
+"recuperado" numa sessão futura.
+
+## 401 na API: quem faz o quê
+
+`frontend-web/src/services/api.js` reage a 401 fazendo tudo inline no interceptor: dispara um toast de
+sessão expirada (via `window.dispatchEvent`, que não existe em RN), espera 2s, limpa o token e
+redireciona (`window.location.href`). `frontend/src/services/api.js` só expõe
+`setUnauthorizedHandler(fn)` e chama `fn()` no 401 — a sequência toast → espera de 2s →
+`clearAuthToken` → `router.replace('/login')` inteira é responsabilidade de quem registra o
+handler (`AuthContext`). Como a ordem de aninhamento dos providers é Auth > CurrentHabit >
+ExecutionResult > ThemeToggle > Toast, `AuthContext` fica FORA de `ToastProvider` e não pode
+chamar `useToast()` — por isso o toast sai por `DeviceEventEmitter.emit('tempoClaro:toast', ...)`,
+o mesmo canal que `ToastContext` escuta com `DeviceEventEmitter.addListener` — equivalente direto
+do par `window.dispatchEvent`/`window.addEventListener` do web (inclusive a string do evento e o
+formato `{ message, type, duration }` são os mesmos). Não simplifique para um redirect direto sem
+toast nem espera — isso mudaria o comportamento visível.
+
+## `BottomNav` como `tabBar` customizada
+
+`app/(tabs)/_layout.jsx` usa `tabBar={props => <BottomNav {...props} />}` — não itera
+`state.routes` genericamente, desenha os 4 itens fixos (Foco/Dados/Loja/Perfil) igual ao JSX
+hardcoded do `BottomNav.jsx` do web. `create` é uma `Tabs.Screen` real (destino do slide vazio do
+carrossel da Home) mas não tem ícone na barra — registrada com `options={{ href: null }}`. O botão
+Play é um `Pressable` desenhado por cima (`PlayButtonWrapper` com `translateY(-16)`), não uma
+`Tabs.Screen`, e usa `router.push('/pretask')` da raiz — não o `navigation` recebido via props, que
+só navega dentro do próprio grupo `(tabs)`.
+
+## `ThemeProvider` fica no `_layout.jsx` raiz
+
+A matriz de substituição já dizia isso (`GlobalStyles.js` → `expo-font` + `ThemeProvider` no
+`_layout.jsx` raiz), mas nenhuma tarefa de M1 tinha essa linha explícita no prompt — só ficou
+resolvido na M2.4, quando a `LoadingScreen` (o primeiro componente realmente montado dentro da
+árvore do `_layout.jsx`, não só compilado num harness solto) expôs a falta. `app/_layout.jsx` tem
+um componente `ThemedApp` entre o `ThemeToggleProvider` e o `ToastProvider` que lê `isDark` e
+escolhe `lightTheme`/`darkTheme` (`src/styles/theme.js`) para o `ThemeProvider` do
+`styled-components/native`. Qualquer tela ou componente com `props.theme` só funciona dentro dessa
+árvore — o pequeno `View` de fallback enquanto as fontes carregam (antes de qualquer provider
+montar) usa `lightTheme.bgPrimary` direto, sem `ThemeProvider`, porque não há como saber o tema do
+usuário antes do `AuthProvider`/`ThemeToggleProvider` sequer montarem.
+
+O `Toast` visual (M2.3) já está resolvido: `ToastContext.jsx` renderiza o cartão de verdade
+(fundo por tipo — `dangerStrong`/`successStrong`/`bgSurface` — e o prefixo literal `"V "`/`"X "`
+que o web usa no lugar de ícone), com `SlideInRight`/`FadeOut` do react-native-reanimated como
+`entering`/`exiting` do `Animated.View`. Isso trocou a mecânica de saída: o web marca `saindo:
+true` e só remove do array 300ms depois (pra dar tempo da classe `.fading` rodar); em RN a
+remoção do array é imediata e é o `exiting` do reanimated que segura a view na tela durante a
+animação de saída — duplicar os dois mecanismos somaria 600ms de saída em vez de 300ms.
+
+## `ThemeToggleContext`: sem leitura síncrona em RN
+
+No web, `tema` é lido de forma síncrona do `localStorage` no primeiro render (evita o flash: a cor
+certa já sai no primeiro frame). `AsyncStorage` não tem equivalente síncrono — `frontend/` inicia
+sempre com `tema = 'sistema'` e só troca para o valor persistido (se houver `'claro'`/`'escuro'`
+explícito) depois que a leitura assíncrona resolve, um frame ou dois depois do primeiro render.
+Diferença real e aceitável, não um bug a esconder.
+
+## Achado: `--warning-light` não existe no web
+
+`frontend-web/src/components/layout/LocalHeader/styles.js` referencia `var(--warning-light)` no fundo
+do `CoinsWrapper`. Essa custom property **não é definida em nenhum lugar** — nem em
+`theme.js` (que não tem chave `warningLight`), nem em `GlobalStyles.js` (que não reexporta essa
+variável). É bug real do app web hoje: o fundo do indicador de moedas é efetivamente transparente,
+não o amarelo pastel que a intenção do design sugere. Portado FIELMENTE
+(`props.theme.warningLight`, que é `undefined` — mesmo resultado prático: sem fundo). Não é escopo
+desta migração corrigir; **é achado para o `PLANO_EXECUCAO.md`**, não decisão tomada aqui.
+
+## Login: validação de formato de e-mail é nova
+
+`frontend-web/src/services/authService.js` (`validateLogin`/`validateRegister`) só checa campo vazio,
+nunca formato de e-mail. A tarefa da M3.1 pede explicitamente "email válido" — `frontend/src/pages/
+Login/validation.js` adiciona `yup.string().email(...)` de propósito, usando a MESMA mensagem que
+já existia para campo vazio (`"Campos de e-mail ou senha não podem estar vazios."` /
+`"Preencha todos os campos obrigatórios."`) já que o `authService.js` original nunca teve uma
+mensagem separada para "formato inválido". Isso é uma regra nova, pedida pela própria tarefa — não
+confundir com as suposições desatualizadas documentadas em outros pontos deste arquivo.
+
+Também mudou o mecanismo de exibição: o web mostra a mensagem de validação via `addToast` (um
+catch genérico em `useLogin.executeAuth`); `frontend/` usa erro inline por campo do
+`react-hook-form` (`errors.email.message` etc.), que é o padrão idiomático da lib pedida pela
+tarefa. O toast continua existindo, mas só para erro de API de verdade (rede, credencial errada) —
+não para validação local.
+
+## Editar hábito: `CurrentHabitContext`, não router params
+
+O web passa o hábito inteiro para editar via `location.state.editHabit`. Params de rota do
+expo-router são strings (mesmo problema já resolvido para `ExecutionResultContext` na M1.6: um
+`HabitoResponseDTO` inteiro, com `ocorrencias` aninhado, também "vira string na URL"). A Home
+resolve isso reaproveitando o `CurrentHabitContext` que já existe: `handleEditar` chama
+`setCurrentHabit(habit)` explicitamente (não confia só na sincronização do carrossel, que segue o
+item CENTRAL — o cartão editado pode não ser o centralizado ainda) e manda só um parâmetro simples
+(`?modo=editar`) pro `/create`. **A M3.11 deve ler `useCurrentHabit().currentHabit` quando
+`modo === 'editar'`**, não esperar um objeto vindo por `params`.
+
+## Home: avatar reativo é comportamento real, não suposição do plano
+
+A tarefa que trouxe esta tela dizia que `proximo_vencimento` "chega sempre nulo da API" e mandava
+portar as expressões do avatar todas caindo em "normal" de propósito. Isso já estava desatualizado
+quando a tarefa foi lida — ver a nota em `PARIDADE.md` (tabela C): `proximo_vencimento` é calculado
+de verdade desde antes desta sessão de migração, e as quatro expressões (`normal`/`preocupado`/
+`desesperado`/`falha`) funcionam. Portado o comportamento REAL de `Home/index.jsx` (que já inclui
+`isDiaProgramado`, day-de-folga etc.), não a suposição desatualizada do prompt.
+
+## `useTimer`: deadline absoluto, e um bug do web corrigido na leitura
+
+O web decrementa `timeLeft` a cada tick (`prev - 1`) e persiste o TRIO `{timeLeft, isOverachieving,
+overachieveTime}` num snapshot. `frontend/src/hooks/useTimer.js` guarda só um número — o DEADLINE
+absoluto (`Date.now() + segundos`) — e deriva `timeLeft`/`isOverachieving`/`overachieveTime`
+comparando esse deadline contra `Date.now()` a cada tick. Isso torna `pause`/`resume` triviais: o
+deadline não muda com pausa (é um instante fixo no tempo), só precisa ser persistido e relido —
+nenhuma aritmética de "quanto tempo passou" é necessária, ao contrário do `timeDiff` que o web
+calcula à mão.
+
+**Bug do web encontrado ao portar, não introduzido aqui:** o `resume()` original faz `return`
+antes de `setIsActive(true)` quando a tolerância de 1h expira — ou seja, **o cronômetro não
+reativa sozinho** depois de uma pausa longa demais; fica parado até alguém chamar `start()`
+de novo. Replicado fielmente (`resume` e a checagem de montagem só ativam quando a tolerância
+passa) — não é uma correção desta migração, é o comportamento real que já existia.
+
+**Corrida do mount (item 5 da tarefa):** RN pode matar o processo com o app em segundo plano e
+recriar tudo do zero quando reaberto — cenário sem equivalente direto no web (que só perde estado
+com F5 explícito, nunca sozinho). O primeiro `useEffect` do hook checa `AsyncStorage` ANTES de
+ativar o timer pela primeira vez; só depois desse `await` resolver é que o listener do `AppState` é
+registrado (via a flag `pronto`), pra não competir com essa checagem inicial.
+
+`navigator.vibrate([100, 50, 100])` virou `Haptics.notificationAsync(NotificationFeedbackType.
+Success)` — não é o mesmo padrão de vibração (a API do RN não expõe um padrão customizado tão
+diretamente), é a extensão semanticamente mais próxima ("algo importante aconteceu").
+
+## Stats: gráfico real, não o estado vazio que a tarefa presumia
+
+A tarefa desta tela partia da premissa de que `GET /stats/weekly` sempre devolvia `[]` e mandava
+"não implementar o endpoint, não inventar dado de exemplo". Isso já estava desatualizado (mesmo
+achado documentado em `PARIDADE.md`, tabela C, e em `CLAUDE.md` da M1.4): o `StatsService` agrega
+`historico_execucoes` de verdade. Portado o gráfico real com dados reais da API, não um estado
+vazio proposital — `recharts` virou `Rect`s do `react-native-svg` desenhados à mão (altura
+proporcional ao maior valor da semana, cor por `dia.parcial`), como a tarefa já pedia
+independente dessa suposição.
+
+## Store: `<select>` vira Modal, `LocalHeader` era import morto
+
+`frontend-web/src/pages/Store/index.jsx` importa `LocalHeader` mas nunca o renderiza — código morto no
+próprio web. Portado sem renderizar (paridade inclui código morto). O `<select>` HTML não tem
+equivalente nativo em RN e nenhuma lib de picker está na lista de dependências do plano — vira um
+`Pressable` mostrando o valor escolhido + `Modal` com a lista de hábitos ativos, mesmo padrão de
+modal já usado em `GiveUpModal`/configurações do Login/arquivar da Home.
+
+O texto da loja já não promete mais consumo automático de escudo (corrigido antes desta migração,
+ver `docs/PLANO_EXECUCAO.md` E1.7) — copiado como está, RF ainda não implementado no backend
+(`FechamentoDiarioJob`) fica registrado em `PARIDADE.md`.
+
+## CreateHabit: `<input type="time">` vira texto livre "HH:MM"
+
+Não existe nenhuma lib de seletor de hora/data na lista de dependências do plano (nem
+`@react-native-community/datetimepicker`, nem qualquer outra). Os campos de horário (Hora de
+Execução, Início/Fim de cada ocorrência) viram `TextInput` de texto livre com placeholder
+"23:59"/"08:00", `maxLength={5}`, aceitando o mesmo formato `"HH:mm"` que o backend já espera
+(`horaCurta` já convertia `"HH:mm:ss"` → `"HH:mm"` no web; aqui o valor digitado já nasce nesse
+formato, sem parsing extra). Sem validação de formato além da presença exigida por
+`validarFormulario` — um valor mal digitado (ex.: "25:99") passa e só falharia no backend. Se a
+falta de um seletor de hora de verdade incomodar na comparação visual da M5.4, é ponto pra
+`eas-cli`/`expo install` trazer uma lib depois, fora do escopo desta tarefa.
+
+Modo de edição: `useLocalSearchParams()` lê `modo=editar` (mandado pela Home, M3.2) e
+`useCurrentHabit().currentHabit` fornece o hábito — capturado com `useState(() => ...)` na
+montagem pra não reagir se o contexto mudar depois (o formulário trabalha sobre uma cópia local,
+igual o `formData` sempre foi).
+
+## Botão físico de voltar (M4.1)
+
+`BackHandler.addEventListener('hardwareBackPress', fn)` do react-native, `fn` retornando `true`
+bloqueia a navegação padrão. Em `/execute`, o handler chama `pause()` + abre o `GiveUpModal` (mesmo
+caminho do botão "Desistir"). Em `/success`/`/fail`, equivale ao botão VOLTAR/CONTINUAR
+(`router.replace('/home')`). Em `/login`, retorna `true` sem fazer nada — bloqueio puro. A razão de
+bloquear ali (em vez de, por exemplo, deixar o Android voltar pra tela anterior) é que
+`router.replace()` troca a rota atual, mas não necessariamente limpa TODO o histórico abaixo dela
+— se o `AuthGuard` redirecionou pro login a partir de um `logout()` no meio de uma pilha de
+navegação mais funda, ainda poderia sobrar uma tela autenticada mais embaixo no histórico. Bloquear
+o voltar no login garante o requisito ("voltar não retorna para telas autenticadas") sem depender
+de a pilha estar sempre rasa o bastante. `/home` (raiz das abas) não tem handler nenhum de
+propósito — o comportamento padrão do Android (fechar o app) já é o que a tarefa pede.
+
+## A regra "nenhum comentário" e as diretivas do ESLint
+
+A regra do projeto é **nenhum comentário explicativo no código** — em nenhum arquivo `.js`/`.jsx`.
+As 7 linhas `// eslint-disable-next-line react-hooks/exhaustive-deps` que existem em `frontend/src`
+são a única exceção, decidida explicitamente: não explicam nada, são **diretivas funcionais** que
+suprimem um aviso do linter em efeitos que devem rodar só na montagem. Removê-las traria os avisos
+de volta sem mudar comportamento algum — mas note que o projeto hoje não tem ESLint instalado, então
+essas linhas só passam a valer se/quando `npx expo lint` for configurado.
+
+Ficam em: `ThemeToggleContext.jsx`, `LanguageContext.jsx`, `Execution/index.jsx`,
+`Profile/index.jsx`, `Stats/index.jsx`, `Success/index.jsx`, `hooks/useTimer.js`.
+
+Isso **não** abre precedente para comentário explicativo.
+
+## Contrato de nomes da API: `snake_case`
+
+Os DTOs de resposta do backend declaram os campos em `snake_case`, não `camelCase`:
+
+```
+HabitoResponseDTO {
+  id, tipo_medida, meta_base, meta_frequencia_diaria, ...
+}
+```
+
+Isso é deliberado do lado do backend: o Jackson serializa pelo nome do campo, então o JSON chega
+ao cliente já no formato esperado, sem `@JsonProperty` nem conversão. **A correspondência entre os
+dois lados não é verificada por nenhum compilador.** Ao consumir ou montar um payload em
+`frontend/`, use exatamente os nomes em `snake_case` do DTO — um campo com nome levemente diferente
+(`fusoHorario` em vez de `fuso_horario`, por exemplo) não dá erro: o Jackson ignora o campo
+desconhecido, o endpoint responde `200 OK`, e a alteração simplesmente não acontece.

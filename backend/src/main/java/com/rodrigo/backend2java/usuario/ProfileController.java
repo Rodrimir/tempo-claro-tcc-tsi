@@ -3,7 +3,6 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
-// @audit-ok [Profile(1) — controller de perfil: GET /api/me e PUT /api/profile]
 @RestController
 @RequestMapping("/api")
 public class ProfileController {
@@ -14,10 +13,6 @@ public class ProfileController {
         this.usuarioService = usuarioService;
     }
 
-    // @audit-ok [E1.5 (item 1) — devolve id, nome, email, fuso_horario e
-    // preferencia_idioma do usuário autenticado. Existe porque a resposta de
-    // login só trazia nome/email — o Perfil não tinha de onde ler o fuso salvo
-    // sem essa consulta.]
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponseDTO> getMe() {
         final var emailContexto = SecurityContextHolder.getContext().getAuthentication().getName();

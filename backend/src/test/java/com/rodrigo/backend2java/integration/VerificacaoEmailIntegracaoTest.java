@@ -19,11 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * PLANO_REESTRUTURACAO.md, C / T.2 — cobre os casos que
- * BaseAPIIntegracaoTest.autenticarUsuarioDeTeste não exercita porque ali o
- * caminho é sempre o feliz (código certo, na hora certa, uma vez só).
- */
 class VerificacaoEmailIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired
@@ -37,10 +32,6 @@ class VerificacaoEmailIntegracaoTest extends BaseAPIIntegracaoTest {
         return email;
     }
 
-    // CodigoVerificacaoService.gerarCodigo recusa reenvio antes de 60s
-    // (PLANO_REESTRUTURACAO.md, B.2). Testes que chamam resend-code logo
-    // depois de registrar() precisam simular esse tempo já ter passado, sem
-    // de fato esperar 60s de verdade a cada execução da suíte.
     private void tornarReenvioLiberado(final String email, final TipoCodigo tipo) {
         final var ultimo = codigoVerificacaoRepository.findFirstByEmailAndTipoOrderByCriadoEmDesc(email, tipo.name())
                 .orElseThrow();

@@ -6,14 +6,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-/**
- * PLANO_REESTRUTURACAO.md, B/C — implementação real, via Gmail SMTP.
- * {@code @Async} (habilitado por {@code @EnableAsync} em BackEndIiApplication):
- * quem chama {@link #enviarCodigo} não espera o SMTP responder.
- *
- * <p>{@code @Profile("!test")} deixa o perfil de teste livre para usar
- * FakeEmailService (src/test) em vez de bater num servidor SMTP de verdade.
- */
 @Service
 @Profile("!test")
 public class SmtpEmailService implements EmailService {

@@ -10,14 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-/**
- * Calibração assistida de metas (RF20/RNF04).
- *
- * <p>Duas rotas: uma devolve o questionário (o app não conhece nenhuma pergunta por
- * nome — só sabe desenhar os cinco tipos de resposta), a outra recebe as respostas
- * e devolve a sugestão. Nenhuma das duas cria hábito: quem cria é
- * {@code POST /habits}, levando o {@code calibracao_id} junto.
- */
 @RestController
 @RequestMapping("/api/calibration")
 public class CalibracaoController {

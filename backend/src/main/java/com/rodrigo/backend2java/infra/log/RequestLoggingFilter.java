@@ -19,32 +19,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Filtro que imprime cada requisição no console de forma estruturada:
- * método + path, headers, body e status da resposta.
- *
- * Fica na borda externa da cadeia de filtros ({@code HIGHEST_PRECEDENCE}) para
- * capturar o status final, mesmo depois do tratamento de exceções.
- *
- * Para desligar (ex.: produção) defina em application.properties:
- * {@code app.request-logging.enabled=false}
- */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-// matchIfMissing = false: este filtro imprime o CORPO das requisições, o que inclui
-// as senhas em claro de /auth/login, /auth/register e /profile. Ficava ligado por
-// omissão em todos os perfis, produção inclusive. Agora só liga onde a propriedade
-// está explicitamente em true (o perfil default, de desenvolvimento).
 @ConditionalOnProperty(name = "app.request-logging.enabled", havingValue = "true", matchIfMissing = false)
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
-    /** Body maior que isso é truncado para não inundar o console. */
     private static final int MAX_BODY_LENGTH = 10_000;
 
-    /** Headers cujo valor é sensível — mostramos só o começo. */
     private static final List<String> SENSITIVE_HEADERS = List.of("authorization", "cookie", "set-cookie");
 
-    // Cores ANSI
     private static final String RESET = "[0m";
     private static final String BOLD = "[1m";
     private static final String DIM = "[2m";
@@ -70,7 +53,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         } finally {
             long durationMs = System.currentTimeMillis() - start;
             log(wrappedRequest, wrappedResponse, durationMs);
-            // Sem isto o corpo cacheado nunca chega ao cliente
             wrappedResponse.copyBodyToResponse();
         }
     }
@@ -90,19 +72,16 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         StringBuilder sb = new StringBuilder("\n");
         sb.append(GRAY).append("┌──────────────────────────────────────────────────────────────").append(RESET).append("\n");
 
-        // Linha principal: método + path
         sb.append(GRAY).append("│ ").append(RESET)
           .append(methodColor(method)).append(BOLD).append(method).append(RESET)
           .append(" ").append(CYAN).append(path).append(RESET).append("\n");
 
-        // Status + duração
         sb.append(GRAY).append("│ ").append(RESET)
           .append(DIM).append("status: ").append(RESET)
           .append(statusColor(status)).append(BOLD).append(status).append(" ").append(reasonPhrase(status)).append(RESET)
           .append(GRAY).append("  •  ").append(RESET)
           .append(DIM).append(durationMs).append("ms").append(RESET).append("\n");
 
-        // Headers
         sb.append(GRAY).append("├─ ").append(BLUE).append("headers").append(RESET).append("\n");
         List<String> headerNames = Collections.list(request.getHeaderNames());
         if (headerNames.isEmpty()) {
@@ -120,7 +99,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             }
         }
 
-        // Body
         sb.append(GRAY).append("├─ ").append(BLUE).append("body").append(RESET).append("\n");
         String body = readBody(request);
         if (!StringUtils.hasText(body)) {
@@ -149,10 +127,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         return body;
     }
 
-    /**
-     * Formata JSON com indentação de forma leve, sem dependências externas.
-     * Se não parecer JSON, devolve o texto cru.
-     */
     private String prettyJson(String body, String contentType) {
         boolean looksJson = (contentType != null && contentType.contains("json"))
                 || body.startsWith("{") || body.startsWith("[");
@@ -191,7 +165,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                     while (j < body.length() && Character.isWhitespace(body.charAt(j))) {
                         j++;
                     }
-                    // objeto/array vazio: mantém na mesma linha ({} ou [])
                     if (j < body.length() && (body.charAt(j) == '}' || body.charAt(j) == ']')) {
                         out.append(body.charAt(j));
                         i = j;
@@ -207,7 +180,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 case ',' -> out.append(c).append('\n').append("  ".repeat(indent));
                 case ':' -> out.append(": ");
                 case ' ', '\n', '\r', '\t' -> {
-                    // ignora espaços já existentes fora de strings
                 }
                 default -> out.append(c);
             }

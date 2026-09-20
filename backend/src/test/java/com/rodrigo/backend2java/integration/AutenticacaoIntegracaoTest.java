@@ -24,9 +24,6 @@ class AutenticacaoIntegracaoTest extends BaseAPIIntegracaoTest {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // PLANO_REESTRUTURACAO.md, C — login só funciona depois do e-mail
-    // verificado (Usuario.isEnabled()); os testes de login legítimo/senha
-    // errada precisam de uma conta já confirmada, não recém-cadastrada.
     private void registrarEVerificar(final String email, final String senha, final String nome) {
         post("/api/auth/register",
                 RegisterRequestDTO.builder().nome(nome).email(email).password(senha).build(),
@@ -57,7 +54,6 @@ class AutenticacaoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertNotNull(usuarioNoBanco.getSenhaHash());
         assertTrue(usuarioNoBanco.getSenhaHash().startsWith("$2"));
         assertEquals("Novo Usuário", usuarioNoBanco.getNome());
-        // PLANO_REESTRUTURACAO.md, C — nasce não verificado; só verify-email muda isto.
         assertEquals(false, usuarioNoBanco.isEmailVerificado());
     }
 
@@ -73,7 +69,6 @@ class AutenticacaoIntegracaoTest extends BaseAPIIntegracaoTest {
 
         final var segundaTentativa = post("/api/auth/register", request, MessageResponseDTO.class);
 
-        // §5.1: e-mail já cadastrado é regra de negócio (422), não erro de formato.
         assertEquals(422, segundaTentativa.getStatusCode().value());
         assertEquals(1, usuarioRepository.findByEmail(email).stream().count());
     }

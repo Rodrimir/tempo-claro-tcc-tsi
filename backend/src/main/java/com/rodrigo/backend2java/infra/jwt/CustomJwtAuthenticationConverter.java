@@ -8,14 +8,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
-/**
- * Transforma o JWT validado na autenticação da requisição. O subject do token é o
- * e-mail do usuário, e é ele que todos os services recebem como {@code emailContexto}.
- *
- * <p>Busca o usuário no banco a cada requisição autenticada de propósito: é o que
- * faz uma conta apagada parar de valer imediatamente, em vez de continuar aceita até
- * o token expirar (24h).
- */
 @Component
 public class CustomJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 

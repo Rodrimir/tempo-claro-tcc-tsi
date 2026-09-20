@@ -42,11 +42,6 @@ public abstract class BaseAPIIntegracaoTest {
     protected UUID idUsuarioTeste;
     protected String senhaUsuarioTeste = "Senha@123";
 
-    // PLANO_REESTRUTURACAO.md, C — desde que o cadastro passou a exigir
-    // verificação de e-mail (@see AuthService.cadastrar), toda suíte precisa
-    // andar o fluxo completo register -> pegar o código (via FakeEmailService,
-    // nunca SMTP de verdade) -> verify-email para só então ter um token. Isto
-    // faz cada teste da suíte também exercitar o fluxo real de verificação.
     @BeforeEach
     void autenticarUsuarioDeTeste() {
         emailUsuarioTeste = "teste-" + UUID.randomUUID() + "@tempoclaro.test";

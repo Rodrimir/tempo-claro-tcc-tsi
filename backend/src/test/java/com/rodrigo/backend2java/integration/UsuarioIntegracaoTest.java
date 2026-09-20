@@ -65,8 +65,6 @@ class UsuarioIntegracaoTest extends BaseAPIIntegracaoTest {
                 .nova_senha("NovaSenha@123")
                 .build();
         final var respostaSenhaErrada = put("/api/profile", comSenhaErrada, Object.class);
-        // 422, e não 401: a sessão continua válida. Se fosse 401, o app trataria
-        // como token expirado e derrubaria o usuário por um erro de digitação.
         assertEquals(422, respostaSenhaErrada.getStatusCode().value());
 
         final var antes = usuarioRepository.findById(idUsuarioTeste).orElseThrow();

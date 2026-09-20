@@ -18,15 +18,6 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-/**
- * Uma rodada do questionário "Medir Dificuldade" (RF20/RNF04) e a sugestão que ela
- * produziu.
- *
- * <p>Pertence ao <b>usuário</b>, não ao hábito: a calibração é o Passo 2 do
- * assistente e acontece antes de o hábito existir. {@code habitoId} só é preenchido
- * se a sugestão virar um hábito de verdade — e é o que permite, depois, comparar
- * "o que foi sugerido" com "o que a pessoa de fato manteve" para afinar os moldes.
- */
 @Entity
 @Table(name = "calibracoes")
 @NoArgsConstructor
@@ -50,7 +41,6 @@ public class Calibracao {
     @Column(name = "cab_categoria")
     private String categoria;
 
-    /** Null até a sugestão ser aceita e virar hábito. */
     @Column(name = "cab_habito_id")
     private UUID habitoId;
 
@@ -58,12 +48,10 @@ public class Calibracao {
     @JoinColumn(name = "cab_habito_id", insertable = false, updatable = false)
     private Habito habito;
 
-    /** Versão do catálogo usada — permite reinterpretar respostas antigas. */
     @Builder.Default
     @Column(name = "cab_versao_catalogo")
     private Integer versaoCatalogo = 1;
 
-    /** Soma dos pesos das respostas: o "ranking" que escolhe a faixa de meta. */
     @Builder.Default
     @Column(name = "cab_pontuacao")
     private Integer pontuacao = 0;

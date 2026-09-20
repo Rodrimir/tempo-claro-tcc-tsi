@@ -21,9 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Calibração assistida de metas (RF20/RNF04).
- */
 class CalibracaoIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired
@@ -48,7 +45,6 @@ class CalibracaoIntegracaoTest extends BaseAPIIntegracaoTest {
                 .map(QuestionarioResponseDTO.PerguntaDTO::codigo).toList();
         assertTrue(codigos.containsAll(List.of("DIAS_SEMANA", "VEZES_AO_DIA", "HORARIOS", "RITMO")));
 
-        // O app desenha pelo tipo, não pelo código: todo tipo precisa vir preenchido.
         questionario.perguntas().forEach(pergunta -> assertNotNull(pergunta.tipo()));
     }
 
@@ -60,7 +56,6 @@ class CalibracaoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode());
     }
 
-    /** Quem nunca praticou e tem pouco tempo começa no degrau mais baixo. */
     @Test
     void iniciante_recebeMetaMinima() {
         final var sugestao = calibrar("EXERCICIO", List.of(
@@ -79,10 +74,6 @@ class CalibracaoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(14, sugestao.dias_incremento());
     }
 
-    /**
-     * A trava do teto: mesmo pontuando alto em tudo o mais, quem declarou 10
-     * minutos disponíveis não recebe sugestão de 30 (3ª lei de Clear).
-     */
     @Test
     void tetoDeclaradoPelaResposta_limitaAMetaSugerida() {
         final var sugestao = calibrar("EXERCICIO", List.of(

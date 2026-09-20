@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Tempo Claro — API",
-    "description": "Coleção da API do Tempo Claro, alinhada ao backend v3.0.\n\nO fluxo sugerido é rodar as pastas em ordem: 01 cadastra e guarda o token, 02 calibra, 03 cria o hábito com a sugestão aceita, 04 executa, 05 e 06 consultam.\n\nVariáveis `token`, `habitoId` e `calibracaoId` são preenchidas automaticamente pelos testes de cada requisição — não precisa copiar nada à mão.\n\nIMPORTANTE: a execução NÃO credita moedas. O crédito é do dia inteiro e acontece no fechamento, disparado pelo job da virada (de hora em hora). A resposta da execução devolve `moedas_previstas_hoje`, que é previsão, e `moedas_totais`, que é o saldo já confirmado.",
+    "description": "Coleção da API do Tempo Claro, alinhada ao backend v3.0.\n\nO fluxo sugerido é rodar as pastas em ordem: 01 cadastra e guarda o token, 02 calibra, 03 cria o hábito com a sugestão aceita, 04 executa, 05 e 06 consultam.\n\nVariáveis `token`, `habitoId` e `calibracaoId` são preenchidas automaticamente pelos testes de cada requisição — não precisa copiar nada à mão.\n\nIMPORTANTE: a execução credita moedas NA HORA (RF11 revisado) — 100/150/200 moedas ao cruzar 100%/120%/150% da meta do dia, sem repetir o mesmo patamar em execuções seguintes. A resposta devolve `moedas_ganhas_agora` (o que ESTA conclusão pagou) e `moedas_totais` (o saldo já com o crédito aplicado). Ofensiva e nível continuam só se movendo no fechamento, disparado pelo job da virada (de hora em hora).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -562,7 +562,7 @@
                 "executions"
               ]
             },
-            "description": "Sem 'tipo': o servidor decide padrão vs. extra comparando com o alvo da ocorrência (RF22). Acumula o realizado; não credita moeda.",
+            "description": "Sem 'tipo': o servidor decide padrão vs. extra comparando com o alvo da ocorrência (RF22). Acumula o realizado e credita moeda na hora, se o total do dia cruzar um patamar novo.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"execution_token\": \"{{$guid}}\",\n  \"valor_realizado\": 700\n}",
@@ -582,7 +582,7 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "const b = pm.response.json();",
-                  "pm.test('nao creditou', () => pm.expect(b.moedas_previstas_hoje).to.be.a('number'));"
+                  "pm.test('creditou na hora', () => pm.expect(b.moedas_ganhas_agora).to.be.a('number'));"
                 ]
               }
             }

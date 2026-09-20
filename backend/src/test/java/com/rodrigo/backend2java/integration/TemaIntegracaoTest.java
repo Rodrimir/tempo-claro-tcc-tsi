@@ -9,11 +9,6 @@ import com.rodrigo.backend2java.usuario.UsuarioRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * PLANO_REESTRUTURACAO.md, G — "dinamico" precisa ser aceito pelos dois lados
- * (constraint do banco E validação em UsuarioService); "roxo" continua
- * recusado nos dois.
- */
 class TemaIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired

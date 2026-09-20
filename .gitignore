@@ -4,9 +4,7 @@
 
 # Dependências e builds do app
 node_modules/
-/mobile/.expo/
-/mobile/android/app/build/
-/frontend/dist/
+/frontend/.expo/
 /frontend/android/app/build/
 /docs
 /.vscode

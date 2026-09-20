@@ -4,12 +4,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-/**
- * PLANO_REESTRUTURACAO.md, T.2 — substitui SmtpEmailService no perfil de
- * teste: guarda o último código por (email, tipo) em memória, sem SMTP
- * nenhum. Roda síncrono (sem @Async) de propósito — quando POST
- * /auth/register devolve, o código já está aqui para o teste ler.
- */
 @Service
 @Profile("test")
 public class FakeEmailService implements EmailService {

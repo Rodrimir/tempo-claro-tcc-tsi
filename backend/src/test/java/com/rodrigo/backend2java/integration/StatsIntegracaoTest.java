@@ -20,12 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Acompanhamento de desempenho (RF17, F16–F20), agora mensal.
- */
 class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
 
-    /** O mesmo fuso que o usuário de teste recebe no cadastro. */
     private static final ZoneId FUSO_PADRAO = ZoneId.of("America/Sao_Paulo");
 
     private static final int DIAS_JANELA = 30;
@@ -95,7 +91,6 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(1, resposta.getBody().dias_com_meta_cumprida());
     }
 
-    /** F18: os três maiores dias do mês, com data — e sem exigir meta cumprida. */
     @Test
     void recordes_trazemOsTresMaioresDiasComDataIncluindoDiaAbaixoDaMeta() {
         final var habitoId = criarHabito();
@@ -114,12 +109,10 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(hoje.minusDays(2), recordes.get(0).data());
         assertEquals(2500, recordes.get(1).valor());
         assertEquals(hoje.minusDays(8), recordes.get(1).data());
-        // 1800 está abaixo da meta de 2000 e ainda assim é o terceiro maior dia.
         assertEquals(1800, recordes.get(2).valor());
         assertEquals(hoje.minusDays(5), recordes.get(2).data());
     }
 
-    /** RF07/RF13: o dia se fecha pelo total, não pela contagem de execuções. */
     @Test
     void metaCumprida_olhaOTotalDoDiaSomandoOcorrencias() {
         final var habitoId = criarHabito();
@@ -136,12 +129,6 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
         assertTrue(diaDeOntem.meta_cumprida());
     }
 
-    /**
-     * Um hábito de segunda a sexta não pode ser penalizado pelos fins de semana: o
-     * fechamento nem avalia a meta neles. Antes desta correção, a constância dividia
-     * por 30 e travava em ~71% mesmo sem uma falha sequer — a tela de estatísticas
-     * contradizia a ofensiva sobre a mesma semana.
-     */
     @Test
     void constancia_ignoraOsDiasForaDaFrequenciaSemanal() {
         final var request = HabitoRequestDTO.builder()

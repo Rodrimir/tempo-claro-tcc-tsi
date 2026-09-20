@@ -11,11 +11,6 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-// @audit-ok [PLANO_REESTRUTURACAO.md, B/C — uma linha por código emitido, para
-// os dois fluxos (cod_tipo diferencia). Nunca é update-in-place de um código
-// "atual": pedir um novo INSERE outra linha e invalida a anterior (ver
-// CodigoVerificacaoService.invalidarAnteriores) — histórico completo fica no
-// banco, o que também ajuda a auditar tentativas de força bruta.]
 @Entity
 @Table(name = "codigos_verificacao")
 @NoArgsConstructor

@@ -36,10 +36,6 @@ public class HistoricoExecucao {
     @JoinColumn(name = "his_habito_id", insertable = false, updatable = false)
     private Habito habito;
 
-    // Ocorrência que esta execução cobriu. É o que permite ratear as moedas por
-    // sub-atividade executada no fechamento do dia (RF12). ON DELETE SET NULL:
-    // reconfigurar o hábito apaga e recria as sub_atividades, e o histórico
-    // sobrevive a isso com a referência zerada.
     @Column(name = "his_sub_atividade_id")
     private UUID subAtividadeId;
 
@@ -50,10 +46,6 @@ public class HistoricoExecucao {
     @Column(name = "his_data_hora")
     private OffsetDateTime dataHoraExecucao = OffsetDateTime.now();
 
-    // Data no fuso do DONO do hábito, nunca a da JVM (que é UTC no Render: às
-    // 21h no Brasil a execução cairia no dia seguinte e deslocaria o gráfico).
-    // Quem grava resolve o fuso com ZonaUsuario.resolver e passa o valor; o
-    // default existe só porque a coluna é NOT NULL sem DEFAULT no banco.
     @Builder.Default
     @Column(name = "his_data_local")
     private LocalDate dataLocal = LocalDate.now();

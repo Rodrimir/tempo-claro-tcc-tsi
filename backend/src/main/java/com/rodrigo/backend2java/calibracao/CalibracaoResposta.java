@@ -13,10 +13,6 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-// Tabela calibracao_respostas — a resposta crua de cada pergunta, guardada pelo
-// CÓDIGO da pergunta (DIAS_SEMANA, EXPERIENCIA_PREVIA...), nunca pelo enunciado.
-// É o que permite recalcular uma sugestão antiga quando os moldes do catálogo
-// mudarem, em vez de só guardar o resultado já mastigado.
 @Entity
 @Table(name = "calibracao_respostas")
 @NoArgsConstructor

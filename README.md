@@ -54,18 +54,17 @@ hospedada separadamente:
 | Camada | Stack | Hospedagem | URL |
 |---|---|---|---|
 | **Frontend web** | React 19 + Vite 8 + styled-components 6 + Capacitor 8 (Android) | Vercel | — |
-| **App Android nativo** (`mobile/`) | React Native 0.86 + Expo SDK 57 + expo-router + styled-components/native | Local (build gerado, ainda não distribuído) | — |
+| **App Android nativo** (`frontend/`, ex-`mobile/`) | React Native 0.86 + Expo SDK 57 + expo-router + styled-components/native | Local (build gerado, ainda não distribuído) | — |
 | **Backend** | Java 17 + **Spring Boot 4.1.0** + Maven + Docker | Render | `https://tempo-claro-tcc-tsi.onrender.com/api` |
 | **Banco** | PostgreSQL 16 | Neon (AWS `sa-east-1`) | — |
 
-**Por que existem duas pastas de frontend.** `frontend/` é o app web original (React + Vite),
-empacotado em Android via Capacitor — um WebView, não um app nativo (ver §11.5). `mobile/` é a
-mesma camada de apresentação **reescrita do zero em React Native + Expo**, consumindo a mesma API
-REST sem nenhuma alteração no backend. A migração (`PLANO_MIGRACAO_EXPO.md`) portou as dez telas,
-os componentes comuns e o cronômetro com paridade de comportamento — código completo (M0 a M5.2),
-mas o teste em aparelho físico e a comparação lado a lado com o app web (M5.3/M5.4) ainda estão
-pendentes, então `mobile/` não substituiu `frontend/` como versão de referência. Detalhes de
-diretórios, matriz de substituição e limitações preservadas de propósito em `mobile/README.md`.
+**Por que existiam duas pastas de frontend.** `frontend-web/` era o app web original (React +
+Vite), empacotado em Android via Capacitor — um WebView, não um app nativo (ver §11.5). `frontend/`
+é a mesma camada de apresentação **reescrita do zero em React Native + Expo**, consumindo a mesma
+API REST sem nenhuma alteração no backend. A migração (`PLANO_MIGRACAO_EXPO.md`) portou as dez
+telas, os componentes comuns e o cronômetro com paridade de comportamento, e `frontend-web/` foi
+removido do repositório após a migração terminar. Detalhes de diretórios, matriz de substituição e
+limitações preservadas de propósito em `frontend/README.md`.
 
 ### Decisões de arquitetura
 
@@ -126,8 +125,7 @@ tempo-claro-tcc-tsi/
 ├── .gitignore                       Artefatos de build, node_modules e arquivos .env
 ├── .vscode/settings.json            Configura a extensão Inline Bookmarks (exibe os @audit-ok)
 ├── backend/                         API REST em Spring Boot
-├── frontend/                        Aplicação React + wrapper Android (Capacitor)
-├── mobile/                          Aplicativo React Native + Expo
+├── frontend/                        Aplicativo React Native + Expo
 ├── PLANO_MIGRACAO_EXPO.md           Plano da migração do WebView para o app nativo
 └── PLANO_CORRECOES_EXPO.md          Correções pendentes do app nativo
 ```
@@ -215,7 +213,7 @@ técnica.
 | `application-prod.properties` | Perfil `prod`: Postgres da Neon com `sslmode=require`, porta `${PORT:8080}`. |
 | `Postman/Tempo Claro.json` | Coleção Postman com 9 pastas cobrindo todos os endpoints (ver §10). |
 
-### 3.2. `frontend/`
+### 3.2. `frontend-web/` (legado, removido)
 
 #### Configuração e build
 
@@ -283,7 +281,7 @@ técnica.
 └── assets/                          sol_flutuando.webp · lua_flutuando.png · gotinha/
 ```
 
-#### `frontend/android/` — o wrapper Capacitor
+#### `frontend-web/android/` — o wrapper Capacitor
 
 Projeto Gradle Android gerado por `npx cap add android`. Os arquivos que importam:
 
@@ -483,21 +481,24 @@ Na prática, use sempre `TempoClaro` com o Postgres subido pela Opção A acima.
 ```bash
 cd frontend
 npm install
-npm run dev                  # http://localhost:5173
+npx expo start                # abre o Metro bundler / Expo dev client
 ```
 
-> **Atenção:** a `baseURL` do axios está fixa na API de **produção** (Render). Rodar `npm run dev`
-> não aponta automaticamente para o backend local — é preciso editar
+> **Atenção:** a `baseURL` do axios está fixa na API de **produção** (Render). Rodar `npx expo
+> start` não aponta automaticamente para o backend local — é preciso editar
 > `frontend/src/services/api.js`. Ver [§11.4](#114-qualidade-e-infraestrutura).
 
-### Gerar o APK
+### Gerar o build Android (EAS)
 
 ```bash
 cd frontend
-npm run build                # gera dist/
-npx cap sync android         # copia dist/ para o projeto Android
-npx cap open android         # abre no Android Studio para gerar o APK
+eas login                     # conta EAS/Expo do projeto
+eas build -p android --profile preview       # APK interno, para teste em aparelho
+eas build -p android --profile production    # AAB assinado, para a Play Store
 ```
+
+Os três profiles ficam em `frontend/eas.json`: `development` (dev client), `preview` (APK interno)
+e `production` (App Bundle `.aab`, credenciais de assinatura geridas pela EAS).
 
 ---
 
@@ -538,7 +539,7 @@ mudou, só quem o gera e valida.
 Requisição sem o cabeçalho, com token inválido ou com token expirado recebe **401** com o header
 `WWW-Authenticate`. Antes da migração (versão em `JdbcTemplate`) esses três casos devolviam
 **403**, porque a cadeia de segurança não registrava um `AuthenticationEntryPoint` — e como os
-interceptores do `frontend/` e do `mobile/` só tratam 401, um token expirado não deslogava
+interceptores do `frontend-web/` e do `frontend/` só tratam 401, um token expirado não deslogava
 ninguém, só travava a tela. Isso foi corrigido, não é regressão.
 
 ### Códigos de erro
@@ -1911,15 +1912,15 @@ pretendia que fosse.
 
 ### 11.5. Sobre a arquitetura mobile
 
-O `frontend/` empacotado pelo Capacitor é um **WebView**, não um aplicativo nativo — e essa
-limitação motivou a migração para `mobile/` (React Native + Expo, `PLANO_MIGRACAO_EXPO.md`). Esta
+O `frontend-web/` empacotado pelo Capacitor era um **WebView**, não um aplicativo nativo — e essa
+limitação motivou a migração para `frontend/` (React Native + Expo, `PLANO_MIGRACAO_EXPO.md`). Esta
 seção descrevia, numa versão anterior, os dois problemas que essa arquitetura WebView carregava.
 Com a migração feita (código completo, teste físico ainda pendente — ver §2), o retrato muda para
 cada um dos dois pontos:
 
-- **Cronômetro em segundo plano — resolvido no app nativo.** O `frontend/` (WebView) compensa o
-  tempo decorrido escutando `visibilitychange`, o que só funciona enquanto o sistema mantém o
-  WebView vivo. O `mobile/` reescreveu `useTimer` sobre um **deadline absoluto** (`Date.now() +
+- **Cronômetro em segundo plano — resolvido no app nativo.** O `frontend-web/` (WebView) compensava
+  o tempo decorrido escutando `visibilitychange`, o que só funciona enquanto o sistema mantém o
+  WebView vivo. O `frontend/` reescreveu `useTimer` sobre um **deadline absoluto** (`Date.now() +
   segundos`, não mais um decremento por tick) com `AppState` do React Native no lugar de
   `visibilitychange`: `pause`/`resume` só persistem e releem esse instante fixo, sem aritmética de
   "quanto tempo passou". Cobre inclusive o caso que o WebView não tinha como tratar — o processo
@@ -1928,8 +1929,8 @@ cada um dos dois pontos:
 - **Notificações locais — ainda não implementadas, mas agora possíveis.** A migração **remove a
   barreira técnica** (o `capacitor.plugins.json` vazio do WebView não dava acesso a nenhum recurso
   nativo; o Expo tem `expo-notifications` disponível) — mas nenhuma tarefa da migração implementou
-  notificações de fato. O app `mobile/` continua sem avisar o usuário sobre um prazo com o app
-  fechado, exatamente como o `frontend/`. É trabalho futuro genuíno, não mais bloqueado por
+  notificações de fato. O app `frontend/` continua sem avisar o usuário sobre um prazo com o app
+  fechado, exatamente como o `frontend-web/` fazia. É trabalho futuro genuíno, não mais bloqueado por
   arquitetura.
 
 O backend não precisou de nenhuma alteração para viabilizar isso — é REST puro e agnóstico de

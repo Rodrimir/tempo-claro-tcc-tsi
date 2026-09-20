@@ -5,21 +5,11 @@ import java.util.UUID;
 import lombok.Builder;
 import java.time.LocalTime;
 
-/**
- * A sugestão calculada a partir das respostas.
- *
- * <p>{@code sugestao} traz exatamente os campos que o Passo 3 do assistente
- * preencheria à mão — aceitar a sugestão é só pré-preencher aquele formulário, que
- * continua editável. Nada aqui cria hábito nenhum: quem cria é
- * {@code POST /habits}, levando o {@code calibracao_id} junto.
- */
 @Builder
 public record CalibracaoResponseDTO(
         UUID calibracao_id,
-        /** Soma dos pesos das respostas — devolvida para a tela poder explicar. */
         Integer pontuacao,
         SugestaoDTO sugestao,
-        /** Frase em linguagem não punitiva explicando de onde saiu a sugestão. */
         String explicacao) {
 
     @Builder

@@ -93,7 +93,6 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
                 .tipo_medida("TEMPO").meta_frequencia_diaria(1)
                 .horario_agendado(LocalTime.of(7, 0)).build(), MessageResponseDTO.class);
 
-        // §5.1: o limite de RF03 é regra de negócio (422), não erro de validação (400).
         assertEquals(422, terceiro.getStatusCode().value());
         assertEquals(2, habitoRepository.findAllByUsuarioIdAndAtivoTrue(idUsuarioTeste).size());
     }

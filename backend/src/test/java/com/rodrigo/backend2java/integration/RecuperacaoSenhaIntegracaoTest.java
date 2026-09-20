@@ -22,9 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * PLANO_REESTRUTURACAO.md, B / T.2.
- */
 class RecuperacaoSenhaIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired
@@ -55,9 +52,6 @@ class RecuperacaoSenhaIntegracaoTest extends BaseAPIIntegracaoTest {
         assertNotNull(fakeEmailService.ultimoCodigo(email, TipoCodigo.RECUPERACAO_SENHA));
     }
 
-    // Anti-enumeração: e-mail que não existe não pode ser diferenciável de um
-    // que existe pela resposta — ambos são 200 com a mesma mensagem, e nenhum
-    // código é gerado por baixo para quem não tem conta.
     @Test
     void esqueciSenha_paraEmailInexistente_tambemDevolve200SemGerarCodigo() {
         final var emailInexistente = "inexistente-" + UUID.randomUUID() + "@tempoclaro.test";
@@ -70,11 +64,6 @@ class RecuperacaoSenhaIntegracaoTest extends BaseAPIIntegracaoTest {
         assertNull(fakeEmailService.ultimoCodigo(emailInexistente, TipoCodigo.RECUPERACAO_SENHA));
     }
 
-    // O throttle de 60s (CodigoVerificacaoService.gerarCodigo) não pode vazar
-    // como 422 aqui: AuthService.esqueciSenha o engole de propósito, senão uma
-    // segunda chamada rápida no MESMO e-mail devolveria uma resposta diferente
-    // da primeira — e essa diferença é exatamente o que a anti-enumeração
-    // proíbe.
     @Test
     void esqueciSenha_chamadoDuasVezesRapido_continuaDevolvendo200() {
         final var email = registrarEVerificar();
@@ -87,10 +76,6 @@ class RecuperacaoSenhaIntegracaoTest extends BaseAPIIntegracaoTest {
         assertTrue(segunda.getBody().success());
     }
 
-    // resend-code (verificação de e-mail, não recuperação de senha) não tem o
-    // mesmo motivo de anti-enumeração — aqui o throttle deve aparecer como 422
-    // de verdade, para o app mostrar "aguarde um pouco" em vez de reenviar
-    // e-mail em rajada.
     @Test
     void reenviarCodigoDeVerificacao_chamadoDuasVezesRapido_segundaVezRetorna422() {
         final var email = "throttle-" + UUID.randomUUID() + "@tempoclaro.test";
@@ -152,10 +137,6 @@ class RecuperacaoSenhaIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(400, resposta.getStatusCode().value());
     }
 
-    // Guarda a ordem de validação em AuthService.redefinirSenha: a senha fraca
-    // precisa ser rejeitada ANTES de consumir o código, senão este teste
-    // falharia na segunda chamada com "código incorreto" (já teria sido
-    // marcado como usado pela tentativa anterior).
     @Test
     void redefinirSenha_comSenhaFraca_naoConsomeOCodigo() {
         final var email = registrarEVerificar();
@@ -175,12 +156,6 @@ class RecuperacaoSenhaIntegracaoTest extends BaseAPIIntegracaoTest {
         assertNotNull(segundaTentativa.getBody().token());
     }
 
-    // Uma conta que nunca terminou de verificar o e-mail, mas recupera a senha
-    // com sucesso, provou posse da caixa de entrada do mesmo jeito que
-    // verify-email provaria — AuthService.redefinirSenha marca
-    // usu_email_verificado = true por isso. Sem essa marca, o token que
-    // reset-password devolve funcionaria uma vez (JWT não confere isEnabled()
-    // de novo), mas um login normal em seguida cairia de volta no 403.
     @Test
     void redefinirSenha_emContaNuncaVerificada_marcaEmailComoVerificado() {
         final var email = "recupera-nao-verificada-" + UUID.randomUUID() + "@tempoclaro.test";

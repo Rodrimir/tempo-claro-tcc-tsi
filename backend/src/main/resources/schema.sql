@@ -448,3 +448,34 @@ CREATE INDEX IF NOT EXISTS ix_cod_email_tipo
 
 COMMENT ON TABLE codigos_verificacao IS
     'Códigos de 6 dígitos para verificar e-mail e recuperar senha. Expiram em 15 min e travam em 5 tentativas (CodigoVerificacaoService).';
+
+
+-- -----------------------------------------------------------------------------
+-- v3.2 — crédito de moedas na conclusão (RF11 revisado) e nível cumulativo (RF14
+-- revisado).
+--
+-- O crédito deixou de ser diferido para a virada do dia e passou a acontecer no
+-- momento da conclusão, em três patamares (100% / 120% / 150% da meta do dia →
+-- 100 / 150 / 200 moedas). Creditar durante o dia exige lembrar QUANTO já foi
+-- creditado hoje, senão a segunda conclusão do dia paga o mesmo patamar de novo.
+-- É o que esta coluna guarda; o fechamento a zera junto com os outros
+-- contadores diários.
+--
+-- Idempotente como o resto do arquivo: roda a cada boot
+-- (spring.sql.init.mode=always). Sem bloco DO — o ScriptUtils do Spring corta o
+-- script nos ";" e não entende dollar-quoting (ver a nota na v3.1).
+-- -----------------------------------------------------------------------------
+
+ALTER TABLE status_habitos
+    ADD COLUMN IF NOT EXISTS sta_moedas_creditadas_hoje INT NOT NULL DEFAULT 0;
+
+ALTER TABLE status_habitos DROP CONSTRAINT IF EXISTS ck_sta_moedas_hoje;
+ALTER TABLE status_habitos ADD CONSTRAINT ck_sta_moedas_hoje
+    CHECK (sta_moedas_creditadas_hoje >= 0);
+
+COMMENT ON COLUMN status_habitos.sta_moedas_creditadas_hoje IS
+    'Total já creditado no dia corrente. O crédito de cada conclusão é a diferença entre o patamar atingido e este valor, o que impede pagar duas vezes o mesmo patamar.';
+
+-- ck_sta_nivel continua sendo apenas ">= 1", de propósito: desde a v3.2 o nível
+-- é cumulativo e pode passar de 5. O 5 virou teto de APARÊNCIA (a arte tem cinco
+-- variações, e avatares.js satura nela), não teto do valor.

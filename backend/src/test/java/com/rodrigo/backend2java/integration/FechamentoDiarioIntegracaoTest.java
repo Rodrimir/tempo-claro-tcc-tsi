@@ -22,13 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * O fechamento do dia: onde as moedas são creditadas (RF11/RF12), a ofensiva se
- * move (RF13) e o nível do avatar sobe (RF14).
- *
- * <p>Os testes montam o histórico de <b>ontem</b> direto no repositório, porque o
- * job só fecha dias que já terminaram — o dia corrente continua em andamento.
- */
 class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
 
     private static final ZoneId FUSO_PADRAO = ZoneId.of("America/Sao_Paulo");
@@ -78,7 +71,6 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         return post("/api/habits", request, HabitoResponseDTO.class).getBody().id();
     }
 
-    /** Uma conclusão registrada num dia específico, atribuída a uma ocorrência. */
     private void registrarConclusao(final UUID habitoId, final int indiceOcorrencia, final LocalDate dia,
             final int valor) {
         final var ocorrencia = subAtividadeRepository.findAllByHabitoIdOrderByOrdem(habitoId)
@@ -95,7 +87,6 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
                 .build());
     }
 
-    /** Faz o job enxergar {@code dia} como pendente de apuração. */
     private void marcarPendente(final UUID habitoId, final LocalDate dia) {
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
         status.setUltimoReset(dia.minusDays(1));
@@ -103,7 +94,7 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
     }
 
     @Test
-    void diaComMetaCumprida_credita100EAvancaAOfensiva() {
+    void diaComMetaCumprida_avancaAOfensivaSemCreditarMoedas() {
         final var habitoId = criarHabito(1000, 1);
         registrarConclusao(habitoId, 0, ontem(), 1000);
         marcarPendente(habitoId, ontem());
@@ -111,29 +102,19 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         fechamentoDiarioJob.apurarDiasFechados();
 
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
-        assertEquals(100, status.getMoedasLocais());
+        assertEquals(0, status.getMoedasLocais(),
+                "o fechamento não credita mais moedas — isso é responsabilidade da execução (RF11 revisado)");
         assertEquals(1, status.getDiasSeguidos());
         assertEquals(1, status.getNivelAvatar(), "RF14: o nível só sobe a cada 10 dias");
         assertEquals(0, status.getExecucoesHoje());
         assertEquals(0, status.getValorAcumuladoHoje());
+        assertEquals(0, status.getMoedasCreditadasHoje(), "zerado junto com os outros contadores diários");
         assertFalse(status.getBloqueioUsadoHoje());
         assertEquals(ontem(), status.getUltimoReset());
     }
 
     @Test
-    void diaAcimaDe120PorCentoDaMeta_credita150() {
-        final var habitoId = criarHabito(1000, 1);
-        registrarConclusao(habitoId, 0, ontem(), 1200);
-        marcarPendente(habitoId, ontem());
-
-        fechamentoDiarioJob.apurarDiasFechados();
-
-        assertEquals(150, statusHabitoRepository.findById(habitoId).orElseThrow().getMoedasLocais());
-    }
-
-    /** RF12: meta batida pulando uma ocorrência mantém a ofensiva, sem as moedas da parte ausente. */
-    @Test
-    void metaBatidaPulandoUmaDeTresOcorrencias_mantemOfensivaECreditaDoisTercos() {
+    void metaBatidaPulandoUmaDeTresOcorrencias_mantemOfensiva() {
         final var habitoId = criarHabito(2100, 3);
         registrarConclusao(habitoId, 0, ontem(), 1050);
         registrarConclusao(habitoId, 1, ontem(), 1050);
@@ -142,20 +123,14 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         fechamentoDiarioJob.apurarDiasFechados();
 
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
-        assertEquals(67, status.getMoedasLocais(), "duas das três cotas de 33,3");
-        assertEquals(1, status.getDiasSeguidos(), "o total do dia bateu a meta");
+        assertEquals(1, status.getDiasSeguidos(), "o total do dia bateu a meta, mesmo faltando uma ocorrência");
     }
 
-    /** "Fez menos, ganha menos": 60% da meta credita 60 e não sustenta a ofensiva. */
     @Test
-    void diaAbaixoDaMeta_creditaProporcionalEZeraAOfensiva() {
+    void diaAbaixoDaMeta_zeraAOfensiva() {
         final var habitoId = criarHabito(1000, 1);
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
         status.setDiasSeguidos(4);
-        // PLANO_REESTRUTURACAO.md, H: todo hábito novo já nasce com 3 escudos:
-        // sem zerar aqui, o fechamento protegeria o dia sozinho (PROTEGIDO_
-        // AUTOMATICO) e a ofensiva NÃO zeraria — o oposto do que este teste
-        // existe para verificar (o caminho sem proteção nenhuma).
         status.setBloqueiosAcumulados(0);
         statusHabitoRepository.save(status);
 
@@ -165,7 +140,6 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         fechamentoDiarioJob.apurarDiasFechados();
 
         final var depois = statusHabitoRepository.findById(habitoId).orElseThrow();
-        assertEquals(60, depois.getMoedasLocais());
         assertEquals(0, depois.getDiasSeguidos());
     }
 
@@ -188,7 +162,6 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
                 "o consumo automático deixa rastro PROTEGIDO_AUTOMATICO");
     }
 
-    /** RF14: o avatar evolui a cada dez dias, não a cada dia. */
     @Test
     void decimoDiaSeguido_sobeONivelDoAvatar() {
         final var habitoId = criarHabito(1000, 1);
@@ -206,11 +179,79 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(2, depois.getNivelAvatar());
     }
 
-    /** Dia fora da máscara semanal não é dia de falha: não avalia, não credita, não zera. */
+    @Test
+    void ofensivaZerando_naoDerrubaNivelJaConquistado() {
+        final var habitoId = criarHabito(1000, 1);
+        final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
+        status.setDiasSeguidos(10);
+        status.setNivelAvatar(2);
+        status.setBloqueiosAcumulados(0);
+        statusHabitoRepository.save(status);
+
+        marcarPendente(habitoId, ontem());
+
+        fechamentoDiarioJob.apurarDiasFechados();
+
+        final var depois = statusHabitoRepository.findById(habitoId).orElseThrow();
+        assertEquals(0, depois.getDiasSeguidos());
+        assertEquals(2, depois.getNivelAvatar(), "o nível conquistado antes não regride");
+    }
+
+    @Test
+    void retornarA10DiasApósJaTerSubido_somaOutroNivel() {
+        final var habitoId = criarHabito(1000, 1);
+        final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
+        status.setDiasSeguidos(9);
+        status.setNivelAvatar(2);
+        statusHabitoRepository.save(status);
+
+        registrarConclusao(habitoId, 0, ontem(), 1000);
+        marcarPendente(habitoId, ontem());
+
+        fechamentoDiarioJob.apurarDiasFechados();
+
+        final var depois = statusHabitoRepository.findById(habitoId).orElseThrow();
+        assertEquals(10, depois.getDiasSeguidos());
+        assertEquals(3, depois.getNivelAvatar(), "mais um múltiplo de 10, mais um nível — soma sobre o 2 anterior");
+    }
+
+    @Test
+    void nivelPodeUltrapassarCinco() {
+        final var habitoId = criarHabito(1000, 1);
+        final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
+        status.setDiasSeguidos(49);
+        status.setNivelAvatar(5);
+        statusHabitoRepository.save(status);
+
+        registrarConclusao(habitoId, 0, ontem(), 1000);
+        marcarPendente(habitoId, ontem());
+
+        fechamentoDiarioJob.apurarDiasFechados();
+
+        assertEquals(6, statusHabitoRepository.findById(habitoId).orElseThrow().getNivelAvatar());
+    }
+
+    @Test
+    void diaProtegidoPeloEscudo_naoSobeNivel() {
+        final var habitoId = criarHabito(1000, 1);
+        final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
+        status.setDiasSeguidos(9);
+        status.setNivelAvatar(1);
+        status.setBloqueiosAcumulados(1);
+        statusHabitoRepository.save(status);
+
+        marcarPendente(habitoId, ontem());
+
+        fechamentoDiarioJob.apurarDiasFechados();
+
+        final var depois = statusHabitoRepository.findById(habitoId).orElseThrow();
+        assertEquals(9, depois.getDiasSeguidos(), "escudo preserva, não avança");
+        assertEquals(1, depois.getNivelAvatar(), "proteção não é meta cumprida — o nível não sobe");
+    }
+
     @Test
     void diaForaDaFrequenciaSemanal_naoZeraAOfensivaNemCredita() {
         final var ontem = ontem();
-        // Máscara com o dia de ontem desmarcado e todos os outros marcados.
         final var indiceOntem = ontem.getDayOfWeek().getValue() % 7;
         final var mascara = new StringBuilder("1111111");
         mascara.setCharAt(indiceOntem, '0');
@@ -231,7 +272,7 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
     }
 
     @Test
-    void fechamentoRodadoDuasVezes_naoCreditaDuasVezes() {
+    void fechamentoRodadoDuasVezes_naoAvancaAOfensivaDuasVezes() {
         final var habitoId = criarHabito(1000, 1);
         registrarConclusao(habitoId, 0, ontem(), 1000);
         marcarPendente(habitoId, ontem());
@@ -240,20 +281,15 @@ class FechamentoDiarioIntegracaoTest extends BaseAPIIntegracaoTest {
         fechamentoDiarioJob.apurarDiasFechados();
 
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
-        assertEquals(100, status.getMoedasLocais());
         assertEquals(1, status.getDiasSeguidos());
     }
 
-    /** O job pode ficar dias sem rodar (a instância do Render suspende): os dias vazios do meio contam como falha. */
     @Test
     void diasPuladosSemExecucao_zeramAOfensiva() {
         final var habitoId = criarHabito(1000, 1);
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
         status.setDiasSeguidos(6);
         status.setUltimoReset(LocalDate.now(FUSO_PADRAO).minusDays(4));
-        // PLANO_REESTRUTURACAO.md, H: idem ao teste acima — sem zerar os 3
-        // escudos iniciais, o fechamento protegeria dias pulados sozinho e a
-        // ofensiva não chegaria a zero.
         status.setBloqueiosAcumulados(0);
         statusHabitoRepository.save(status);
 

@@ -15,22 +15,6 @@ import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.CategoriaCalibraca
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.OpcaoCalibracao;
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.PerguntaCalibracao;
 
-/**
- * Calibração assistida de metas (RF20/RNF04) — o "Medir Dificuldade" do Passo 2 do
- * assistente de criação.
- *
- * <p>A ideia é responder, com perguntas curtas, o que o preenchimento manual exige
- * que a pessoa decida sozinha: por onde começar, de quanto em quanto subir, quantas
- * vezes ao dia e em que horários. As respostas somam uma pontuação, a pontuação cai
- * numa faixa, e a faixa vira a meta inicial.
- *
- * <p><b>A trava que importa mais que a pontuação.</b> Uma resposta pode declarar um
- * teto ({@code teto_resposta} no catálogo): quem disse que só tem 10 minutos por dia
- * não recebe sugestão de 30, por mais pontos que tenha somado nas outras perguntas.
- * É a 3ª lei de Clear — tornar fácil — virando regra de cálculo, e é o que evita
- * que a calibração vire mais uma fonte de meta inatingível para quem já tem
- * dificuldade de começar.
- */
 @Service
 public class CalibracaoService {
 
@@ -54,10 +38,6 @@ public class CalibracaoService {
         this.acessoHabitoService = acessoHabitoService;
     }
 
-    /**
-     * O questionário da categoria, já no idioma do usuário (RNF13), para o app
-     * desenhar sem conhecer pergunta alguma nem precisar traduzir nada.
-     */
     public QuestionarioResponseDTO obterQuestionario(final String categoria, final String emailContexto) {
         final var definicao = catalogo.categoria(categoria);
         final var idioma = idiomaDe(emailContexto);
@@ -115,8 +95,6 @@ public class CalibracaoService {
                 .aceita(false)
                 .build());
 
-        // As respostas cruas ficam guardadas pelo código da pergunta: é o que permite
-        // recalcular a sugestão se os moldes do catálogo mudarem depois.
         request.respostas().forEach(resposta -> respostaRepository.save(CalibracaoResposta.builder()
                 .id(UUID.randomUUID())
                 .calibracaoId(calibracao.getId())
@@ -143,7 +121,6 @@ public class CalibracaoService {
                 .build();
     }
 
-    /** Marca a calibração como aceita e a liga ao hábito que nasceu dela. */
     @Transactional
     public void vincularAoHabito(final UUID calibracaoId, final UUID usuarioId, final UUID habitoId) {
         calibracaoRepository.findById(calibracaoId)
@@ -155,16 +132,7 @@ public class CalibracaoService {
                 });
     }
 
-    // ------------------------------------------------------------------
-    // Cálculo
-    // ------------------------------------------------------------------
 
-    /**
-     * A pontuação é a soma dos pesos das opções escolhidas. DIAS_SEMANA não tem
-     * lista de opções, então contribui pela quantidade de dias marcados: quem se
-     * compromete com a semana inteira sustenta uma meta diária maior que quem
-     * marcou dois dias.
-     */
     private int pontuar(final CategoriaCalibracao definicao, final Map<String, String> respostas,
             final int diasMarcados) {
         var pontos = 0;
@@ -189,7 +157,6 @@ public class CalibracaoService {
                 .map(CatalogoCalibracao.FaixaMeta::meta)
                 .orElse(definicao.faixas_meta().get(definicao.faixas_meta().size() - 1).meta());
 
-        // A trava: nenhuma sugestão passa do que a pessoa declarou aguentar.
         for (final var pergunta : definicao.perguntas()) {
             final var opcao = opcaoEscolhida(pergunta, respostas.get(pergunta.codigo()));
             if (opcao != null && opcao.teto_resposta() != null) {
@@ -197,8 +164,6 @@ public class CalibracaoService {
             }
         }
 
-        // A meta precisa ser repartível entre as ocorrências: HabitoService recusa
-        // meta_base menor que o número de sub_atividades.
         return Math.max(meta, vezesAoDia);
     }
 
@@ -212,9 +177,6 @@ public class CalibracaoService {
                 .orElse(null);
     }
 
-    // ------------------------------------------------------------------
-    // Leitura das respostas
-    // ------------------------------------------------------------------
 
     private String lerMascaraDeDias(final String valor) {
         if (valor == null || valor.isBlank()) {
@@ -262,9 +224,6 @@ public class CalibracaoService {
                 }
             }
         }
-        // Faltou horário para alguma ocorrência: completa espaçando o dia a partir
-        // das 8h, para a sugestão nunca sair com ocorrências empilhadas no mesmo
-        // minuto. O usuário ajusta no Passo 3, que vem pré-preenchido e editável.
         while (horarios.size() < vezesAoDia) {
             horarios.add(HORARIO_PADRAO.plusHours(Math.min(12, horarios.size() * 4L)));
         }
@@ -280,17 +239,12 @@ public class CalibracaoService {
             return null;
         }
         final var escolhida = opcaoEscolhida(pergunta, valor);
-        // Sem resposta de ritmo, o meio-termo é o padrão menos arriscado.
         return escolhida != null
                 ? escolhida
                 : pergunta.opcoes().get(Math.min(1, pergunta.opcoes().size() - 1));
     }
 
-    // ------------------------------------------------------------------
-    // Montagem da resposta
-    // ------------------------------------------------------------------
 
-    /** Reparte a meta entre as ocorrências, com o resto na última — mesma regra de HabitoService. */
     private List<CalibracaoResponseDTO.OcorrenciaSugeridaDTO> montarOcorrencias(final int metaBase,
             final int vezesAoDia, final List<LocalTime> horarios) {
         final var alvoBase = metaBase / vezesAoDia;
@@ -305,11 +259,6 @@ public class CalibracaoService {
         return ocorrencias;
     }
 
-    /**
-     * A frase que explica de onde saiu a sugestão, no idioma do usuário (RNF13).
-     * Montada aqui, e não no app, pelo mesmo motivo do questionário: quem conhece
-     * as regras do cálculo é o servidor.
-     */
     private String explicar(final CategoriaCalibracao definicao, final int metaBase, final int vezesAoDia,
             final int diasMarcados, final OpcaoCalibracao ritmo, final String idioma) {
         final var ingles = "en-US".equals(idioma);

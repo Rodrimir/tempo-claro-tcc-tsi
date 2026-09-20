@@ -12,12 +12,6 @@ import com.rodrigo.backend2java.usuario.ProfileUpdateDTO;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * PLANO_REESTRUTURACAO.md, D — senha forte (8+ caracteres, maiúscula,
- * caractere especial) nas DUAS pontas: cadastro (AuthService.cadastrar, que
- * antes desta mudança não validava senha nenhuma) e troca de senha no perfil
- * (UsuarioService.atualizarPerfil). As duas passam por SenhaValidator.
- */
 class SenhaForteTest extends BaseAPIIntegracaoTest {
 
     private String emailNovo() {
@@ -32,14 +26,6 @@ class SenhaForteTest extends BaseAPIIntegracaoTest {
                 .build();
     }
 
-    /**
-     * {@code Object.class} de propósito: uma rejeição devolve o corpo de
-     * {@code MessageResponseDTO} (success/message), não de {@code
-     * AuthResponseDTO} (token/user) — deserializar direto como AuthResponseDTO
-     * falha, porque é um record com construtor canônico e as duas formas não
-     * têm nenhum campo em comum. Só o status importa aqui; quem quer o token
-     * de uma aceitação usa AuthResponseDTO.class num teste à parte.
-     */
     private int statusDoRegistro(final String senha) {
         return post("/api/auth/register", registroCom(senha), Object.class).getStatusCode().value();
     }

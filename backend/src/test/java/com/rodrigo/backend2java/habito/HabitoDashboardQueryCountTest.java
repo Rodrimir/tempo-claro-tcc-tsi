@@ -11,24 +11,8 @@ import jakarta.persistence.EntityManagerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * O dashboard passou a custar um número FIXO de consultas, e este teste é o que
- * impede a regressão.
- *
- * <p>Antes da v3.0 eram 3 consultas fixas + 2 por hábito: {@code listarDashboard}
- * chamava {@code buscarDetalhadoPorId} dentro do laço, e cada chamada lia a view
- * {@code vw_habito_hoje} e as sub_atividades daquele hábito. Com a view removida, o
- * service carrega status e ocorrências de todos os hábitos de uma vez — 6 consultas,
- * tenha o usuário um hábito ou dois (e o teto são dois, por RF03).
- */
 class HabitoDashboardQueryCountTest extends BaseAPIIntegracaoTest {
 
-    /**
-     * Checagem do token, busca do usuário, listagem dos hábitos, status de todos,
-     * ocorrências de todos e quais sub_atividades já foram cumpridas hoje (para o
-     * status ATIVA/FEITO/FALHOU/PENDENTE por ocorrência) — também em lote, não por
-     * hábito, pelo mesmo motivo.
-     */
     private static final long QUERIES_FIXAS_DO_DASHBOARD = 6;
 
     @Autowired

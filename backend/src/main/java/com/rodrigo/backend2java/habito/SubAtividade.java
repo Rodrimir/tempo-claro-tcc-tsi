@@ -16,9 +16,6 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-// @audit-ok [Schema v2.1, tabela sub_atividades — cada ocorrência diária do
-// hábito. Criado na tarefa E0.5.3 (repositório + model), ainda sem uso em
-// nenhum service: a criação de linhas na criação do hábito é a E0.5.5.]
 @Entity
 @Table(name = "sub_atividades")
 @NoArgsConstructor

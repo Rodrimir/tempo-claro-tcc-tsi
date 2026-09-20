@@ -49,18 +49,10 @@ public class Habito {
     @Column(name = "hab_tipo_medida")
     private String tipoMedida;
 
-    // Schema v3.0 — hab_modalidade, horarioAgendado e metaFrequenciaDiaria saíram
-    // daqui. As duas últimas eram @Transient: voltavam sempre null e 1 do banco,
-    // e a segunda chegou a fechar a ofensiva na 1ª de N ocorrências (o HOTFIX
-    // documentado em GamificacaoService). O horário mora em sub_atividades e a
-    // frequência diária É a contagem de sub_atividades — nunca um campo próprio.
 
     @Column(name = "hab_meta_base")
     private Integer metaBase;
 
-    // @audit-ok [E2.3 — progressão automática de meta (colunas hab_meta_maxima/
-    // hab_incremento/hab_dias_incremento, já existentes no schema v2.1 desde a
-    // E0.5.3, mas sem ligação nenhuma com o Java até agora).]
     @Column(name = "hab_meta_maxima")
     private Integer metaMaxima;
 
@@ -70,10 +62,6 @@ public class Habito {
     @Column(name = "hab_dias_incremento")
     private Integer diasIncremento;
 
-    // @audit-ok [E2.4 — máscara de 7 posições, domingo(posição 1)..sábado
-    // (posição 7). Convenção confirmada (item 1 da tarefa): bate com
-    // Date.getDay() do JS (0=Dom) e com dayOfWeek.getValue() % 7, já usado em
-    // StatsService (E2.2) — ambas as pontas leem o índice 0 como domingo.]
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "hab_frequencia_semanal", length = 7)
     private String frequenciaSemanal;

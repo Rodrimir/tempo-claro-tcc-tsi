@@ -14,11 +14,6 @@ import com.rodrigo.backend2java.habito.HabitoResponseDTO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * PLANO_REESTRUTURACAO.md, H — escudo caiu de 1500 para 400 moedas, e todo
- * hábito novo já nasce com 3 (em vez de 0). O preço vem do dashboard
- * (custo_escudo), não de uma constante duplicada no app.
- */
 class EscudoIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired
@@ -77,7 +72,6 @@ class EscudoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(200, resposta.getStatusCode().value());
         final var depois = statusHabitoRepository.findById(habitoId).orElseThrow();
         assertEquals(0, depois.getMoedasLocais());
-        // Nasceu com 3 (H) + comprou 1 = 4.
         assertEquals(4, depois.getBloqueiosAcumulados());
     }
 

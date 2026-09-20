@@ -20,11 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * A execução durante o dia (v3.0): acumula o realizado e não credita moeda nenhuma.
- * O crédito é do dia inteiro e acontece no fechamento — ver
- * {@link FechamentoDiarioIntegracaoTest}.
- */
 class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired
@@ -45,8 +40,25 @@ class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
         return post("/api/habits", request, HabitoResponseDTO.class).getBody().id();
     }
 
+    private UUID criarHabito(final int metaBase, final int vezesAoDia) {
+        final var ocorrencias = new java.util.ArrayList<HabitoRequestDTO.OcorrenciaRequestDTO>();
+        for (var i = 0; i < vezesAoDia; i++) {
+            ocorrencias.add(new HabitoRequestDTO.OcorrenciaRequestDTO(LocalTime.of(8 + i, 0), null));
+        }
+        final var request = HabitoRequestDTO.builder()
+                .titulo("Hábito de execução")
+                .categoria("AGUA")
+                .meta_base(metaBase)
+                .tipo_medida("QUANTIDADE")
+                .meta_frequencia_diaria(vezesAoDia)
+                .horario_agendado(LocalTime.of(8, 0))
+                .ocorrencias(ocorrencias)
+                .build();
+        return post("/api/habits", request, HabitoResponseDTO.class).getBody().id();
+    }
+
     @Test
-    void execucaoAcumulaORealizadoSemCreditarMoedas() {
+    void execucaoQueBateAMeta_credita100NaHora() {
         final var habitoId = criarHabito(2000);
         final var token = UUID.randomUUID();
 
@@ -54,13 +66,13 @@ class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
                 new ExecutionRequestDTO(token, "COMPLETE_PADRAO", 2000), ExecutionResponseDTO.class);
 
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
-        // Previsão do que o dia renderá, não crédito.
-        assertEquals(100, resposta.getBody().moedas_previstas_hoje());
+        assertEquals(100, resposta.getBody().moedas_ganhas_agora());
         assertEquals(2000, resposta.getBody().valor_acumulado_hoje());
         assertFalse(resposta.getBody().bonus());
 
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
-        assertEquals(0, status.getMoedasLocais(), "nenhuma moeda é creditada na execução");
+        assertEquals(100, status.getMoedasLocais(), "creditado na hora, não no fechamento");
+        assertEquals(100, status.getMoedasCreditadasHoje());
         assertEquals(2000, status.getValorAcumuladoHoje());
         assertEquals(1, status.getExecucoesHoje());
         assertEquals(0, status.getDiasSeguidos(), "a ofensiva só se move no fechamento do dia");
@@ -68,26 +80,88 @@ class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
     }
 
     @Test
-    void execucaoAcimaDe120PorCentoDaMeta_preve150ESinalizaBonus() {
+    void execucaoAcimaDe120PorCentoDaMeta_credita150ESinalizaBonus() {
         final var habitoId = criarHabito(2000);
 
         final var resposta = post("/api/habits/" + habitoId + "/executions",
                 new ExecutionRequestDTO(UUID.randomUUID(), null, 2500), ExecutionResponseDTO.class);
 
-        assertEquals(150, resposta.getBody().moedas_previstas_hoje());
+        assertEquals(150, resposta.getBody().moedas_ganhas_agora());
         assertTrue(resposta.getBody().bonus());
+        assertEquals(150, statusHabitoRepository.findById(habitoId).orElseThrow().getMoedasLocais());
+    }
+
+    @Test
+    void execucaoAcimaDe150PorCentoDaMeta_credita200() {
+        final var habitoId = criarHabito(2000);
+
+        final var resposta = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), null, 3000), ExecutionResponseDTO.class);
+
+        assertEquals(200, resposta.getBody().moedas_ganhas_agora());
+        assertEquals(200, statusHabitoRepository.findById(habitoId).orElseThrow().getMoedasLocais());
+    }
+
+    @Test
+    void diaAbaixoDaMeta_naoCreditaNada() {
+        final var habitoId = criarHabito(2000);
+
+        final var resposta = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), null, 1200), ExecutionResponseDTO.class);
+
+        assertEquals(0, resposta.getBody().moedas_ganhas_agora());
         assertEquals(0, statusHabitoRepository.findById(habitoId).orElseThrow().getMoedasLocais());
     }
 
     @Test
-    void diaParcial_preveCreditoProporcional() {
-        final var habitoId = criarHabito(2000);
+    void execucoesSucessivasNoMesmoDia_creditamSoADiferencaDeCadaPatamar() {
+        final var habitoId = criarHabito(1000);
 
-        // 60% da meta: "fez menos, ganha menos" — 60 moedas, não zero nem 100.
-        final var resposta = post("/api/habits/" + habitoId + "/executions",
-                new ExecutionRequestDTO(UUID.randomUUID(), null, 1200), ExecutionResponseDTO.class);
+        final var primeira = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), null, 1000), ExecutionResponseDTO.class);
+        assertEquals(100, primeira.getBody().moedas_ganhas_agora(), "cruzou 100% agora");
 
-        assertEquals(60, resposta.getBody().moedas_previstas_hoje());
+        final var segunda = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), null, 200), ExecutionResponseDTO.class);
+        assertEquals(50, segunda.getBody().moedas_ganhas_agora(), "total foi a 1200 (120%): só a diferença até 150");
+
+        final var terceira = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), null, 300), ExecutionResponseDTO.class);
+        assertEquals(50, terceira.getBody().moedas_ganhas_agora(), "total foi a 1500 (150%): só a diferença até 200");
+
+        final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
+        assertEquals(200, status.getMoedasLocais());
+        assertEquals(200, status.getMoedasCreditadasHoje());
+    }
+
+    @Test
+    void duasExecucoesQueSomamAMeta_creditamCemNoTotal() {
+        final var habitoId = criarHabito(1000);
+
+        final var primeira = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), null, 500), ExecutionResponseDTO.class);
+        assertEquals(0, primeira.getBody().moedas_ganhas_agora(), "50% ainda não deve nada");
+
+        final var segunda = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), null, 500), ExecutionResponseDTO.class);
+        assertEquals(100, segunda.getBody().moedas_ganhas_agora(), "completou os 100% agora");
+
+        assertEquals(100, statusHabitoRepository.findById(habitoId).orElseThrow().getMoedasLocais());
+    }
+
+    @Test
+    void habitoTresVezesAoDia_creditaNoMaximoDuzentosNoDia() {
+        final var habitoId = criarHabito(300, 3);
+
+        post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), "COMPLETE_PADRAO", 150), ExecutionResponseDTO.class);
+        post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), "COMPLETE_PADRAO", 150), ExecutionResponseDTO.class);
+        final var terceira = post("/api/habits/" + habitoId + "/executions",
+                new ExecutionRequestDTO(UUID.randomUUID(), "COMPLETE_PADRAO", 150), ExecutionResponseDTO.class);
+
+        assertEquals(200, terceira.getBody().moedas_totais());
+        assertEquals(200, statusHabitoRepository.findById(habitoId).orElseThrow().getMoedasLocais());
     }
 
     @Test
@@ -100,7 +174,6 @@ class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
         final var repeticao = post("/api/habits/" + habitoId + "/executions",
                 new ExecutionRequestDTO(token, "COMPLETE_PADRAO", 2000), MessageResponseDTO.class);
 
-        // §5.1: violação de regra de negócio é 422, não 400 (RF21/RNF09).
         assertEquals(422, repeticao.getStatusCode().value());
         assertEquals(2000, statusHabitoRepository.findById(habitoId).orElseThrow().getValorAcumuladoHoje());
     }
@@ -114,18 +187,14 @@ class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
 
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
-        // O valor parcial fica no histórico (RF10), mas não conta como realizado —
-        // e a ofensiva só é decidida no fechamento, não aqui.
         assertEquals(0, status.getValorAcumuladoHoje());
         assertEquals(0, status.getExecucoesHoje());
+        assertEquals(0, resposta.getBody().moedas_ganhas_agora(), "desistência não credita");
     }
 
     @Test
     void desistenciaComFailBloqueio_semEscudoDisponivel_retorna422() {
         final var habitoId = criarHabito(2000);
-        // PLANO_REESTRUTURACAO.md, H: hábito novo já nasce com 3 escudos — este
-        // teste existe pra cobrir o caminho SEM escudo, então zera de propósito
-        // em vez de herdar o padrão novo.
         final var status = statusHabitoRepository.findById(habitoId).orElseThrow();
         status.setBloqueiosAcumulados(0);
         statusHabitoRepository.save(status);
@@ -159,7 +228,6 @@ class ExecucaoIntegracaoTest extends BaseAPIIntegracaoTest {
         final var resposta = post("/api/habits/" + habitoId + "/executions",
                 new ExecutionRequestDTO(UUID.randomUUID(), "INVENTADO", 0), MessageResponseDTO.class);
 
-        // Era 401 ("não autenticado") por causa do handler de IllegalArgumentException.
         assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode());
     }
 }
