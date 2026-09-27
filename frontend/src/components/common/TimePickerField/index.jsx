@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { RE_HORA } from '@/utils/validacao';
 import {
   Field,
   FieldText,
@@ -29,26 +30,37 @@ const HORAS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTOS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
 const ALTURA_CELULA = 46;
-const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const ATRASO_SCROLL_MS = 50;
+const HORA_PADRAO = '08';
+const MINUTO_PADRAO = '00';
 
 function TimePickerField({ value, onChange, placeholder, error, limpavel = false, accessibilityLabel }) {
   const theme = useTheme();
   const { t } = useI18n();
   const [aberto, setAberto] = useState(false);
-  const [hora, setHora] = useState('08');
-  const [minuto, setMinuto] = useState('00');
+  const [hora, setHora] = useState(HORA_PADRAO);
+  const [minuto, setMinuto] = useState(MINUTO_PADRAO);
   const scrollHoras = useRef(null);
   const scrollMinutos = useRef(null);
 
-  useEffect(() => {
-    if (!aberto) return;
-    const [h, m] = RE_HORA.test(value || '') ? value.split(':') : ['08', '00'];
+  const [aberturaAnterior, setAberturaAnterior] = useState({ aberto, value });
+
+  if (aberto && (aberturaAnterior.aberto !== aberto || aberturaAnterior.value !== value)) {
+    setAberturaAnterior({ aberto, value });
+    const [h, m] = RE_HORA.test(value || '') ? value.split(':') : [HORA_PADRAO, MINUTO_PADRAO];
     setHora(h);
     setMinuto(m);
+  } else if (!aberto && aberturaAnterior.aberto) {
+    setAberturaAnterior({ aberto, value });
+  }
+
+  useEffect(() => {
+    if (!aberto) return;
+    const [h, m] = RE_HORA.test(value || '') ? value.split(':') : [HORA_PADRAO, MINUTO_PADRAO];
     const timer = setTimeout(() => {
       scrollHoras.current?.scrollTo({ y: Math.max(0, (Number(h) - 2) * ALTURA_CELULA), animated: false });
       scrollMinutos.current?.scrollTo({ y: Math.max(0, (Number(m) - 2) * ALTURA_CELULA), animated: false });
-    }, 50);
+    }, ATRASO_SCROLL_MS);
     return () => clearTimeout(timer);
   }, [aberto, value]);
 

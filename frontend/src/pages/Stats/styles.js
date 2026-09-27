@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
-import { fonts } from '../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const StatsContainer = styled.ScrollView.attrs((props) => ({
   contentContainerStyle: { padding: 24, paddingTop: 24 + (props.$insetTop || 0), paddingBottom: 60 },
@@ -127,39 +127,6 @@ export const BarLabel = styled.Text`
   font-size: 12px;
   margin-top: 8px;
   color: ${(props) => props.theme.textSecondary};
-`;
-
-export const EmptyStateContainer = styled.View`
-  flex: 1;
-  padding: 24px;
-  justify-content: center;
-  align-items: center;
-  background-color: ${(props) => props.theme.bgPrimary};
-`;
-
-export const EmptyIconWrapper = styled.View`
-  background-color: ${(props) => props.theme.bgSurface};
-  width: 80px;
-  height: 80px;
-  border-radius: 40px;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-`;
-
-export const EmptyTitle = styled.Text`
-  font-family: ${fonts.bold};
-  font-size: 18px;
-  margin-bottom: 8px;
-  color: ${(props) => props.theme.textPrimary};
-  text-align: center;
-`;
-
-export const EmptyText = styled.Text`
-  color: ${(props) => props.theme.textSecondary};
-  font-size: 14px;
-  line-height: 21px;
-  text-align: center;
 `;
 
 export const RetryButton = styled(Pressable)`

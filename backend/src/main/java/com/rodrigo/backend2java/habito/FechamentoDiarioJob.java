@@ -9,13 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import com.rodrigo.backend2java.usuario.Usuario;
+import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.execucao.FechamentoService;
-import com.rodrigo.backend2java.execucao.StatusHabito;
+import com.rodrigo.backend2java.execucao.model.StatusHabito;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
 import com.rodrigo.backend2java.execucao.StatusHabitoRepository;
 import com.rodrigo.backend2java.usuario.UsuarioRepository;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO.OcorrenciaRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO.OcorrenciaRequestDTO;
+import com.rodrigo.backend2java.habito.model.Habito;
 
 @Component
 public class FechamentoDiarioJob {

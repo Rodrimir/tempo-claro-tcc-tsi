@@ -8,9 +8,9 @@ import {
   resetPassword as apiResetPassword,
   getDashboard,
   setUnauthorizedHandler,
-} from '../services/api';
+} from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { traduzir, IDIOMA_PADRAO } from '../i18n';
+import { traduzir, IDIOMA_PADRAO } from '@/i18n';
 import {
   setAuthToken,
   clearAuthToken,
@@ -18,7 +18,7 @@ import {
   setUserProfile,
   getUserProfile,
   clearUserProfile,
-} from '../utils/storage';
+} from '@/utils/storage';
 
 const AuthContext = createContext();
 
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
         await getDashboard();
         setUser(await getUserProfile());
         setIsAuthenticated(true);
-      } catch (error) {
+      } catch (_error) {
         setIsAuthenticated(false);
         await clearAuthToken();
         await clearUserProfile();

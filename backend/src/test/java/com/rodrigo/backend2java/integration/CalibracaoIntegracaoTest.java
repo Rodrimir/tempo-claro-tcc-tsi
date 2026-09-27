@@ -9,12 +9,12 @@ import org.springframework.http.HttpStatus;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
 import com.rodrigo.backend2java.calibracao.CalibracaoRepository;
-import com.rodrigo.backend2java.calibracao.CalibracaoRequestDTO;
-import com.rodrigo.backend2java.calibracao.CalibracaoRequestDTO.RespostaDTO;
-import com.rodrigo.backend2java.calibracao.CalibracaoResponseDTO;
-import com.rodrigo.backend2java.calibracao.QuestionarioResponseDTO;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
+import com.rodrigo.backend2java.calibracao.model.CalibracaoRequestDTO;
+import com.rodrigo.backend2java.calibracao.model.CalibracaoRequestDTO.RespostaDTO;
+import com.rodrigo.backend2java.calibracao.model.CalibracaoResponseDTO;
+import com.rodrigo.backend2java.calibracao.model.QuestionarioResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

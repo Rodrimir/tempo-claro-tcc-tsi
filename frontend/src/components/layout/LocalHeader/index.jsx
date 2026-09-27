@@ -1,8 +1,8 @@
 import { useTheme } from 'styled-components/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useCurrentHabit } from '../../../contexts/CurrentHabitContext';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { useI18n } from '@/contexts/LanguageContext';
 import {
   HeaderContainer,
   HabitNameRow,

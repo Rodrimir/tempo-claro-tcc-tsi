@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
-import { fonts } from '../../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const Overlay = styled.View`
   flex: 1;

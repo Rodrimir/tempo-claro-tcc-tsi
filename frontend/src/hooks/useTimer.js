@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { saveExecutionState, loadExecutionState, clearExecutionState, isWithinTolerance } from '../utils/storage';
+import { saveExecutionState, loadExecutionState, clearExecutionState, isWithinTolerance } from '@/utils/storage';
 
 export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true) => {
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isActive, setIsActive] = useState(false);
   const [isOverachieving, setIsOverachieving] = useState(false);
   const [overachieveTime, setOverachieveTime] = useState(0);
-  const [pronto, setPronto] = useState(false);
+  const [pronto, setPronto] = useState(!isTimer);
 
   const intervalRef = useRef(null);
-  const deadlineRef = useRef(Date.now() + initialSeconds * 1000);
+  const [deadlineInicial] = useState(() => Date.now() + initialSeconds * 1000);
+  const deadlineRef = useRef(deadlineInicial);
   const stateRef = useRef({ isOverachieving: false });
   const executionTokenRef = useRef(executionToken);
 
@@ -66,24 +67,8 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     setIsActive(true);
   }, [habitId, isTimer, recompute]);
 
-  const start = useCallback(() => {
-    if (!isTimer) return;
-    deadlineRef.current = Date.now() + initialSeconds * 1000;
-    recompute();
-    setIsActive(true);
-  }, [isTimer, initialSeconds, recompute]);
-
-  const stop = useCallback(async () => {
-    setIsActive(false);
-    clearTimer();
-    await clearExecutionState(habitId);
-  }, [habitId]);
-
   useEffect(() => {
-    if (!isTimer) {
-      setPronto(true);
-      return;
-    }
+    if (!isTimer) return;
     let cancelado = false;
     (async () => {
       const savedState = await loadExecutionState(habitId);
@@ -129,16 +114,9 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     return clearTimer;
   }, [isActive, isTimer, recompute]);
 
-  const elapsed = (initialSeconds - timeLeft) + overachieveTime;
-
   return {
-    elapsed,
-    isRunning: isActive,
-    isPaused: !isActive,
-    start,
     pause,
     resume,
-    stop,
     timeLeft,
     overachieveTime,
     isOverachieving,

@@ -3,6 +3,7 @@ import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.rodrigo.backend2java.verificacao.model.CodigoVerificacao;
 
 public interface CodigoVerificacaoRepository extends JpaRepository<CodigoVerificacao, UUID> {
 

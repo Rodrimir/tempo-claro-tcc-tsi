@@ -5,12 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather } from '@expo/vector-icons';
 
-import { getCalibrationQuestions, submitCalibration } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import LoadingScreen from '../../components/common/LoadingScreen';
-import TimePickerField from '../../components/common/TimePickerField';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
+import { getCalibrationQuestions, submitCalibration } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import TimePickerField from '@/components/common/TimePickerField';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { RE_HORA } from '@/utils/validacao';
+import { getApiErrorMessage } from '@/utils/erros';
 
 import {
   Container,
@@ -47,7 +49,6 @@ import {
 } from './styles';
 
 
-const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const Calibration = () => {
   const router = useRouter();
@@ -72,7 +73,7 @@ const Calibration = () => {
         const { data } = await getCalibrationQuestions(categoria);
         if (ativo) setQuestionario(data);
       } catch (err) {
-        addToast(err.response?.data?.message || t('calibracao.erroCarregar'), 'error');
+        addToast(getApiErrorMessage(err, t('calibracao.erroCarregar')), 'error');
         router.back();
       } finally {
         if (ativo) setCarregando(false);
@@ -113,7 +114,7 @@ const Calibration = () => {
       const { data } = await submitCalibration(categoria, lista);
       setSugestao(data);
     } catch (err) {
-      addToast(err.response?.data?.message || t('calibracao.erroCalcular'), 'error');
+      addToast(getApiErrorMessage(err, t('calibracao.erroCalcular')), 'error');
     } finally {
       setEnviando(false);
     }

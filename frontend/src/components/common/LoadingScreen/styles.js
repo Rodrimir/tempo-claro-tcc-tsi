@@ -1,7 +1,7 @@
 import styled from 'styled-components/native';
 import Animated from 'react-native-reanimated';
 import { Image } from 'expo-image';
-import { fonts } from '../../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const Container = styled.View`
   flex: 1;

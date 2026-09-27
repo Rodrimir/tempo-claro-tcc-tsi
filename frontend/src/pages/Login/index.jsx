@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Feather } from '@expo/vector-icons';
-import { PasswordInput } from '../../components/common/PasswordInput';
+import { PasswordInput } from '@/components/common/PasswordInput';
 import { useTheme } from 'styled-components/native';
 import {
   useSharedValue,
@@ -16,15 +16,16 @@ import {
   Easing,
 } from 'react-native-reanimated';
 
-import { useAuth } from '../../contexts/AuthContext';
-import { useThemeToggle } from '../../contexts/ThemeToggleContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useSfx } from '../../contexts/SoundContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeToggle } from '@/contexts/ThemeToggleContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { getApiErrorMessage } from '@/utils/erros';
 import { criarLoginSchema, criarRegisterSchema, TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from './validation';
 
-import luaFlutuando from '../../../assets/lua_flutuando.png';
-import solFlutuando from '../../../assets/sol_flutuando.webp';
-import { useI18n } from '../../contexts/LanguageContext';
+import luaFlutuando from '@/assets/lua_flutuando.png';
+import solFlutuando from '@/assets/sol_flutuando.webp';
+import { useI18n } from '@/contexts/LanguageContext';
 
 import {
   LoginContainer,
@@ -127,12 +128,12 @@ const Login = () => {
       }
     } catch (err) {
       if (isLoginTab && err.response?.status === 403) {
-        addToast(err.response?.data?.message || t('login.erroAutenticar'), 'error');
+        addToast(getApiErrorMessage(err, t('login.erroAutenticar')), 'error');
         router.replace({ pathname: '/verify-email', params: { email: data.email } });
         return;
       }
       tocar('erro');
-      addToast(err.response?.data?.message || err.message || t('login.erroAutenticar'), 'error');
+      addToast(getApiErrorMessage(err, err.message || t('login.erroAutenticar')), 'error');
     }
   };
 

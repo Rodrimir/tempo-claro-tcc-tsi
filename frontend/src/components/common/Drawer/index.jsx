@@ -3,7 +3,7 @@ import { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
 import { Backdrop, Panel, PanelHeader, PanelTitle, CloseButton, PanelBody } from './styles';
 
 function Drawer({ visible, onClose, titulo, children }) {

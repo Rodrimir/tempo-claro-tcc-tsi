@@ -10,6 +10,9 @@ import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
 import jakarta.persistence.EntityManagerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
+import com.rodrigo.backend2java.habito.model.DashboardResponseDTO;
 
 class HabitoDashboardQueryCountTest extends BaseAPIIntegracaoTest {
 

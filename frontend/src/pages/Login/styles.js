@@ -2,7 +2,7 @@ import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import Animated from 'react-native-reanimated';
-import { fonts } from '../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const LoginContainer = styled.View`
   flex: 1;

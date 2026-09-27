@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
 import { Wrapper, StyledInput, ToggleButton } from './styles';
 
 export function PasswordInput({ value, onChangeText, onBlur, placeholder, ...resto }) {

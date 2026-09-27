@@ -2,7 +2,7 @@ package com.rodrigo.backend2java.autenticacao;
 import java.util.UUID;
 import java.time.OffsetDateTime;
 import org.springframework.stereotype.Service;
-import com.rodrigo.backend2java.usuario.Usuario;
+import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.infra.jwt.TokenService;
 import com.rodrigo.backend2java.usuario.UsuarioRepository;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,7 +15,14 @@ import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.verificacao.CodigoVerificacaoService;
 import com.rodrigo.backend2java.verificacao.EmailService;
-import com.rodrigo.backend2java.verificacao.TipoCodigo;
+import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
+import com.rodrigo.backend2java.autenticacao.model.AuthResponseDTO;
+import com.rodrigo.backend2java.autenticacao.model.LoginRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.RegisterRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.ResendCodeRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.VerifyEmailRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.ResetPasswordRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.ForgotPasswordRequestDTO;
 
 @Service
 public class AuthService {

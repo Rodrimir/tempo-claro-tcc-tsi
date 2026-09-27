@@ -4,11 +4,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { resendVerificationCode } from '../../services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { resendVerificationCode } from '@/services/api';
+import { getApiErrorMessage } from '@/utils/erros';
 import {
   Container,
   BackButton,
@@ -62,7 +63,7 @@ const VerifyEmail = () => {
       router.replace('/home');
     } catch (err) {
       tocar('erro');
-      setErro(err.response?.data?.message || t('verificarEmail.erroPadrao'));
+      setErro(getApiErrorMessage(err, t('verificarEmail.erroPadrao')));
       setOcupado(false);
     }
   };
@@ -74,7 +75,7 @@ const VerifyEmail = () => {
       addToast(t('verificarEmail.codigoReenviado'), 'success');
       setCooldown(COOLDOWN_INICIAL);
     } catch (err) {
-      addToast(err.response?.data?.message || t('verificarEmail.erroPadrao'), 'error');
+      addToast(getApiErrorMessage(err, t('verificarEmail.erroPadrao')), 'error');
     } finally {
       setReenviando(false);
     }

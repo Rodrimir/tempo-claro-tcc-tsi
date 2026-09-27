@@ -8,10 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.execucao.ExecutionRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.execucao.ExecutionResponseDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
 import com.rodrigo.backend2java.execucao.StatusHabitoRepository;

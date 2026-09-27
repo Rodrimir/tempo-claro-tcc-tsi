@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { Container, SunImage, LoadingText } from './styles';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
 
 const LoadingScreen = ({ message }) => {
   const { t } = useI18n();
@@ -32,7 +32,7 @@ const LoadingScreen = ({ message }) => {
     <Container>
       <LoadingText>{texto}{dots}</LoadingText>
       <SunImage
-        source={require('../../../../assets/sol_flutuando.webp')}
+        source={require('@/assets/sol_flutuando.webp')}
         style={estiloRotacao}
         contentFit="contain"
       />

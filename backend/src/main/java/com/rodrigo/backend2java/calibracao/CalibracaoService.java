@@ -10,10 +10,16 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend2java.habito.AcessoHabitoService;
+import com.rodrigo.backend2java.habito.model.FrequenciaSemanal;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.CategoriaCalibracao;
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.OpcaoCalibracao;
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.PerguntaCalibracao;
+import com.rodrigo.backend2java.calibracao.model.Calibracao;
+import com.rodrigo.backend2java.calibracao.model.CalibracaoResposta;
+import com.rodrigo.backend2java.calibracao.model.CalibracaoRequestDTO;
+import com.rodrigo.backend2java.calibracao.model.CalibracaoResponseDTO;
+import com.rodrigo.backend2java.calibracao.model.QuestionarioResponseDTO;
 
 @Service
 public class CalibracaoService {
@@ -23,7 +29,6 @@ public class CalibracaoService {
     private static final String PERGUNTA_HORARIOS = "HORARIOS";
     private static final String PERGUNTA_RITMO = "RITMO";
 
-    private static final String MASCARA_TODO_DIA = "1111111";
     private static final LocalTime HORARIO_PADRAO = LocalTime.of(8, 0);
 
     private final CatalogoCalibracao catalogo;
@@ -180,7 +185,7 @@ public class CalibracaoService {
 
     private String lerMascaraDeDias(final String valor) {
         if (valor == null || valor.isBlank()) {
-            return MASCARA_TODO_DIA;
+            return FrequenciaSemanal.TODO_DIA;
         }
         final var mascara = valor.trim();
         if (!mascara.matches("^[01]{7}$") || "0000000".equals(mascara)) {

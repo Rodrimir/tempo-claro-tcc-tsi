@@ -7,9 +7,11 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import com.rodrigo.backend2java.habito.AcessoHabitoService;
-import com.rodrigo.backend2java.habito.FrequenciaSemanal;
+import com.rodrigo.backend2java.habito.model.FrequenciaSemanal;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
+import com.rodrigo.backend2java.stats.model.DiaStatsDTO;
+import com.rodrigo.backend2java.stats.model.StatsResponseDTO;
 
 @Service
 public class StatsService {

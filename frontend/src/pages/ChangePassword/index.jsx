@@ -4,13 +4,14 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { PasswordInput } from '../../components/common/PasswordInput';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { login as apiLogin, updateProfile } from '../../services/api';
-import { TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from '../Login/validation';
+import { PasswordInput } from '@/components/common/PasswordInput';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { login as apiLogin, updateProfile } from '@/services/api';
+import { getApiErrorMessage } from '@/utils/erros';
+import { TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from '@/pages/Login/validation';
 import {
   Container,
   Header,
@@ -80,7 +81,7 @@ const ChangePassword = () => {
       if (err.response?.status === 401) {
         setErro(t('perfil.senhaAtualIncorreta'));
       } else {
-        setErro(err.response?.data?.message || t('perfil.erroSalvar'));
+        setErro(getApiErrorMessage(err, t('perfil.erroSalvar')));
       }
     } finally {
       setOcupado(false);
@@ -111,7 +112,7 @@ const ChangePassword = () => {
       addToast(t('perfil.senhaOk'), 'success');
       router.back();
     } catch (err) {
-      setErro(err.response?.data?.message || t('perfil.erroSalvar'));
+      setErro(getApiErrorMessage(err, t('perfil.erroSalvar')));
       setOcupado(false);
     }
   };

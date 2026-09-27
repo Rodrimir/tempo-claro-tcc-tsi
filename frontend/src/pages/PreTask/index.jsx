@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
-import { getPreTaskPriming } from '../../services/api';
-import { useI18n } from '../../contexts/LanguageContext';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { getPreTaskPriming } from '@/services/api';
+import { useI18n } from '@/contexts/LanguageContext';
 import {
   PreTaskContainer,
   BackButtonWrapper,

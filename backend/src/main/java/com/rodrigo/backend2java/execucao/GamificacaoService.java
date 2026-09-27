@@ -10,10 +10,10 @@ import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.rodrigo.backend2java.habito.Habito;
-import com.rodrigo.backend2java.habito.SubAtividade;
-import com.rodrigo.backend2java.usuario.Usuario;
-import com.rodrigo.backend2java.biblioteca.BibliotecaTexto;
+import com.rodrigo.backend2java.habito.model.Habito;
+import com.rodrigo.backend2java.habito.model.SubAtividade;
+import com.rodrigo.backend2java.usuario.model.Usuario;
+import com.rodrigo.backend2java.biblioteca.model.BibliotecaTexto;
 import com.rodrigo.backend2java.biblioteca.BibliotecaTextoRepository;
 import com.rodrigo.backend2java.habito.AcessoHabitoService;
 import com.rodrigo.backend2java.habito.SubAtividadeRepository;
@@ -22,6 +22,10 @@ import com.rodrigo.backend2java.infra.util.ZonaUsuario;
 import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
+import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
+import com.rodrigo.backend2java.execucao.model.PrimingResponseDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionRequestDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionResponseDTO;
 
 @Service
 public class GamificacaoService {

@@ -7,6 +7,8 @@ import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import com.rodrigo.backend2java.usuario.model.ProfileUpdateDTO;
+import com.rodrigo.backend2java.usuario.model.UsuarioResponseDTO;
 
 @Service
 public class UsuarioService {

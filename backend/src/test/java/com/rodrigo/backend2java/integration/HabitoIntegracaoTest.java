@@ -8,10 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO.OcorrenciaRequestDTO;
-import com.rodrigo.backend2java.habito.DashboardResponseDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO.OcorrenciaRequestDTO;
+import com.rodrigo.backend2java.habito.model.DashboardResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.habito.HabitoRepository;
 import com.rodrigo.backend2java.habito.SubAtividadeRepository;
@@ -34,7 +34,6 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
                 .categoria("AGUA")
                 .meta_base(2000)
                 .tipo_medida("QUANTIDADE")
-                .modalidade("DIARIA")
                 .meta_frequencia_diaria(1)
                 .horario_agendado(LocalTime.of(8, 0))
                 .build();
@@ -57,7 +56,6 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
                 .categoria("ESTUDO")
                 .meta_base(2100)
                 .tipo_medida("TEMPO")
-                .modalidade("DIARIA")
                 .meta_frequencia_diaria(3)
                 .frequencia_semanal("1111100")
                 .ocorrencias(List.of(
@@ -106,7 +104,6 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
                 .categoria("AGUA")
                 .meta_base(3000)
                 .tipo_medida("QUANTIDADE")
-                .modalidade("DIARIA")
                 .meta_frequencia_diaria(1)
                 .horario_agendado(LocalTime.of(9, 0))
                 .build();

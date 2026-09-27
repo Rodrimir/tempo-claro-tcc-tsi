@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.execucao.HistoricoExecucao;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
-import com.rodrigo.backend2java.stats.StatsResponseDTO;
+import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
+import com.rodrigo.backend2java.stats.model.StatsResponseDTO;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

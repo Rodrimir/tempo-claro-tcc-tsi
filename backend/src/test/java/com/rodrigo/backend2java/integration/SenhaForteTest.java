@@ -5,9 +5,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.autenticacao.RegisterRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.RegisterRequestDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
-import com.rodrigo.backend2java.usuario.ProfileUpdateDTO;
+import com.rodrigo.backend2java.usuario.model.ProfileUpdateDTO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

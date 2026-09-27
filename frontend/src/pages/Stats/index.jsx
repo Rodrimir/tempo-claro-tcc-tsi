@@ -5,11 +5,15 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import LoadingScreen from '../../components/common/LoadingScreen';
-import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
-import { useToast } from '../../contexts/ToastContext';
-import { getMonthlyStats, getDashboard } from '../../services/api';
-import { useI18n } from '../../contexts/LanguageContext';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { useToast } from '@/contexts/ToastContext';
+import { getMonthlyStats, getDashboard } from '@/services/api';
+import { useI18n } from '@/contexts/LanguageContext';
+import { STATUS_HABITO } from '@/model/Status';
+import { Categoria } from '@/model/Categoria';
+import { TipoMedida } from '@/model/TipoMedida';
+import { EmptyState } from '@/components/common/EmptyState';
 import {
   StatsContainer,
   Title,
@@ -35,10 +39,6 @@ import {
   ChartTitle,
   ChartWrapper,
   BarLabel,
-  EmptyStateContainer,
-  EmptyIconWrapper,
-  EmptyTitle,
-  EmptyText,
   RetryButton,
   RetryButtonText,
 } from './styles';
@@ -154,7 +154,7 @@ const Stats = () => {
         setConstanciaPercentual(0);
         setDiasComMetaCumprida(0);
       }
-    } catch (error) {
+    } catch (_error) {
       addToast(t('stats.erro'), 'error');
       setLoadError(true);
     } finally {
@@ -180,7 +180,7 @@ const Stats = () => {
       getDashboard()
         .then((res) => {
           const lista = res.data.habits || res.data || [];
-          setHabitosDisponiveis(lista.filter((h) => h.status !== 'ARCHIVED'));
+          setHabitosDisponiveis(lista.filter((h) => h.status !== STATUS_HABITO.ARCHIVED));
         })
         .catch(() => {});
     }, [])
@@ -188,13 +188,11 @@ const Stats = () => {
 
   if (!habit) {
     return (
-      <EmptyStateContainer>
-        <EmptyIconWrapper>
-          <Feather name="search" size={32} color={theme.textSecondary} />
-        </EmptyIconWrapper>
-        <EmptyTitle>{t('stats.semHabito')}</EmptyTitle>
-        <EmptyText>{t('stats.semHabitoTexto')}</EmptyText>
-      </EmptyStateContainer>
+      <EmptyState
+        icon={<Feather name="search" size={32} color={theme.textSecondary} />}
+        title={t('stats.semHabito')}
+        text={t('stats.semHabitoTexto')}
+      />
     );
   }
 
@@ -220,11 +218,11 @@ const Stats = () => {
     </Modal>
   );
 
-  const isTempo = habit.tipo_medida === 'TEMPO';
+  const isTempo = habit.tipo_medida === TipoMedida.TEMPO;
 
   const formatMedida = (valor) => {
     if (isTempo) return `${Math.round(valor)} ${t('comum.min')}`;
-    return `${Math.round(valor)} ${habit.categoria === 'AGUA' ? t('comum.ml') : t('comum.vezes')}`;
+    return `${Math.round(valor)} ${habit.categoria === Categoria.AGUA ? t('comum.ml') : t('comum.vezes')}`;
   };
 
   const formatarData = (iso) => {
@@ -236,16 +234,15 @@ const Stats = () => {
 
   if (loadError) {
     return (
-      <EmptyStateContainer>
-        <EmptyIconWrapper>
-          <Feather name="alert-triangle" size={32} color={theme.textSecondary} />
-        </EmptyIconWrapper>
-        <EmptyTitle>{t('stats.erroTitulo')}</EmptyTitle>
-        <EmptyText>{t('stats.erroTexto')}</EmptyText>
+      <EmptyState
+        icon={<Feather name="alert-triangle" size={32} color={theme.textSecondary} />}
+        title={t('stats.erroTitulo')}
+        text={t('stats.erroTexto')}
+      >
         <RetryButton onPress={() => loadStats()}>
           <RetryButtonText>{t('comum.tentarNovamente')}</RetryButtonText>
         </RetryButton>
-      </EmptyStateContainer>
+      </EmptyState>
     );
   }
 
@@ -259,13 +256,11 @@ const Stats = () => {
         <HabitTitle>{habit.titulo}</HabitTitle>
         <Feather name='chevron-down' size={16} color={theme.primaryColor} />
       </HabitTitleButton>
-        <EmptyStateContainer>
-          <EmptyIconWrapper>
-            <Feather name="bar-chart-2" size={32} color={theme.textSecondary} />
-          </EmptyIconWrapper>
-          <EmptyTitle>{t('stats.nadaAqui')}</EmptyTitle>
-          <EmptyText>{t('stats.semExecucoesTexto')}</EmptyText>
-        </EmptyStateContainer>
+        <EmptyState
+          icon={<Feather name="bar-chart-2" size={32} color={theme.textSecondary} />}
+          title={t('stats.nadaAqui')}
+          text={t('stats.semExecucoesTexto')}
+        />
       </StatsContainer>
       {seletorModal}
       </>

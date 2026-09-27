@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
 import {
   ProgressContainer,
   SvgElement,

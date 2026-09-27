@@ -1,4 +1,4 @@
-import PreTask from '../src/pages/PreTask';
+import PreTask from '@/pages/PreTask';
 
 export default function PreTaskRoute() {
   return <PreTask />;

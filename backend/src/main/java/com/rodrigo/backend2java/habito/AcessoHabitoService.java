@@ -2,9 +2,10 @@ package com.rodrigo.backend2java.habito;
 
 import java.util.UUID;
 import org.springframework.stereotype.Service;
-import com.rodrigo.backend2java.usuario.Usuario;
+import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.usuario.UsuarioRepository;
 import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
+import com.rodrigo.backend2java.habito.model.Habito;
 
 @Service
 public class AcessoHabitoService {

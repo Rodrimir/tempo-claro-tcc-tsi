@@ -4,13 +4,14 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { PasswordInput } from '../../components/common/PasswordInput';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { forgotPassword } from '../../services/api';
-import { TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from '../Login/validation';
+import { PasswordInput } from '@/components/common/PasswordInput';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { forgotPassword } from '@/services/api';
+import { getApiErrorMessage } from '@/utils/erros';
+import { TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from '@/pages/Login/validation';
 import {
   Container,
   Header,
@@ -93,7 +94,7 @@ const ForgotPassword = () => {
       setCooldown(COOLDOWN_INICIAL);
       setPasso(2);
     } catch (err) {
-      setErro(err.response?.data?.message || t('recuperarSenha.erroPadrao'));
+      setErro(getApiErrorMessage(err, t('recuperarSenha.erroPadrao')));
     } finally {
       setOcupado(false);
     }
@@ -106,7 +107,7 @@ const ForgotPassword = () => {
       addToast(t('verificarEmail.codigoReenviado'), 'success');
       setCooldown(COOLDOWN_INICIAL);
     } catch (err) {
-      addToast(err.response?.data?.message || t('recuperarSenha.erroPadrao'), 'error');
+      addToast(getApiErrorMessage(err, t('recuperarSenha.erroPadrao')), 'error');
     } finally {
       setReenviando(false);
     }
@@ -140,7 +141,7 @@ const ForgotPassword = () => {
       addToast(t('recuperarSenha.sucesso'), 'success');
       router.replace('/home');
     } catch (err) {
-      setErro(err.response?.data?.message || t('recuperarSenha.erroPadrao'));
+      setErro(getApiErrorMessage(err, t('recuperarSenha.erroPadrao')));
       setOcupado(false);
     }
   };

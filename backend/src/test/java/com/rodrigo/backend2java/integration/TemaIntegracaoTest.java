@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.usuario.ProfileUpdateDTO;
+import com.rodrigo.backend2java.usuario.model.ProfileUpdateDTO;
 import com.rodrigo.backend2java.usuario.UsuarioRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

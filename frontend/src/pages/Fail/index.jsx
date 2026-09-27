@@ -4,10 +4,10 @@ import { BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useExecutionResult } from '../../contexts/ExecutionResultContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { useFloat } from '../../hooks/useFloat';
+import { useExecutionResult } from '@/contexts/ExecutionResultContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { useFloat } from '@/hooks/useFloat';
 import {
   FailContainer,
   ContentWrapper,

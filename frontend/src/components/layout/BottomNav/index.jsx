@@ -2,12 +2,22 @@ import { useRouter } from 'expo-router';
 import { useTheme } from 'styled-components/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useCurrentHabit } from '../../../contexts/CurrentHabitContext';
-import { useToast } from '../../../contexts/ToastContext';
-import { useSfx } from '../../../contexts/SoundContext';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useSfx } from '@/contexts/SoundContext';
 import { NavContainer, PlayButtonWrapper, PlayButton, NavItemContainer, NavLabel } from './styles';
-import { useI18n } from '../../../contexts/LanguageContext';
-import { ocorrenciaAtiva, horaCurta, minutosAteInicio, MINUTOS_ANTECEDENCIA_LIBERACAO } from '../../../utils/ocorrencias';
+import { useI18n } from '@/contexts/LanguageContext';
+import { ocorrenciaAtiva, horaCurta, minutosAteInicio, MINUTOS_ANTECEDENCIA_LIBERACAO } from '@/utils/ocorrencias';
+import { STATUS_HABITO } from '@/model/Status';
+
+function NavItem({ isActive, icon, label, theme, onPress }) {
+  return (
+    <NavItemContainer onPress={onPress}>
+      {icon(isActive ? theme.primaryColor : theme.textSecondary)}
+      <NavLabel $active={isActive}>{label}</NavLabel>
+    </NavItemContainer>
+  );
+}
 
 const BottomNav = ({ state, navigation }) => {
   const { t } = useI18n();
@@ -18,7 +28,7 @@ const BottomNav = ({ state, navigation }) => {
   const { addToast } = useToast();
   const { tocar } = useSfx();
 
-  const isCompleted = activeHabit && activeHabit.status === 'COMPLETED';
+  const isCompleted = activeHabit && activeHabit.status === STATUS_HABITO.COMPLETED;
   const nomeRotaAtiva = state.routes[state.index].name;
 
   const handlePlay = () => {
@@ -39,25 +49,27 @@ const BottomNav = ({ state, navigation }) => {
     router.push('/pretask');
   };
 
-  const NavItem = ({ to, icon, label }) => {
-    const isActive = nomeRotaAtiva === to;
-    return (
-      <NavItemContainer
-        onPress={() => {
-          tocar('tap');
-          navigation.navigate(to);
-        }}
-      >
-        {icon(isActive ? theme.primaryColor : theme.textSecondary)}
-        <NavLabel $active={isActive}>{label}</NavLabel>
-      </NavItemContainer>
-    );
+  const irPara = (to) => {
+    tocar('tap');
+    navigation.navigate(to);
   };
 
   return (
     <NavContainer style={{ paddingBottom: insets.bottom + 12 }}>
-      <NavItem to="home" icon={(cor) => <Feather name="target" size={24} color={cor} />} label={t('nav.inicio')} />
-      <NavItem to="stats" icon={(cor) => <Feather name="bar-chart-2" size={24} color={cor} />} label={t('nav.stats')} />
+      <NavItem
+        isActive={nomeRotaAtiva === 'home'}
+        onPress={() => irPara('home')}
+        icon={(cor) => <Feather name="target" size={24} color={cor} />}
+        label={t('nav.inicio')}
+        theme={theme}
+      />
+      <NavItem
+        isActive={nomeRotaAtiva === 'stats'}
+        onPress={() => irPara('stats')}
+        icon={(cor) => <Feather name="bar-chart-2" size={24} color={cor} />}
+        label={t('nav.stats')}
+        theme={theme}
+      />
 
       <PlayButtonWrapper>
         <PlayButton
@@ -74,11 +86,19 @@ const BottomNav = ({ state, navigation }) => {
       </PlayButtonWrapper>
 
       <NavItem
-        to="store"
+        isActive={nomeRotaAtiva === 'store'}
+        onPress={() => irPara('store')}
         icon={(cor) => <MaterialCommunityIcons name="store" size={24} color={cor} />}
         label={t('nav.loja')}
+        theme={theme}
       />
-      <NavItem to="profile" icon={(cor) => <Feather name="user" size={24} color={cor} />} label={t('nav.perfil')} />
+      <NavItem
+        isActive={nomeRotaAtiva === 'profile'}
+        onPress={() => irPara('profile')}
+        icon={(cor) => <Feather name="user" size={24} color={cor} />}
+        label={t('nav.perfil')}
+        theme={theme}
+      />
     </NavContainer>
   );
 };

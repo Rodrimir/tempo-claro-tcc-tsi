@@ -4,13 +4,16 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
-import LoadingScreen from '../../components/common/LoadingScreen';
-import Drawer from '../../components/common/Drawer';
-import { useToast } from '../../contexts/ToastContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useThemeToggle } from '../../contexts/ThemeToggleContext';
-import { useSfx } from '../../contexts/SoundContext';
+import { getDashboard, buyShield as apiBuyShield } from '@/services/api';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import Drawer from '@/components/common/Drawer';
+import { useToast } from '@/contexts/ToastContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useThemeToggle } from '@/contexts/ThemeToggleContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { STATUS_HABITO } from '@/model/Status';
+import { getApiErrorMessage } from '@/utils/erros';
+import { EmptyState } from '@/components/common/EmptyState';
 import {
   StoreRoot,
   Fundo,
@@ -35,10 +38,6 @@ import {
   SaldoValor,
   BuyButton,
   BuyButtonText,
-  EmptyStateContainer,
-  EmptyIconWrapper,
-  EmptyTitle,
-  EmptyText,
   PickerOverlay,
   PickerSheet,
   PickerTitulo,
@@ -58,8 +57,8 @@ import {
   InventoryEmptyText,
 } from './styles';
 
-const FUNDO_LOJA_DIA = require('../../../assets/loja/loja.png');
-const FUNDO_LOJA_NOITE = require('../../../assets/loja/lojanoite.png');
+const FUNDO_LOJA_DIA = require('@/assets/loja/loja.png');
+const FUNDO_LOJA_NOITE = require('@/assets/loja/lojanoite.png');
 
 const Store = () => {
   const theme = useTheme();
@@ -87,7 +86,7 @@ const Store = () => {
       if (response.data.custo_escudo != null) {
         setCustoEscudo(response.data.custo_escudo);
       }
-    } catch (error) {
+    } catch (_error) {
       addToast(t('loja.erroCarregar'), 'error');
     } finally {
       if (!silencioso) setLoading(false);
@@ -102,9 +101,11 @@ const Store = () => {
     }, [loadHabits])
   );
 
-  const activeHabits = habits.filter((h) => h.status !== 'ARCHIVED' && h.status !== 'COMPLETED');
+  const activeHabits = habits.filter(
+    (h) => h.status !== STATUS_HABITO.ARCHIVED && h.status !== STATUS_HABITO.COMPLETED
+  );
   const habitoSelecionado = activeHabits.find((h) => h.id === selectedHabitId);
-  const inventarioHabits = habits.filter((h) => h.status !== 'ARCHIVED');
+  const inventarioHabits = habits.filter((h) => h.status !== STATUS_HABITO.ARCHIVED);
   const totalEscudos = inventarioHabits.reduce((soma, h) => soma + (h.bloqueios_acumulados || 0), 0);
   const nenhumEscudoAinda = totalEscudos === 0;
 
@@ -124,7 +125,7 @@ const Store = () => {
       addToast(t('loja.compraOkHabito'), 'success');
       loadHabits(true);
     } catch (error) {
-      addToast(error.response?.data?.message || t('loja.erroComprar'), 'error');
+      addToast(getApiErrorMessage(error, t('loja.erroComprar')), 'error');
     } finally {
       setComprando(false);
     }
@@ -202,13 +203,12 @@ const Store = () => {
             <EspacoArte />
 
             {habits.length === 0 ? (
-              <EmptyStateContainer>
-                <EmptyIconWrapper>
-                  <MaterialCommunityIcons name="store" size={32} color="white" />
-                </EmptyIconWrapper>
-                <EmptyTitle>{t('loja.nadaComprar')}</EmptyTitle>
-                <EmptyText>{t('loja.semHabito')}</EmptyText>
-              </EmptyStateContainer>
+              <EmptyState
+                variant="dark"
+                icon={<MaterialCommunityIcons name="store" size={32} color="white" />}
+                title={t('loja.nadaComprar')}
+                text={t('loja.semHabito')}
+              />
             ) : (
               <PainelCompra>
                 <PainelCabecalho>

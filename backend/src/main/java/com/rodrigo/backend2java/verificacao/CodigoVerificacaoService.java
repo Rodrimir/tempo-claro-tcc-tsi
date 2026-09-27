@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
+import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
+import com.rodrigo.backend2java.verificacao.model.CodigoVerificacao;
 
 @Service
 public class CodigoVerificacaoService {

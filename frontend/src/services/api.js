@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from '../utils/storage';
+import { getAuthToken } from '@/utils/storage';
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://tempo-claro-tcc-tsi.onrender.com/api',

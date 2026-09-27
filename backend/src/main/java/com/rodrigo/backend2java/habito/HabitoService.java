@@ -9,16 +9,21 @@ import java.time.ZonedDateTime;
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import com.rodrigo.backend2java.execucao.StatusHabito;
+import com.rodrigo.backend2java.execucao.model.StatusHabito;
 import com.rodrigo.backend2java.calibracao.CalibracaoService;
 import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend2java.execucao.StatusHabitoRepository;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO.OcorrenciaRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO.OcorrenciaRequestDTO;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
 import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
+import com.rodrigo.backend2java.habito.model.Habito;
+import com.rodrigo.backend2java.habito.model.SubAtividade;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
+import com.rodrigo.backend2java.habito.model.FrequenciaSemanal;
 @Service
 public class HabitoService {
 
@@ -74,7 +79,7 @@ public class HabitoService {
                                 .frequenciaSemanal(request.frequencia_semanal() != null
                                                 && !request.frequencia_semanal().isBlank()
                                                                 ? request.frequencia_semanal()
-                                                                : "1111111")
+                                                                : FrequenciaSemanal.TODO_DIA)
                                 .ativo(true)
                                 .criadoEm(OffsetDateTime.now())
                                 .build();
@@ -193,11 +198,6 @@ public class HabitoService {
                                 .build();
         }
 
-        private StatusHabito buscarStatus(final UUID habitoId) {
-                return statusHabitoRepository.findById(habitoId)
-                                .orElseThrow(() -> new RecursoNaoEncontradoException("Status do hábito não encontrado"));
-        }
-
         @Transactional
         public void atualizarHabito(final UUID habitoId, final String emailContexto, final HabitoRequestDTO request) {
                 final var acesso = acessoHabitoService.carregar(habitoId, emailContexto);
@@ -214,7 +214,7 @@ public class HabitoService {
                 habito.setFrequenciaSemanal(request.frequencia_semanal() != null
                                 && !request.frequencia_semanal().isBlank()
                                                 ? request.frequencia_semanal()
-                                                : "1111111");
+                                                : FrequenciaSemanal.TODO_DIA);
 
                 habitoRepository.save(habito);
 

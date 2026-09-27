@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.time.LocalDate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
 public interface HistoricoExecucaoRepository extends JpaRepository<HistoricoExecucao, UUID> {
 
     boolean existsByExecutionToken(UUID executionToken);

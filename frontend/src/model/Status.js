@@ -1,0 +1,10 @@
+export const STATUS_OCORRENCIA = {
+  ATIVA: 'ATIVA',
+  FEITO: 'FEITO',
+  FALHOU: 'FALHOU',
+};
+
+export const STATUS_HABITO = {
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED',
+};

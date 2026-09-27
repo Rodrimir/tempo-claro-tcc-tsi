@@ -7,13 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.autenticacao.LoginRequestDTO;
-import com.rodrigo.backend2java.autenticacao.RegisterRequestDTO;
-import com.rodrigo.backend2java.autenticacao.AuthResponseDTO;
-import com.rodrigo.backend2java.autenticacao.VerifyEmailRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.LoginRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.RegisterRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.AuthResponseDTO;
+import com.rodrigo.backend2java.autenticacao.model.VerifyEmailRequestDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.usuario.UsuarioRepository;
-import com.rodrigo.backend2java.verificacao.TipoCodigo;
+import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

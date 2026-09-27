@@ -4,6 +4,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
+import com.rodrigo.backend2java.autenticacao.model.AuthResponseDTO;
+import com.rodrigo.backend2java.autenticacao.model.LoginRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.RegisterRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.ResendCodeRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.VerifyEmailRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.ResetPasswordRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.ForgotPasswordRequestDTO;
 
 @RestController
 @RequestMapping("/api/auth")

@@ -5,13 +5,16 @@ import { SlideInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useAuth } from '../../contexts/AuthContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useThemeToggle } from '../../contexts/ThemeToggleContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { updateProfile, getMe } from '../../services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useThemeToggle } from '@/contexts/ThemeToggleContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { updateProfile, getMe } from '@/services/api';
 import { FUSOS } from './timezones';
+import { NOME_MAX_LENGTH } from '@/model/Habito';
+import { getApiErrorMessage } from '@/utils/erros';
+import { criarAtualizadorOtimista } from './atualizacaoOtimista';
 import {
   Scrim,
   Panel,
@@ -86,42 +89,43 @@ const Profile = () => {
 
   const fusoLabel = FUSOS.find((f) => f.value === fusoHorario)?.label || fusoHorario;
 
-  const trocarIdioma = async (codigo) => {
+  const atualizarComRollback = criarAtualizadorOtimista(addToast);
+
+  const trocarIdioma = (codigo) => {
     if (codigo === idioma) return;
-    const anterior = idioma;
-    setIdioma(codigo);
-    try {
-      await updateProfile({ preferencia_idioma: codigo });
-      updateLocalUser({ preferencia_idioma: codigo });
-    } catch (err) {
-      setIdioma(anterior);
-      addToast(err.response?.data?.message || t('perfil.erroIdioma'), 'error');
-    }
+    atualizarComRollback({
+      valorAtual: idioma,
+      valorNovo: codigo,
+      setter: setIdioma,
+      chamadaApi: () => updateProfile({ preferencia_idioma: codigo }),
+      aoSucesso: () => updateLocalUser({ preferencia_idioma: codigo }),
+      mensagemErroPadrao: t('perfil.erroIdioma'),
+    });
   };
 
-  const trocarTema = async (novo) => {
-    const anterior = tema;
-    setTema(novo);
-    try {
-      await updateProfile({ tema: novo });
-    } catch (err) {
-      setTema(anterior);
-      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
-    }
+  const trocarTema = (novo) => {
+    atualizarComRollback({
+      valorAtual: tema,
+      valorNovo: novo,
+      setter: setTema,
+      chamadaApi: () => updateProfile({ tema: novo }),
+      mensagemErroPadrao: t('perfil.erroSalvar'),
+    });
   };
 
-  const salvarFuso = async (valor) => {
-    const anterior = fusoHorario;
-    setFusoHorario(valor);
+  const salvarFuso = (valor) => {
     setFusoAberto(false);
-    try {
-      await updateProfile({ fuso_horario: valor });
-      updateLocalUser({ fuso_horario: valor });
-      addToast(t('perfil.salvoOk'), 'success');
-    } catch (err) {
-      setFusoHorario(anterior);
-      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
-    }
+    atualizarComRollback({
+      valorAtual: fusoHorario,
+      valorNovo: valor,
+      setter: setFusoHorario,
+      chamadaApi: () => updateProfile({ fuso_horario: valor }),
+      aoSucesso: () => {
+        updateLocalUser({ fuso_horario: valor });
+        addToast(t('perfil.salvoOk'), 'success');
+      },
+      mensagemErroPadrao: t('perfil.erroSalvar'),
+    });
   };
 
   const salvarNome = async () => {
@@ -135,7 +139,7 @@ const Profile = () => {
       setNomeAberto(false);
       addToast(t('perfil.salvoOk'), 'success');
     } catch (err) {
-      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+      addToast(getApiErrorMessage(err, t('perfil.erroSalvar')), 'error');
     } finally {
       setSalvando(false);
     }
@@ -351,7 +355,7 @@ const Profile = () => {
               value={rascunhoNome}
               onChangeText={setRascunhoNome}
               autoFocus
-              maxLength={60}
+              maxLength={NOME_MAX_LENGTH}
               placeholder={t('perfil.nome')}
             />
             <DialogActions>

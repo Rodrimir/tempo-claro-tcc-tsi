@@ -12,15 +12,15 @@ import {
   Lexend_700Bold,
   Lexend_800ExtraBold,
 } from '@expo-google-fonts/lexend';
-import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
-import { CurrentHabitProvider } from '../src/contexts/CurrentHabitContext';
-import { ExecutionResultProvider } from '../src/contexts/ExecutionResultContext';
-import { ThemeToggleProvider, useThemeToggle } from '../src/contexts/ThemeToggleContext';
-import { ToastProvider } from '../src/contexts/ToastContext';
-import { LanguageProvider } from '../src/contexts/LanguageContext';
-import { SoundProvider } from '../src/contexts/SoundContext';
-import { lightTheme, darkTheme } from '../src/styles/theme';
-import LoadingScreen from '../src/components/common/LoadingScreen';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { CurrentHabitProvider } from '@/contexts/CurrentHabitContext';
+import { ExecutionResultProvider } from '@/contexts/ExecutionResultContext';
+import { ThemeToggleProvider, useThemeToggle } from '@/contexts/ThemeToggleContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { SoundProvider } from '@/contexts/SoundContext';
+import { lightTheme, darkTheme } from '@/styles/theme';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 SplashScreen.preventAutoHideAsync();
 

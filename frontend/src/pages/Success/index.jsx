@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,9 +13,9 @@ import {
   Easing,
   ZoomIn,
 } from 'react-native-reanimated';
-import { useExecutionResult } from '../../contexts/ExecutionResultContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
+import { useExecutionResult } from '@/contexts/ExecutionResultContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
 import {
   SuccessContainer,
   ParticlesWrapper,
@@ -34,6 +34,17 @@ import {
   BackButton,
   BackButtonText,
 } from './styles';
+
+const TOTAL_PARTICULAS = 50;
+
+function gerarParticulas() {
+  return Array.from({ length: TOTAL_PARTICULAS }).map(() => ({
+    size: Math.random() * 10 + 5,
+    left: Math.random() * 100,
+    duration: (Math.random() * 300) / 100 + 2,
+    delay: (Math.random() * 200) / 100,
+  }));
+}
 
 function Particle({ size, left, duration, delay }) {
   const { height } = useWindowDimensions();
@@ -97,14 +108,7 @@ const Success = () => {
     if (subiuDeNivel) tocar('levelUp');
   }, [isBonus, subiuDeNivel, tocar]);
 
-  const particles = useMemo(() => {
-    return Array.from({ length: 50 }).map(() => ({
-      size: Math.random() * 10 + 5,
-      left: Math.random() * 100,
-      duration: (Math.random() * 300) / 100 + 2,
-      delay: (Math.random() * 200) / 100,
-    }));
-  }, []);
+  const [particles] = useState(gerarParticulas);
 
   return (
     <SuccessContainer $isBonus={isBonus} style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>

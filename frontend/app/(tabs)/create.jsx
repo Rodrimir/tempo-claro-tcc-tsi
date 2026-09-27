@@ -1,4 +1,4 @@
-import CreateHabit from '../../src/pages/CreateHabit';
+import CreateHabit from '@/pages/CreateHabit';
 
 export default function CreateRoute() {
   return <CreateHabit />;

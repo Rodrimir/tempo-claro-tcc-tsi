@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { IDIOMAS, IDIOMA_PADRAO, traduzir } from '../i18n';
+import { IDIOMAS, IDIOMA_PADRAO, traduzir } from '@/i18n';
 import { useAuth } from './AuthContext';
+import { definirIdiomaDosErros } from '@/utils/erros';
 
 const LanguageContext = createContext();
 
@@ -35,13 +36,20 @@ export const LanguageProvider = ({ children }) => {
   }, []);
 
   const { user } = useAuth() || {};
-  useEffect(() => {
-    const doServidor = user?.preferencia_idioma;
-    if (doServidor && IDIOMAS[doServidor] && doServidor !== idioma) {
-      setIdioma(doServidor);
+  const idiomaDoServidor = user?.preferencia_idioma;
+  const [idiomaDoServidorAnterior, setIdiomaDoServidorAnterior] = useState(idiomaDoServidor);
+
+  if (idiomaDoServidor !== idiomaDoServidorAnterior) {
+    setIdiomaDoServidorAnterior(idiomaDoServidor);
+    if (idiomaDoServidor && IDIOMAS[idiomaDoServidor] && idiomaDoServidor !== idioma) {
+      setIdiomaState(idiomaDoServidor);
+      AsyncStorage.setItem(STORAGE_KEY, idiomaDoServidor);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.preferencia_idioma]);
+  }
+
+  useEffect(() => {
+    definirIdiomaDosErros(idioma);
+  }, [idioma]);
 
   const valor = useMemo(
     () => ({

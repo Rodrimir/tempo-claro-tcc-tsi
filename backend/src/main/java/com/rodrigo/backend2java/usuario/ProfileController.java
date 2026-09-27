@@ -3,6 +3,8 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.rodrigo.backend2java.usuario.model.ProfileUpdateDTO;
+import com.rodrigo.backend2java.usuario.model.UsuarioResponseDTO;
 @RestController
 @RequestMapping("/api")
 public class ProfileController {

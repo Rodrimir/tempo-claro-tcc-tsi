@@ -2,7 +2,7 @@ package com.rodrigo.backend2java.infra.util;
 
 import java.time.ZoneId;
 import java.time.DateTimeException;
-import com.rodrigo.backend2java.usuario.Usuario;
+import com.rodrigo.backend2java.usuario.model.Usuario;
 
 public final class ZonaUsuario {
 

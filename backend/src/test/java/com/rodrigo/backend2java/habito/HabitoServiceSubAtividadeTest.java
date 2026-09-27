@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.rodrigo.backend2java.usuario.Usuario;
+import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.calibracao.CalibracaoService;
 import com.rodrigo.backend2java.execucao.StatusHabitoRepository;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
 
 @ExtendWith(MockitoExtension.class)
 class HabitoServiceSubAtividadeTest {

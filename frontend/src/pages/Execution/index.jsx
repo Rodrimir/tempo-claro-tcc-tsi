@@ -4,19 +4,21 @@ import { BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Crypto from 'expo-crypto';
 import { useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { useTimer } from '../../hooks/useTimer';
-import { useHoldToIncrement } from '../../hooks/useHoldToIncrement';
-import { submitExecution, getDashboard } from '../../services/api';
-import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
-import { useExecutionResult } from '../../contexts/ExecutionResultContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { saveExecutingHabitId, loadExecutingHabitId, clearExecutingHabitId } from '../../utils/storage';
-import CircularProgress from '../../components/common/CircularProgress';
-import MonospaceTimer from '../../components/common/MonospaceTimer';
-import GiveUpModal from '../../components/common/GiveUpModal';
-import LoadingScreen from '../../components/common/LoadingScreen';
-import { useI18n } from '../../contexts/LanguageContext';
+import { useTimer } from '@/hooks/useTimer';
+import { useHoldToIncrement } from '@/hooks/useHoldToIncrement';
+import { TipoMedida } from '@/model/TipoMedida';
+import { submitExecution, getDashboard } from '@/services/api';
+import { getApiErrorMessage } from '@/utils/erros';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { useExecutionResult } from '@/contexts/ExecutionResultContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { saveExecutingHabitId, loadExecutingHabitId, clearExecutingHabitId } from '@/utils/storage';
+import CircularProgress from '@/components/common/CircularProgress';
+import MonospaceTimer from '@/components/common/MonospaceTimer';
+import GiveUpModal from '@/components/common/GiveUpModal';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import { useI18n } from '@/contexts/LanguageContext';
 import {
   ExecutionContainer,
   HeaderWrapper,
@@ -43,11 +45,16 @@ const ExecutionScreen = () => {
   const [habit, setHabit] = useState(currentHabit || null);
   const [fase, setFase] = useState(currentHabit ? 'pronto' : 'recuperando');
 
+  const [habitDoContextoAnterior, setHabitDoContextoAnterior] = useState(currentHabit);
+  if (currentHabit && currentHabit !== habitDoContextoAnterior) {
+    setHabitDoContextoAnterior(currentHabit);
+    setHabit(currentHabit);
+    setFase('pronto');
+  }
+
   useEffect(() => {
     if (currentHabit) {
       saveExecutingHabitId(currentHabit.id);
-      setHabit(currentHabit);
-      setFase('pronto');
       return;
     }
 
@@ -96,7 +103,7 @@ const ExecutionActive = ({ habit }) => {
   const { t } = useI18n();
   const { tocar } = useSfx();
   const { setExecutionResult } = useExecutionResult();
-  const [executionToken, setExecutionToken] = useState('');
+  const [executionToken] = useState(() => Crypto.randomUUID());
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
   const [quantity, setQuantity] = useState(0);
 
@@ -115,15 +122,11 @@ const ExecutionActive = ({ habit }) => {
     }
   );
 
-  useEffect(() => {
-    setExecutionToken(Crypto.randomUUID());
-  }, []);
-
   const { timeLeft, overachieveTime, isOverachieving, pause, resume, clearTimerState } = useTimer(
-    habit.tipo_medida === 'TEMPO' ? alvoEmSegundos : 0,
+    habit.tipo_medida === TipoMedida.TEMPO ? alvoEmSegundos : 0,
     habit.id,
     executionToken,
-    habit.tipo_medida === 'TEMPO'
+    habit.tipo_medida === TipoMedida.TEMPO
   );
 
   useEffect(() => {
@@ -154,7 +157,7 @@ const ExecutionActive = ({ habit }) => {
       const payload = {
         execution_token: executionToken,
         valor_realizado:
-          habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual + Math.floor(overachieveTime / 60) : quantity,
+          habit.tipo_medida === TipoMedida.TEMPO ? metaOcorrenciaAtual + Math.floor(overachieveTime / 60) : quantity,
       };
       const res = await submitExecution(habit.id, payload);
       await clearTimerState();
@@ -163,7 +166,7 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ feedback: res.data, subiuDeNivel });
       router.replace('/success');
     } catch (err) {
-      addToast(err.response?.data?.message || t('execucao.erroConclusao'), 'error');
+      addToast(getApiErrorMessage(err, t('execucao.erroConclusao')), 'error');
     }
   };
 
@@ -174,7 +177,7 @@ const ExecutionActive = ({ habit }) => {
         execution_token: executionToken,
         tipo: type,
         valor_realizado:
-          habit.tipo_medida === 'TEMPO' ? Math.floor((alvoEmSegundos - timeLeft) / 60) : quantity,
+          habit.tipo_medida === TipoMedida.TEMPO ? Math.floor((alvoEmSegundos - timeLeft) / 60) : quantity,
       };
       const res = await submitExecution(habit.id, payload);
       await clearTimerState();
@@ -182,7 +185,7 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ type, feedback: res.data });
       router.replace('/fail');
     } catch (err) {
-      addToast(err.response?.data?.message || t('execucao.erroDesistencia'), 'error');
+      addToast(getApiErrorMessage(err, t('execucao.erroDesistencia')), 'error');
       resume();
     }
   };
@@ -200,13 +203,13 @@ const ExecutionActive = ({ habit }) => {
       </HeaderWrapper>
 
       <ContentWrapper>
-        {habit.tipo_medida === 'TEMPO' ? (
+        {habit.tipo_medida === TipoMedida.TEMPO ? (
           <MonospaceTimer isOverachieving={isOverachieving} overachieveTime={overachieveTime} timeLeft={timeLeft} />
         ) : (
           <CircularProgress quantity={quantity} meta_base={metaOcorrenciaAtual} onQuantityChange={setQuantity} />
         )}
 
-        {habit.tipo_medida === 'QUANTIDADE' && (
+        {habit.tipo_medida === TipoMedida.QUANTIDADE && (
           <ControlsWrapper>
             <SubButton
               onPress={() => {

@@ -7,8 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.rodrigo.backend2java.habito.Habito;
-import com.rodrigo.backend2java.habito.FrequenciaSemanal;
+import com.rodrigo.backend2java.habito.model.Habito;
+import com.rodrigo.backend2java.habito.model.FrequenciaSemanal;
+import com.rodrigo.backend2java.execucao.model.StatusHabito;
+import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
 
 @Service
 public class FechamentoService {
@@ -25,16 +27,12 @@ public class FechamentoService {
         this.historicoRepository = historicoRepository;
     }
 
-    public record ResultadoFechamento(LocalDate dia, boolean diaProgramado, boolean metaCumprida,
-            int totalRealizado, int moedasCreditadas, int diasSeguidos, boolean escudoConsumido) {
-    }
-
     @Transactional
-    public ResultadoFechamento fecharDia(final Habito habito, final StatusHabito status, final LocalDate dia) {
+    public void fecharDia(final Habito habito, final StatusHabito status, final LocalDate dia) {
         if (!FrequenciaSemanal.ehDiaProgramado(habito.getFrequenciaSemanal(), dia)) {
             limparContadoresDoDia(status, dia);
             statusHabitoRepository.save(status);
-            return new ResultadoFechamento(dia, false, false, 0, 0, status.getDiasSeguidos(), false);
+            return;
         }
 
         final var totalRealizado = totalRealizadoNoDia(habito.getId(), dia);
@@ -66,9 +64,6 @@ public class FechamentoService {
         log.info("Fechamento do hábito {} em {}: {}/{} ({}%), {} moeda(s), ofensiva {}{}.",
                 habito.getId(), dia, totalRealizado, metaDoDia, Math.round(percentualDoDia * 100),
                 moedasCreditadasHoje, status.getDiasSeguidos(), escudoConsumido ? " (escudo)" : "");
-
-        return new ResultadoFechamento(dia, true, metaCumprida, totalRealizado, moedasCreditadasHoje,
-                status.getDiasSeguidos(), escudoConsumido);
     }
 
     private int totalRealizadoNoDia(final UUID habitoId, final LocalDate dia) {

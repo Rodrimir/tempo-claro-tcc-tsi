@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
-import { isDiaProgramado, MINUTOS_ANTECEDENCIA_LIBERACAO } from '../utils/ocorrencias';
-import { traduzir } from '../i18n';
+import { isDiaProgramado, MINUTOS_ANTECEDENCIA_LIBERACAO } from '@/utils/ocorrencias';
+import { traduzir } from '@/i18n';
+import { STATUS_OCORRENCIA } from '@/model/Status';
 
 const DIAS_JANELA = 2;
 
@@ -74,7 +75,8 @@ export async function reagendarTodas(habitos, idioma) {
       if (!isDiaProgramado(habito.frequencia_semanal, dia)) continue;
 
       for (const ocorrencia of habito.ocorrencias) {
-        const jaResolvidaHoje = offset === 0 && (ocorrencia.status === 'FEITO' || ocorrencia.status === 'FALHOU');
+        const jaResolvidaHoje = offset === 0
+          && (ocorrencia.status === STATUS_OCORRENCIA.FEITO || ocorrencia.status === STATUS_OCORRENCIA.FALHOU);
         if (jaResolvidaHoje) continue;
 
         const inicio = horarioParaData(dia, ocorrencia.horario_inicio);

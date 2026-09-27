@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useColorScheme, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
@@ -12,6 +12,7 @@ const STORAGE_KEY = 'tema';
 const HORA_INICIO_ESCURO = 18;
 const HORA_FIM_ESCURO = 6;
 const FUSO_PADRAO = 'America/Sao_Paulo';
+const INTERVALO_REAVALIACAO_MS = 60000;
 
 function horaLocalEm(fuso) {
   try {
@@ -33,10 +34,9 @@ function ehHorarioEscuro(fuso) {
 export const ThemeToggleProvider = ({ children }) => {
   const [tema, setTemaState] = useState('claro');
   const colorSchemeDoSistema = useColorScheme();
-  const [isDark, setIsDark] = useState(false);
   const { user } = useAuth() || {};
-  const fusoRef = useRef(user?.fuso_horario || FUSO_PADRAO);
-  fusoRef.current = user?.fuso_horario || FUSO_PADRAO;
+  const fuso = user?.fuso_horario || FUSO_PADRAO;
+  const [tiqueDoRelogio, setTiqueDoRelogio] = useState(0);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((salvo) => {
@@ -47,22 +47,10 @@ export const ThemeToggleProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (tema === 'dinamico') {
-      setIsDark(ehHorarioEscuro(fusoRef.current));
-      return;
-    }
-    if (tema !== 'sistema') {
-      setIsDark(tema === 'escuro');
-      return;
-    }
-    setIsDark(colorSchemeDoSistema === 'dark');
-  }, [tema, colorSchemeDoSistema]);
-
-  useEffect(() => {
     if (tema !== 'dinamico') return;
 
-    const reavaliar = () => setIsDark(ehHorarioEscuro(fusoRef.current));
-    const id = setInterval(reavaliar, 60000);
+    const reavaliar = () => setTiqueDoRelogio((anterior) => anterior + 1);
+    const id = setInterval(reavaliar, INTERVALO_REAVALIACAO_MS);
     const subscription = AppState.addEventListener('change', (proximoEstado) => {
       if (proximoEstado === 'active') reavaliar();
     });
@@ -72,18 +60,29 @@ export const ThemeToggleProvider = ({ children }) => {
     };
   }, [tema]);
 
+  const isDark = useMemo(() => {
+    if (tema === 'dinamico') return ehHorarioEscuro(fuso);
+    if (tema !== 'sistema') return tema === 'escuro';
+    return colorSchemeDoSistema === 'dark';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tema, fuso, colorSchemeDoSistema, tiqueDoRelogio]);
+
   const setTema = useCallback((novoTema) => {
     if (!TEMAS_VALIDOS.includes(novoTema)) return;
     setTemaState(novoTema);
     AsyncStorage.setItem(STORAGE_KEY, novoTema);
   }, []);
 
-  useEffect(() => {
-    if (user?.tema && TEMAS_VALIDOS.includes(user.tema) && user.tema !== tema) {
-      setTema(user.tema);
+  const temaDoServidor = user?.tema;
+  const [temaDoServidorAnterior, setTemaDoServidorAnterior] = useState(temaDoServidor);
+
+  if (temaDoServidor !== temaDoServidorAnterior) {
+    setTemaDoServidorAnterior(temaDoServidor);
+    if (temaDoServidor && TEMAS_VALIDOS.includes(temaDoServidor) && temaDoServidor !== tema) {
+      setTemaState(temaDoServidor);
+      AsyncStorage.setItem(STORAGE_KEY, temaDoServidor);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.tema]);
+  }
 
   return (
     <ThemeToggleContext.Provider value={{ isDark, tema, setTema }}>

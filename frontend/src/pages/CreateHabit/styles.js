@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
-import { fonts } from '../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const Container = styled.ScrollView.attrs((props) => ({
   contentContainerStyle: { padding: 24, paddingTop: 24 + (props.$insetTop || 0), paddingBottom: 100, gap: 24 },
