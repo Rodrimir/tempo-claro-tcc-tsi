@@ -23,6 +23,11 @@ function traduzirPorStatus(status) {
   }
 }
 
+// @note - 14.1 (Cadastro) getApiErrorMessage: prioriza a mensagem vinda do backend
+// (err.response.data.message, os textos de GlobalExceptionHandler.java, itens 13.1 a 13.6); só
+// cai para mensagem genérica por status HTTP quando o backend não manda message, ou para "sem
+// resposta do servidor" quando não houve resposta alguma (sem conexão, timeout). Ver README §8 >
+// Cadastro > item 14.
 export function getApiErrorMessage(err, mensagemPadrao) {
   const doServidor = err?.response?.data?.message;
   if (doServidor) return doServidor;

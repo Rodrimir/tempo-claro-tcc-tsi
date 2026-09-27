@@ -30,8 +30,16 @@ public class CodigoVerificacaoService {
         this.codigoFixo = codigoFixo == null ? "" : codigoFixo.trim();
     }
 
+    // @note - 10.1 (Cadastro) gerarCodigo, chamado por AuthService.cadastrar (item 7.1d): invalida
+    // qualquer código pendente do mesmo tipo para aquele e-mail, sorteia um código de 6 dígitos
+    // (ou usa app.verificacao.codigo-fixo, previsto só para teste) e grava o hash com expiração de
+    // 15 minutos. Ver README §8 > Cadastro > item 10.
     @Transactional
     public String gerarCodigo(final String email, final TipoCodigo tipo) {
+        // @note - 10.1 (Cadastro) ramificação de throttle: se já existe um código do mesmo tipo
+        // emitido há menos de 60s, lança RegraDeNegocioException (item 13.2). Na prática
+        // inatingível a partir de um cadastro novo, porque um e-mail que ainda não existe em
+        // usuarios nunca teve código de verificação emitido antes.
         final var ultimoEmitido = repository.findFirstByEmailAndTipoOrderByCriadoEmDesc(email, tipo.name());
         if (ultimoEmitido.isPresent()
                 && ultimoEmitido.get().getCriadoEm().plusSeconds(THROTTLE_REENVIO_SEGUNDOS).isAfter(OffsetDateTime.now())) {
@@ -44,6 +52,11 @@ public class CodigoVerificacaoService {
                 ? String.format("%06d", ALEATORIO.nextInt(1_000_000))
                 : codigoFixo;
 
+        // @audit-ok - Tabela: codigos_verificacao | Campos: cod_id, cod_email, cod_codigo_hash,
+        // cod_tipo, cod_expira_em, cod_tentativas, cod_criado_em | Avaliação: consistente com o
+        // schema.sql; o código em si nunca é persistido em texto puro, só o hash (mesmo
+        // PasswordEncoder das senhas, ver SecurityConfig.java item 6.2), e cod_tipo grava o nome
+        // do enum TipoCodigo, que bate com o CHECK da coluna.
         repository.save(CodigoVerificacao.builder()
                 .id(UUID.randomUUID())
                 .email(email)

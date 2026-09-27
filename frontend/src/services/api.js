@@ -25,6 +25,10 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     if (status === 401 || status === 403) {
+      // @note - 4.2 (Cadastro) interceptor de resposta: em qualquer 401/403 de rotas que não
+      // sejam /auth/login ou /auth/register, dispara o tratamento de sessão expirada. Como a
+      // rota de cadastro é permitAll no backend (ver SecurityConfig.java, item 6.1), esse
+      // interceptor nunca chega a agir sobre uma resposta de registro.
       const url = error.config?.url || '';
       const isAuthUrl = url.includes('/auth/login') || url.includes('/auth/register');
       if (!isAuthUrl && unauthorizedHandler) {
@@ -37,6 +41,8 @@ api.interceptors.response.use(
 
 export const login = async (data) => api.post('/auth/login', data);
 
+// @note - 4.1 (Cadastro) register: POST /auth/register com o payload montado em
+// AuthContext.jsx (item 3.1). Ver README §8 > Cadastro > item 4.
 export const register = async (data) => api.post('/auth/register', data);
 
 export const verifyEmail = async (data) => api.post('/auth/verify-email', data);

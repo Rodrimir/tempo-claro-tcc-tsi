@@ -37,9 +37,11 @@ export default {
   validacao: {
     campoObrigatorio: "Campos de e-mail ou senha não podem estar vazios.",
     preenchaTudo: "Preencha todos os campos obrigatórios.",
+    nomeMuitoLongo: "O nome deve ter no máximo {maximo} caracteres.",
     senhasNaoConferem: "As senhas não conferem. Verifique a digitação.",
     emailInvalido: "Informe um e-mail válido.",
     senhaCurta: "A senha deve ter pelo menos {minimo} caracteres.",
+    senhaLonga: "A senha deve ter no máximo {maximo} caracteres.",
     senhaSemMaiuscula: "A senha deve ter pelo menos uma letra maiúscula.",
     senhaSemEspecial: "A senha deve ter pelo menos um caractere especial.",
     informeSenhaAtual: "Informe a senha atual para alterar a senha.",

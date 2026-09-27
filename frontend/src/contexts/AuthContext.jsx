@@ -91,6 +91,10 @@ export const AuthProvider = ({ children }) => {
     await persistSession(response);
   };
 
+  // @note - 3.1 (Cadastro) register: traduz os campos do formulário (nome, email, senha, idioma)
+  // para o payload que a API espera (password, preferencia_idioma) e delega a chamada HTTP (ver
+  // README §8 > Cadastro > item 4). Diferente de login, confirmarEmail e redefinirSenha, não
+  // chama persistSession: o cadastro isolado nunca grava token nem autentica o usuário.
   const register = async (data) => {
     const payload = {
       nome: data.nome,

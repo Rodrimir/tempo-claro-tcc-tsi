@@ -10,6 +10,13 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     Optional<Usuario> findByEmail(String email);
 
+    // @note - 9.1 (Cadastro) existsByEmail: checagem de duplicidade usada em AuthService.cadastrar
+    // (item 7.1a). Ver README §8 > Cadastro > item 9.
+    // @audit-issue - 9.1 (Cadastro) [outcome: kept as-is] checagem sensível a
+    // maiúsculas/minúsculas: nada normaliza o e-mail para caixa baixa antes de comparar ou salvar
+    // (Usuario.java, item 9.2), então duas variações de maiúscula do mesmo endereço são tratadas
+    // como contas diferentes. Levantado para decisão e confirmado pelo autor: e-mail é
+    // case-sensitive de propósito, não normalizar.
     boolean existsByEmail(String email);
 
     @Modifying(clearAutomatically = true)

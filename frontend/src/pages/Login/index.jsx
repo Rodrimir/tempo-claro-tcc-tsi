@@ -64,6 +64,10 @@ import {
   ForgotPasswordText,
 } from './styles';
 
+// @note - 1.1 (Cadastro) Componente Login: um único formulário react-hook-form atende as abas
+// "Entrar" e "Criar Conta". A aba ativa (isLoginTab) decide o schema de validação (registerSchema
+// quando é cadastro) e quais campos existem: nome e confirmarSenha só existem nesta aba. Ver
+// README §8 > Cadastro > item 1.
 const Login = () => {
   const { t, idioma, setIdioma, idiomas } = useI18n();
 
@@ -111,6 +115,9 @@ const Login = () => {
     transform: [{ translateY: flutuar.value }],
   }));
 
+  // @audit-info - 1.1 (Cadastro) o botão físico de voltar do Android é interceptado para toda a
+  // tela (retorna true = evento consumido): não existe caminho para sair desta tela pelo botão de
+  // voltar do aparelho, inclusive na aba de cadastro.
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
     return () => subscription.remove();
@@ -122,11 +129,20 @@ const Login = () => {
         await login(data);
         router.replace('/home');
       } else {
+        // @note - 1.2 (Cadastro) ramo cadastro (isLoginTab === false): chama registerConta (ver
+        // README §8 > Cadastro > item 3), mostra toast de sucesso e navega para a verificação de
+        // e-mail.
         await registerConta({ ...data, idioma });
         addToast(t('login.cadastroRecebido'), 'success');
+        // @note - 15.1 (Cadastro) handoff: router.replace para /verify-email com o e-mail como
+        // parâmetro. O cadastro termina aqui; a confirmação do código é outra funcionalidade.
         router.replace({ pathname: '/verify-email', params: { email: data.email } });
       }
     } catch (err) {
+      // @note - 1.3 (Cadastro) ramo catch: qualquer falha do cadastro toca som de erro e mostra
+      // toast com a mensagem traduzida (ver README §8 > Cadastro > item 14); a tela permanece na
+      // aba de cadastro para nova tentativa, sem perder os valores já digitados. O ramo abaixo
+      // (isLoginTab && status 403) é específico do login, não do cadastro.
       if (isLoginTab && err.response?.status === 403) {
         addToast(getApiErrorMessage(err, t('login.erroAutenticar')), 'error');
         router.replace({ pathname: '/verify-email', params: { email: data.email } });
@@ -229,7 +245,18 @@ const Login = () => {
                 control={control}
                 name="senha"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <PasswordInput placeholder="••••••••" value={value} onChangeText={onChange} onBlur={onBlur} />
+                  // @note - 1.1 (Cadastro) mesmo campo "senha" atende login e cadastro;
+                  // textContentType/autoComplete mudam conforme a aba: "password" ao entrar
+                  // (senha existente), "newPassword"/"new-password" ao criar conta (senha nova,
+                  // habilita a sugestão de senha forte do sistema). Ver PasswordInput/index.jsx.
+                  <PasswordInput
+                    placeholder="••••••••"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    textContentType={isLoginTab ? 'password' : 'newPassword'}
+                    autoComplete={isLoginTab ? 'password' : 'new-password'}
+                  />
                 )}
               />
               {errors.senha && <ErrorText>{errors.senha.message}</ErrorText>}
@@ -282,7 +309,16 @@ const Login = () => {
                   control={control}
                   name="confirmarSenha"
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <PasswordInput placeholder="••••••••" value={value} onChangeText={onChange} onBlur={onBlur} />
+                    // @note - 1.1 (Cadastro) confirmarSenha só existe na aba de cadastro, então é
+                    // sempre "senha nova" para o gerenciador de senhas nativo.
+                    <PasswordInput
+                      placeholder="••••••••"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      textContentType="newPassword"
+                      autoComplete="new-password"
+                    />
                   )}
                 />
                 {errors.confirmarSenha && <ErrorText>{errors.confirmarSenha.message}</ErrorText>}

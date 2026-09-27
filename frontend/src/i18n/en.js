@@ -43,9 +43,11 @@ export default {
   validacao: {
     campoObrigatorio: 'E-mail and password cannot be empty.',
     preenchaTudo: 'Please fill in all required fields.',
+    nomeMuitoLongo: 'Name must be at most {maximo} characters.',
     senhasNaoConferem: 'Passwords do not match. Check your typing.',
     emailInvalido: 'Enter a valid e-mail address.',
     senhaCurta: 'Password must be at least {minimo} characters.',
+    senhaLonga: 'Password must be at most {maximo} characters.',
     senhaSemMaiuscula: 'Password must have at least one uppercase letter.',
     senhaSemEspecial: 'Password must have at least one special character.',
     informeSenhaAtual: 'Enter your current password to change it.',

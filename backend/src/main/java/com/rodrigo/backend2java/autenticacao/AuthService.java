@@ -2,6 +2,7 @@ package com.rodrigo.backend2java.autenticacao;
 import java.util.UUID;
 import java.time.OffsetDateTime;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.infra.jwt.TokenService;
 import com.rodrigo.backend2java.usuario.UsuarioRepository;
@@ -63,16 +64,35 @@ public class AuthService {
         }
 
 
+        // @note - 7.1 (Cadastro) cadastrar: quatro passos em sequência - (a) confere duplicidade
+        // de e-mail, (b) revalida a força da senha no servidor, (c) monta e salva a entidade
+        // Usuario, (d) gera e dispara o código de verificação de e-mail. Ver README §8 > Cadastro
+        // > item 7.
+        // @audit-issue - 7.1 (Cadastro) [outcome: fixed] este método não era @Transactional.
+        // Salvar o usuário (c) e gerar/enviar o código (d) eram operações separadas: se qualquer
+        // uma falhasse depois do save, o usuário ficava órfão (persistido, sem código, e-mail
+        // bloqueado para nova tentativa pela checagem em (a)). @Transactional agora cobre (a) a
+        // (d) numa única transação — desde que ResendEmailService.enviarCodigo (item 11.1) seja
+        // síncrono, uma falha no envio também desfaz o save do usuário e a geração do código.
+        @Transactional
         public MessageResponseDTO cadastrar(final RegisterRequestDTO request) {
+                // @note - 7.1a (Cadastro) e-mail já cadastrado lança RegraDeNegocioException (HTTP
+                // 422, GlobalExceptionHandler.java item 13.2), nenhuma escrita acontece.
                 if (usuarioRepository.existsByEmail(request.email())) {
                         throw new RegraDeNegocioException("E-mail já está em uso");
                 }
 
+                // @note - 7.1b (Cadastro) senha fora dos critérios do servidor lança
+                // ValidacaoException (HTTP 400, GlobalExceptionHandler.java item 13.3). Redundante
+                // com Login/validation.js (item 2.1) só quando o cliente é o app oficial; é a
+                // única barreira para qualquer outro consumidor da API.
                 final var motivoSenhaInvalida = SenhaValidator.motivoInvalida(request.password());
                 if (motivoSenhaInvalida != null) {
                         throw new ValidacaoException(motivoSenhaInvalida);
                 }
 
+                // @note - 7.1c (Cadastro) monta e salva a entidade Usuario. Ver Usuario.java e
+                // UsuarioRepository.java (item 9) para o detalhe do que é gravado.
                 final var novoUsuario = Usuario.builder()
                                 .id(UUID.randomUUID())
                                 .nome(request.nome())
@@ -88,6 +108,10 @@ public class AuthService {
 
                 usuarioRepository.save(novoUsuario);
 
+                // @note - 7.1d (Cadastro) gera o código de verificação (CodigoVerificacaoService,
+                // item 10) e dispara o e-mail (ResendEmailService, item 11 - síncrono: uma falha
+                // no envio propaga RegraDeNegocioException para cá, e o @Transactional do método
+                // desfaz o save do usuário e a geração do código junto).
                 final var codigo = codigoVerificacaoService.gerarCodigo(novoUsuario.getEmail(), TipoCodigo.VERIFICACAO_EMAIL);
                 emailService.enviarCodigo(novoUsuario.getEmail(), codigo, TipoCodigo.VERIFICACAO_EMAIL, novoUsuario.getPreferenciaIdioma());
 
@@ -135,8 +159,13 @@ public class AuthService {
                 usuarioRepository.findByEmail(request.email()).ifPresent(usuario -> {
                         try {
                                 final var codigo = codigoVerificacaoService.gerarCodigo(usuario.getEmail(), TipoCodigo.RECUPERACAO_SENHA);
+                                // @audit-info - (fora do mapeamento de Cadastro) enviarCodigo (ResendEmailService, item
+                                // 11.1) agora é síncrono e lança RegraDeNegocioException se o envio falhar. Este catch
+                                // já existia só para o throttle de reenvio, mas passa a engolir também uma falha real
+                                // de envio aqui: de propósito, porque esqueciSenha nunca deve revelar ao chamador se o
+                                // e-mail existe ou se o envio deu certo (sempre "success": true).
                                 emailService.enviarCodigo(usuario.getEmail(), codigo, TipoCodigo.RECUPERACAO_SENHA, usuario.getPreferenciaIdioma());
-                        } catch (RegraDeNegocioException throttleDoReenvio) {
+                        } catch (RegraDeNegocioException throttleDoReenvioOuFalhaDeEnvio) {
                         }
                 });
 

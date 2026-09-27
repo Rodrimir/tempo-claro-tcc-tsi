@@ -46,6 +46,9 @@ public class SecurityConfig {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+    // @note - 6.2 (Cadastro) passwordEncoder: bean BCryptPasswordEncoder, usado em
+    // AuthService.cadastrar (item 7.1c) para gerar o hash gravado no banco, e em
+    // CodigoVerificacaoService.gerarCodigo (item 10.1) para o hash do código de verificação.
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -66,6 +69,8 @@ public class SecurityConfig {
                             path.matcher("/swagger-ui/**")
                     ).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/login")).permitAll();
+                    // @note - 6.1 (Cadastro) POST /api/auth/register está em permitAll(): a rota
+                    // não exige token. Ver README §8 > Cadastro > item 6.
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/register")).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/verify-email")).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/resend-code")).permitAll();
