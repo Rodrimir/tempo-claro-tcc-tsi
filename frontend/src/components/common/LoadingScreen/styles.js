@@ -1,36 +1,25 @@
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components/native';
+import Animated from 'react-native-reanimated';
+import { Image } from 'expo-image';
+import { fonts } from '../../../styles/fonts';
 
-const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
-export const Container = styled.div`
-  display: flex;
-  flex-direction: column;
+export const Container = styled.View`
+  flex: 1;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  width: 100%;
   background-color: ${(props) => props.theme.bgPrimary};
-  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const LoadingText = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 600;
+export const LoadingText = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 24px;
   margin-bottom: 30px;
   min-width: 150px;
   text-align: center;
+  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const SunImage = styled.img`
+export const SunImage = styled(Animated.createAnimatedComponent(Image))`
   width: 120px;
   height: 120px;
-  animation: ${spin} 4s linear infinite;
-  object-fit: contain;
 `;

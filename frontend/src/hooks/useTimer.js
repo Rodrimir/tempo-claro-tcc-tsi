@@ -1,111 +1,133 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { saveExecutionState, loadExecutionState, clearExecutionState, isWithinTolerance } from '../utils/storage';
-
-// @audit-ok [useTimer — hook de cronômetro regressivo com persistência no localStorage e compensação de tempo em background]
 
 export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true) => {
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
-  const [isActive, setIsActive] = useState(isTimer);
+  const [isActive, setIsActive] = useState(false);
   const [isOverachieving, setIsOverachieving] = useState(false);
   const [overachieveTime, setOverachieveTime] = useState(0);
-  const timerRef = useRef(null);
-  const stateRef = useRef({ timeLeft: initialSeconds, isOverachieving: false, overachieveTime: 0 });
+  const [pronto, setPronto] = useState(false);
+
+  const intervalRef = useRef(null);
+  const deadlineRef = useRef(Date.now() + initialSeconds * 1000);
+  const stateRef = useRef({ isOverachieving: false });
+  const executionTokenRef = useRef(executionToken);
 
   useEffect(() => {
-    stateRef.current = { timeLeft, isOverachieving, overachieveTime };
-  }, [timeLeft, isOverachieving, overachieveTime]);
+    executionTokenRef.current = executionToken;
+  }, [executionToken]);
+
+  useEffect(() => {
+    stateRef.current = { isOverachieving };
+  }, [isOverachieving]);
 
   const clearTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  // @audit-ok [Execução Timer (5) — pausa o timer e persiste estado no localStorage via stateRef]
-  const pause = useCallback(() => {
+  const recompute = useCallback(() => {
+    const diffMs = Date.now() - deadlineRef.current;
+    if (diffMs < 0) {
+      setTimeLeft(Math.ceil(-diffMs / 1000));
+      setIsOverachieving(false);
+      setOverachieveTime(0);
+    } else {
+      const jaEstavaOverachieving = stateRef.current.isOverachieving;
+      setTimeLeft(0);
+      setIsOverachieving(true);
+      setOverachieveTime(Math.floor(diffMs / 1000));
+      if (!jaEstavaOverachieving) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    }
+  }, []);
+
+  const pause = useCallback(async () => {
     if (!isTimer) return;
     setIsActive(false);
     clearTimer();
-    // @audit-ok [Execução Timer (7) — salva timeLeft, isOverachieving e overachieveTime encriptados]
-    const { timeLeft: tl, isOverachieving: iso, overachieveTime: ot } = stateRef.current;
-    saveExecutionState(habitId, executionToken, { timeLeft: tl, isOverachieving: iso, overachieveTime: ot }, Date.now());
-  }, [habitId, executionToken, isTimer]);
+    await saveExecutionState(habitId, executionTokenRef.current, { deadline: deadlineRef.current }, Date.now());
+  }, [habitId, isTimer]);
 
-  // @audit-ok [Execução Timer (8) — retoma do localStorage compensando o tempo que passou em background]
-  const resume = useCallback(() => {
+  const resume = useCallback(async () => {
     if (!isTimer) return;
-    // @audit-ok [Execução Timer (9) — carrega estado salvo do localStorage]
-    const savedState = loadExecutionState(habitId);
+    const savedState = await loadExecutionState(habitId);
     if (savedState) {
-      // @audit-ok [Execução Timer (10) — rejeita retomada se passaram mais de 60 minutos]
-      if (!isWithinTolerance(savedState.startedAt)) {
-        clearExecutionState(habitId);
+      const dentroDaTolerancia = await isWithinTolerance(savedState.startedAt);
+      if (!dentroDaTolerancia) {
+        await clearExecutionState(habitId);
         return;
       }
-      // @audit-ok [Execução Timer (11) — compensa segundos decorridos durante a pausa]
-      const timeDiff = Math.floor((Date.now() - savedState.startedAt) / 1000);
-      const { timeLeft: savedTimeLeft, isOverachieving: savedIsOver, overachieveTime: savedExtra } = savedState.elapsed;
-      if (!savedIsOver) {
-        const newTimeLeft = Math.max(0, savedTimeLeft - timeDiff);
-        setTimeLeft(newTimeLeft);
-        if (newTimeLeft === 0) {
-          setIsOverachieving(true);
-          setOverachieveTime(Math.abs(savedTimeLeft - timeDiff));
-        }
-      } else {
-        setIsOverachieving(true);
-        setOverachieveTime(savedExtra + timeDiff);
-      }
+      deadlineRef.current = savedState.elapsed.deadline;
+      recompute();
     }
     setIsActive(true);
-  }, [habitId, isTimer]);
+  }, [habitId, isTimer, recompute]);
 
   const start = useCallback(() => {
     if (!isTimer) return;
+    deadlineRef.current = Date.now() + initialSeconds * 1000;
+    recompute();
     setIsActive(true);
-  }, [isTimer]);
+  }, [isTimer, initialSeconds, recompute]);
 
-  const stop = useCallback(() => {
+  const stop = useCallback(async () => {
     setIsActive(false);
     clearTimer();
-    clearExecutionState(habitId);
+    await clearExecutionState(habitId);
   }, [habitId]);
 
-  // @audit-ok [Execução Timer (4) — listener de visibilidade: pausa/retoma quando app vai para background]
   useEffect(() => {
-    if (!isTimer) return;
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
+    if (!isTimer) {
+      setPronto(true);
+      return;
+    }
+    let cancelado = false;
+    (async () => {
+      const savedState = await loadExecutionState(habitId);
+      if (savedState) {
+        const dentroDaTolerancia = await isWithinTolerance(savedState.startedAt);
+        if (!dentroDaTolerancia) {
+          await clearExecutionState(habitId);
+          if (cancelado) return;
+          setPronto(true);
+          return;
+        }
+        deadlineRef.current = savedState.elapsed.deadline;
+      }
+      if (cancelado) return;
+      recompute();
+      setIsActive(true);
+      setPronto(true);
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!isTimer || !pronto) return;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
         pause();
-      } else {
+      } else if (nextState === 'active') {
         resume();
       }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    });
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      subscription.remove();
       clearTimer();
     };
-  }, [pause, resume, isTimer]);
+  }, [pause, resume, isTimer, pronto]);
 
-  // @audit-ok [Execução Timer (4) — intervalo de 1 segundo que decrementa timeLeft ou incrementa overachieveTime]
   useEffect(() => {
     if (!isActive || !isTimer) return;
-    timerRef.current = setInterval(() => {
-      if (!stateRef.current.isOverachieving) {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            // @audit-ok [Execução Timer (12) — timer chegou a zero: ativa modo overachieve e vibra o dispositivo]
-            setIsOverachieving(true);
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            return 0;
-          }
-          return prev - 1;
-        });
-      } else {
-        setOverachieveTime(prev => prev + 1);
-      }
-    }, 1000);
+    intervalRef.current = setInterval(recompute, 1000);
     return clearTimer;
-  }, [isActive, isTimer]);
+  }, [isActive, isTimer, recompute]);
 
   const elapsed = (initialSeconds - timeLeft) + overachieveTime;
 
@@ -120,7 +142,6 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     timeLeft,
     overachieveTime,
     isOverachieving,
-    // @audit-ok [Execução Timer (27) — limpa estado do localStorage após conclusão ou desistência]
-    clearTimerState: () => clearExecutionState(habitId)
+    clearTimerState: () => clearExecutionState(habitId),
   };
 };

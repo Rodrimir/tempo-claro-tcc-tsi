@@ -1,34 +1,31 @@
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components/native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
+import { fonts } from '../../../styles/fonts';
 
-export const popIn = keyframes`
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-`;
-
-export const TimerContainer = styled.div`
-  display: flex;
-  flex-direction: column;
+export const TimerContainer = styled.View`
   align-items: center;
 `;
 
-export const TimeDisplay = styled.div`
-  font-family: monospace;
+export const TimeDisplay = styled.Text`
+  font-family: ${fonts.extraBold};
   font-size: 80px;
-  font-weight: 800;
-  color: ${(props) => props.$isOverachieving ? 'var(--success-color)' : 'var(--primary-color)'};
-  transition: color 0.5s ease;
+  color: ${(props) => (props.$isOverachieving ? props.theme.successColor : props.theme.primaryColor)};
 `;
 
-export const BonusWrapper = styled.div`
+export const BonusWrapper = styled.View`
   height: 40px;
   margin-top: 16px;
 `;
 
-export const BonusBadge = styled.div`
-  display: flex;
+export const BonusBadge = styled(Animated.View).attrs({
+  entering: ZoomIn.duration(500),
+})`
+  flex-direction: row;
   align-items: center;
   gap: 8px;
-  color: var(--success-color);
-  font-weight: 700;
-  animation: ${popIn} 0.5s ease-out forwards;
+`;
+
+export const BonusText = styled.Text`
+  font-family: ${fonts.bold};
+  color: ${(props) => props.theme.successColor};
 `;

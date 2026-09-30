@@ -1,123 +1,343 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Search, Flame, Target } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { View, Modal } from 'react-native';
+import { Svg, Rect } from 'react-native-svg';
+import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'styled-components/native';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
-import { getWeeklyStats } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { getMonthlyStats, getDashboard } from '../../services/api';
+import { useI18n } from '../../contexts/LanguageContext';
 import {
   StatsContainer,
   Title,
+  HabitTitleButton,
   HabitTitle,
+  PickerOverlay,
+  PickerSheet,
+  PickerTitulo,
+  PickerOption,
+  PickerOptionText,
   ContentWrapper,
   GridRow,
   StatCard,
   CardHeader,
+  CardHeaderText,
   CardValue,
+  CardSubtext,
   ChartCard,
+  RecordeRow,
+  RecordePosicao,
+  RecordeData,
+  RecordeValor,
   ChartTitle,
   ChartWrapper,
+  BarLabel,
   EmptyStateContainer,
   EmptyIconWrapper,
   EmptyTitle,
-  EmptyText
+  EmptyText,
+  RetryButton,
+  RetryButtonText,
 } from './styles';
 
-// @audit-ok [Estatísticas (1) — tela de métricas do hábito selecionado no carrossel]
+const ALTURA_GRAFICO = 160;
+
+function opacidadeDaBarra(dia) {
+  if (dia.valor_realizado > 0) return 1;
+  return dia.dia_programado === false ? 0.1 : 0.25;
+}
+
+function GraficoBarras({ dias, theme }) {
+  const [largura, setLargura] = useState(0);
+  const maxValor = Math.max(1, ...dias.map((d) => d.valor_realizado));
+  const barWidth = largura > 0 ? largura / dias.length : 0;
+  const gap = dias.length > 10 ? 2 : 8;
+
+  const intervaloRotulo = dias.length > 10 ? 5 : 1;
+  const rotulo = (dia, i) => {
+    if (i % intervaloRotulo !== 0) return '';
+    if (dias.length > 10) {
+      const [, mes, d] = dia.data.split('-');
+      return `${d}/${mes}`;
+    }
+    return dia.nome;
+  };
+
+  return (
+    <View>
+      <ChartWrapper onLayout={(e) => setLargura(e.nativeEvent.layout.width)} style={{ height: ALTURA_GRAFICO }}>
+        {largura > 0 && (
+          <Svg width={largura} height={ALTURA_GRAFICO}>
+            {dias.map((dia, i) => {
+              const h = Math.max(dia.valor_realizado > 0 ? 4 : 2, (dia.valor_realizado / maxValor) * (ALTURA_GRAFICO - 8));
+              return (
+                <Rect
+                  key={dia.data}
+                  x={i * barWidth + gap / 2}
+                  y={ALTURA_GRAFICO - h}
+                  width={Math.max(1, barWidth - gap)}
+                  height={h}
+                  rx={dias.length > 10 ? 2 : 6}
+                  fill={dia.parcial ? theme.warningColor : theme.primaryColor}
+                  opacity={opacidadeDaBarra(dia)}
+                />
+              );
+            })}
+          </Svg>
+        )}
+      </ChartWrapper>
+      <View style={{ height: 16 }}>
+        {largura > 0 &&
+          dias.map((dia, i) => {
+            const texto = rotulo(dia, i);
+            if (!texto) return null;
+            return (
+              <BarLabel
+                key={dia.data}
+                numberOfLines={1}
+                style={{
+                  position: 'absolute',
+                  left: i * barWidth + barWidth / 2 - 20,
+                  width: 40,
+                  textAlign: 'center',
+                }}
+              >
+                {texto}
+              </BarLabel>
+            );
+          })}
+      </View>
+    </View>
+  );
+}
 
 const Stats = () => {
-  // @audit-ok [Estatísticas (2) — lê o hábito ativo do context compartilhado com o Home]
-  const { currentHabit: habit } = useCurrentHabit();
-  const [data, setData] = useState([]);
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const { currentHabit: habit, setCurrentHabit } = useCurrentHabit();
+  const { addToast } = useToast();
+  const { t } = useI18n();
+  const [dias, setDias] = useState([]);
+  const [recordes, setRecordes] = useState([]);
+  const [constanciaPercentual, setConstanciaPercentual] = useState(0);
+  const [diasComMetaCumprida, setDiasComMetaCumprida] = useState(0);
+  const [diasPeriodo, setDiasPeriodo] = useState(30);
+  const [diasCobrados, setDiasCobrados] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [habitosDisponiveis, setHabitosDisponiveis] = useState([]);
+  const [pickerAberto, setPickerAberto] = useState(false);
 
-  // @audit-ok [Estatísticas (4) — carrega dados semanais ao montar ou ao mudar o hábito]
+  const loadStats = useCallback(async (silencioso = false) => {
+    if (!habit) {
+      setLoading(false);
+      return;
+    }
+    if (!silencioso) setLoading(true);
+    setLoadError(false);
+    try {
+      const response = await getMonthlyStats(habit.id);
+      const dadosDias = response.data?.dias;
+      if (Array.isArray(dadosDias)) {
+        setDias(dadosDias);
+        setRecordes(Array.isArray(response.data.recordes) ? response.data.recordes : []);
+        setConstanciaPercentual(response.data.constancia_percentual ?? 0);
+        setDiasComMetaCumprida(response.data.dias_com_meta_cumprida ?? 0);
+        setDiasPeriodo(response.data.dias_periodo ?? 30);
+        setDiasCobrados(response.data.dias_cobrados ?? response.data.dias_periodo ?? 30);
+      } else {
+        setDias([]);
+        setRecordes([]);
+        setConstanciaPercentual(0);
+        setDiasComMetaCumprida(0);
+      }
+    } catch (error) {
+      addToast(t('stats.erro'), 'error');
+      setLoadError(true);
+    } finally {
+      if (!silencioso) setLoading(false);
+    }
+  }, [habit, addToast]);
+
+  const primeiraCarga = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      loadStats(!primeiraCarga.current);
+      primeiraCarga.current = false;
+    }, [loadStats])
+  );
+
   useEffect(() => {
-    const loadStats = async () => {
-      // @audit-ok [Estatísticas (3) — retorna estado vazio se não há hábito selecionado]
-      if (!habit) {
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        // @audit-ok [Estatísticas (5) — chama GET /stats/weekly]
-        const response = await getWeeklyStats();
-        // @audit-ok [Estatísticas (7) — armazena dados reais ou array vazio (endpoint ainda não implementado)]
-        if (response.data && response.data.length > 0) {
-          setData(response.data);
-        } else {
-          setData([]);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar estatísticas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadStats();
-  }, [habit]);
+    if (!primeiraCarga.current) loadStats(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habit?.id]);
 
-  // @audit-ok [Estatísticas (3) — exibe estado vazio quando não há hábito em foco no carrossel]
+  useFocusEffect(
+    useCallback(() => {
+      getDashboard()
+        .then((res) => {
+          const lista = res.data.habits || res.data || [];
+          setHabitosDisponiveis(lista.filter((h) => h.status !== 'ARCHIVED'));
+        })
+        .catch(() => {});
+    }, [])
+  );
+
   if (!habit) {
     return (
       <EmptyStateContainer>
-        <EmptyIconWrapper><Search size={32} /></EmptyIconWrapper>
-        <EmptyTitle>Nenhum Hábito em Foco</EmptyTitle>
-        <EmptyText>
-          Volte para a tela Inicial e posicione um hábito no centro do carrossel para ver seus dados.
-        </EmptyText>
+        <EmptyIconWrapper>
+          <Feather name="search" size={32} color={theme.textSecondary} />
+        </EmptyIconWrapper>
+        <EmptyTitle>{t('stats.semHabito')}</EmptyTitle>
+        <EmptyText>{t('stats.semHabitoTexto')}</EmptyText>
       </EmptyStateContainer>
     );
   }
 
+  const seletorModal = (
+    <Modal visible={pickerAberto} transparent animationType="fade" onRequestClose={() => setPickerAberto(false)}>
+      <PickerOverlay onPress={() => setPickerAberto(false)}>
+        <PickerSheet onStartShouldSetResponder={() => true}>
+          <PickerTitulo>{t('stats.trocarHabito')}</PickerTitulo>
+          {habitosDisponiveis.map((h) => (
+            <PickerOption
+              key={h.id}
+              onPress={() => {
+                setCurrentHabit(h);
+                setPickerAberto(false);
+              }}
+            >
+              <PickerOptionText $active={h.id === habit.id}>{h.titulo}</PickerOptionText>
+              {h.id === habit.id ? <Feather name="check" size={18} color={theme.primaryColor} /> : null}
+            </PickerOption>
+          ))}
+        </PickerSheet>
+      </PickerOverlay>
+    </Modal>
+  );
+
   const isTempo = habit.tipo_medida === 'TEMPO';
-  // @audit-ok [Estatísticas (8) — calcula recorde da semana a partir dos dados retornados]
-  const maxRecord = data.length > 0 ? Math.max(...data.map(d => d.valor)) : 0;
 
   const formatMedida = (valor) => {
-    if (isTempo) return `${Math.round(valor / 60)} min`;
-    return `${Math.round(valor)} ${habit.categoria === 'AGUA' ? 'ml' : 'vezes'}`;
+    if (isTempo) return `${Math.round(valor)} ${t('comum.min')}`;
+    return `${Math.round(valor)} ${habit.categoria === 'AGUA' ? t('comum.ml') : t('comum.vezes')}`;
   };
 
-  if (loading) return <LoadingScreen message="Carregando Estatísticas" />;
+  const formatarData = (iso) => {
+    const [, mes, dia] = iso.split('-');
+    return `${dia}/${mes}`;
+  };
+
+  if (loading) return <LoadingScreen message={t('stats.carregando')} />;
+
+  if (loadError) {
+    return (
+      <EmptyStateContainer>
+        <EmptyIconWrapper>
+          <Feather name="alert-triangle" size={32} color={theme.textSecondary} />
+        </EmptyIconWrapper>
+        <EmptyTitle>{t('stats.erroTitulo')}</EmptyTitle>
+        <EmptyText>{t('stats.erroTexto')}</EmptyText>
+        <RetryButton onPress={() => loadStats()}>
+          <RetryButtonText>{t('comum.tentarNovamente')}</RetryButtonText>
+        </RetryButton>
+      </EmptyStateContainer>
+    );
+  }
+
+  const semExecucoes = dias.every((dia) => dia.execucoes === 0 && !dia.parcial);
+  if (semExecucoes) {
+    return (
+      <>
+      <StatsContainer $insetTop={insets.top}>
+        <Title>{t('stats.titulo')}</Title>
+        <HabitTitleButton onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
+        <HabitTitle>{habit.titulo}</HabitTitle>
+        <Feather name='chevron-down' size={16} color={theme.primaryColor} />
+      </HabitTitleButton>
+        <EmptyStateContainer>
+          <EmptyIconWrapper>
+            <Feather name="bar-chart-2" size={32} color={theme.textSecondary} />
+          </EmptyIconWrapper>
+          <EmptyTitle>{t('stats.nadaAqui')}</EmptyTitle>
+          <EmptyText>{t('stats.semExecucoesTexto')}</EmptyText>
+        </EmptyStateContainer>
+      </StatsContainer>
+      {seletorModal}
+      </>
+    );
+  }
 
   return (
-    <StatsContainer>
-      <Title>Dados do Hábito</Title>
-      <HabitTitle>{habit.titulo}</HabitTitle>
+    <>
+    <StatsContainer $insetTop={insets.top}>
+      <Title>{t('stats.titulo')}</Title>
+      <HabitTitleButton onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
+        <HabitTitle>{habit.titulo}</HabitTitle>
+        <Feather name='chevron-down' size={16} color={theme.primaryColor} />
+      </HabitTitleButton>
 
       <ContentWrapper>
         <GridRow>
-          {/* @audit-ok [Estatísticas (10) — exibe dias_seguidos e recorde da semana vindos do hábito e dos dados] */}
           <StatCard>
-            <CardHeader><Flame size={16} color="var(--warning-color)" /> Dias Seguidos</CardHeader>
+            <CardHeader>
+              <MaterialCommunityIcons name="fire" size={16} color={theme.warningColor} />
+              <CardHeaderText>{t('stats.diasSeguidos')}</CardHeaderText>
+            </CardHeader>
             <CardValue $large>{habit.dias_seguidos || 0}</CardValue>
           </StatCard>
           <StatCard>
-            <CardHeader><Target size={16} color="var(--primary-color)" /> Recorde da Semana</CardHeader>
-            <CardValue>{formatMedida(maxRecord)}</CardValue>
+            <CardHeader>
+              <Feather name="target" size={16} color={theme.primaryColor} />
+              <CardHeaderText>{t('stats.melhorDia')}</CardHeaderText>
+            </CardHeader>
+            <CardValue>{recordes.length > 0 ? formatMedida(recordes[0].valor) : formatMedida(0)}</CardValue>
+            {recordes.length > 0 ? <CardSubtext>{formatarData(recordes[0].data)}</CardSubtext> : null}
           </StatCard>
         </GridRow>
 
-        {/* @audit-ok [Estatísticas (9) — gráfico de barras com dados dos últimos 7 dias] */}
+        <StatCard>
+          <CardHeader>
+            <Feather name="percent" size={16} color={theme.successColor} />
+            <CardHeaderText>{t('stats.constancia')}</CardHeaderText>
+          </CardHeader>
+          <CardValue $large>{constanciaPercentual}%</CardValue>
+          <CardSubtext>{t('stats.constanciaSub', { feitos: diasComMetaCumprida, total: diasCobrados })}</CardSubtext>
+        </StatCard>
+
+        {recordes.length > 0 ? (
+          <StatCard>
+            <CardHeader>
+              <MaterialCommunityIcons name="trophy-outline" size={16} color={theme.warningColor} />
+              <CardHeaderText>{t('stats.recordes')}</CardHeaderText>
+            </CardHeader>
+            {recordes.map((rec, i) => (
+              <RecordeRow key={rec.data} $first={i === 0}>
+                <RecordePosicao $first={i === 0}>{i + 1}º</RecordePosicao>
+                <RecordeData>{formatarData(rec.data)}</RecordeData>
+                <RecordeValor $first={i === 0}>{formatMedida(rec.valor)}</RecordeValor>
+              </RecordeRow>
+            ))}
+          </StatCard>
+        ) : null}
+
         <ChartCard>
-          <ChartTitle>Desempenho (Últimos 7 dias)</ChartTitle>
-          <ChartWrapper>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  cursor={{ fill: 'var(--primary-light)' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontWeight: 600 }}
-                  formatter={(value) => [formatMedida(value), 'Realizado']}
-                />
-                <Bar dataKey="valor" fill="var(--primary-color)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartWrapper>
+          <ChartTitle>{t('stats.desempenho', { dias: diasPeriodo })}</ChartTitle>
+          {dias.some((dia) => dia.parcial) && (
+            <CardSubtext style={{ marginTop: -16, marginBottom: 16 }}>
+              {t('stats.legendaParcial')}
+            </CardSubtext>
+          )}
+          <GraficoBarras dias={dias} theme={theme} />
         </ChartCard>
       </ContentWrapper>
     </StatsContainer>
+    {seletorModal}
+    </>
   );
 };
 

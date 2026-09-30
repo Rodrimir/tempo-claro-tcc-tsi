@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TempoClaro" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="tempo-claro" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.rodrigo.backend2java.BackEndIiApplication" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

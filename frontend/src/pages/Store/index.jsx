@@ -1,132 +1,300 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { Modal, ScrollView } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from 'styled-components/native';
 import { getDashboard, buyShield as apiBuyShield } from '../../services/api';
-import LocalHeader from '../../components/layout/LocalHeader';
 import LoadingScreen from '../../components/common/LoadingScreen';
+import Drawer from '../../components/common/Drawer';
 import { useToast } from '../../contexts/ToastContext';
+import { useI18n } from '../../contexts/LanguageContext';
+import { useThemeToggle } from '../../contexts/ThemeToggleContext';
+import { useSfx } from '../../contexts/SoundContext';
 import {
-  StoreContainer,
-  Title,
-  Subtitle,
-  BuyCard,
+  StoreRoot,
+  Fundo,
+  Veu,
+  Conteudo,
+  TopBar,
+  Pilula,
+  PilulaValor,
+  PilulaRotulo,
+  EspacoArte,
+  PainelCompra,
+  PainelCabecalho,
   IconWrapper,
   CardTitle,
   CardText,
   FormGroup,
   Label,
-  Select,
+  SelectField,
+  SelectFieldText,
+  SaldoLinha,
+  SaldoRotulo,
+  SaldoValor,
   BuyButton,
-  InventorySection,
-  InventoryTitle,
+  BuyButtonText,
+  EmptyStateContainer,
+  EmptyIconWrapper,
+  EmptyTitle,
+  EmptyText,
+  PickerOverlay,
+  PickerSheet,
+  PickerTitulo,
+  PickerOption,
+  PickerOptionText,
+  PickerOptionMoedas,
+  DrawerResumo,
+  DrawerResumoValor,
+  DrawerResumoRotulo,
   InventoryList,
   InventoryItem,
-  ItemInfo,
   ItemTitle,
-  ItemSubtitle,
-  ItemCount
+  ItemLinha,
+  ItemLinhaRotulo,
+  ItemLinhaTexto,
+  ItemLinhaValor,
+  InventoryEmptyText,
 } from './styles';
 
-// @audit-ok [Loja Escudo (1) — tela de compra de escudos protetores com moedas locais]
+const FUNDO_LOJA_DIA = require('../../../assets/loja/loja.png');
+const FUNDO_LOJA_NOITE = require('../../../assets/loja/lojanoite.png');
 
 const Store = () => {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { addToast } = useToast();
+  const { t } = useI18n();
+  const { isDark } = useThemeToggle();
+  const { tocar } = useSfx();
+  const fundoLoja = isDark ? FUNDO_LOJA_NOITE : FUNDO_LOJA_DIA;
   const [selectedHabitId, setSelectedHabitId] = useState('');
   const [habits, setHabits] = useState([]);
+  const [custoEscudo, setCustoEscudo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pickerAberto, setPickerAberto] = useState(false);
+  const [inventarioAberto, setInventarioAberto] = useState(false);
+  const [comprando, setComprando] = useState(false);
 
-  // @audit-ok [Loja Escudo (2) — busca lista de hábitos via GET /dashboard]
-  const loadHabits = async () => {
+  const loadHabits = useCallback(async (silencioso = false) => {
     try {
       const response = await getDashboard();
       const data = response.data.habits || response.data || [];
       if (Array.isArray(data)) {
         setHabits(data);
       }
+      if (response.data.custo_escudo != null) {
+        setCustoEscudo(response.data.custo_escudo);
+      }
     } catch (error) {
-      console.error("Erro ao carregar hábitos na loja:", error);
-      addToast('Erro ao carregar dados da loja.', 'error');
+      addToast(t('loja.erroCarregar'), 'error');
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
-  };
+  }, [addToast]);
 
-  useEffect(() => {
-    loadHabits();
-  }, []);
+  const primeiraCarga = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      loadHabits(!primeiraCarga.current);
+      primeiraCarga.current = false;
+    }, [loadHabits])
+  );
 
-  // @audit-ok [Loja Escudo (4) — filtra apenas hábitos ativos para o select de compra]
-  const activeHabits = habits.filter(h => h.status !== 'ARCHIVED' && h.status !== 'COMPLETED');
+  const activeHabits = habits.filter((h) => h.status !== 'ARCHIVED' && h.status !== 'COMPLETED');
+  const habitoSelecionado = activeHabits.find((h) => h.id === selectedHabitId);
+  const inventarioHabits = habits.filter((h) => h.status !== 'ARCHIVED');
+  const totalEscudos = inventarioHabits.reduce((soma, h) => soma + (h.bloqueios_acumulados || 0), 0);
+  const nenhumEscudoAinda = totalEscudos === 0;
 
-  // @audit-ok [Loja Escudo (7) — processa compra de escudo para o hábito selecionado]
+  const moedasExibidas = habitoSelecionado
+    ? habitoSelecionado.moedas_locais || 0
+    : inventarioHabits.reduce((soma, h) => soma + (h.moedas_locais || 0), 0);
+
   const handleBuyShield = async () => {
-    // @audit-ok [Loja Escudo (8) — valida seleção antes de chamar a API]
     if (!selectedHabitId) {
-      addToast('Selecione um hábito.', 'error');
+      addToast(t('loja.selecione'), 'error');
       return;
     }
+    setComprando(true);
     try {
-      // @audit-ok [Loja Escudo (9) — envia POST /habits/{id}/shield]
       await apiBuyShield(selectedHabitId);
-      // @audit-ok [Loja Escudo (19) — confirma compra e recarrega lista atualizada]
-      addToast('Escudo comprado com sucesso para o hábito!', 'success');
-      setSelectedHabitId('');
-      loadHabits();
+      tocar('coin');
+      addToast(t('loja.compraOkHabito'), 'success');
+      loadHabits(true);
     } catch (error) {
-      addToast('Erro ao comprar escudo. Moedas insuficientes?', 'error');
+      addToast(error.response?.data?.message || t('loja.erroComprar'), 'error');
+    } finally {
+      setComprando(false);
     }
   };
 
-  if (loading) return <LoadingScreen message="Carregando Loja" />;
+  if (loading) return <LoadingScreen message={t('loja.carregando')} />;
 
-  return (
-    <StoreContainer>
-      <Title>Loja Local</Title>
-      <Subtitle>
-        Gaste suas moedas ganhas com disciplina para comprar proteção contra imprevistos.
-      </Subtitle>
+  const inventario = (
+    <Drawer
+      visible={inventarioAberto}
+      onClose={() => {
+        tocar('close');
+        setInventarioAberto(false);
+      }}
+      titulo={t('loja.meusEscudos')}
+    >
+      <DrawerResumo>
+        <DrawerResumoValor>{totalEscudos}</DrawerResumoValor>
+        <DrawerResumoRotulo>{t('loja.escudosNoTotal')}</DrawerResumoRotulo>
+      </DrawerResumo>
 
-      <BuyCard>
-        <IconWrapper><ShieldAlert size={32} /></IconWrapper>
-        <CardTitle>Comprar Bloqueio (Escudo)</CardTitle>
-        <CardText>
-          Custa 1500 moedas locais. Ele será gasto automaticamente às 23:59h caso você falhe na tarefa, salvando sua ofensiva!
-        </CardText>
-
-        <FormGroup>
-          <Label htmlFor="store-habit-select">Para qual hábito deseja aplicar o escudo?</Label>
-          {/* @audit-ok [Loja Escudo (5) — dropdown exibe hábitos ativos com saldo de moedas] */}
-          <Select
-            id="store-habit-select"
-            value={selectedHabitId}
-            onChange={e => setSelectedHabitId(e.target.value)}
-          >
-            <option value="" disabled>Selecione um hábito...</option>
-            {activeHabits.map(h => (
-              <option key={h.id} value={h.id}>{h.titulo} (Moedas: {h.moedas_locais})</option>
-            ))}
-          </Select>
-        </FormGroup>
-
-        <BuyButton onClick={handleBuyShield}>
-          Comprar (1500 <span style={{ color: 'var(--warning-color)' }}>🪙</span>)
-        </BuyButton>
-      </BuyCard>
-
-      <InventorySection>
-        <InventoryTitle>Seus Escudos Atuais</InventoryTitle>
+      {nenhumEscudoAinda && inventarioHabits.length === 0 ? (
+        <InventoryEmptyText>{t('loja.semHabito')}</InventoryEmptyText>
+      ) : (
         <InventoryList>
-          {habits.filter(h => h.status !== 'ARCHIVED').map(h => (
+          {inventarioHabits.map((h) => (
             <InventoryItem key={h.id}>
-              <ItemInfo>
-                <ItemTitle>{h.titulo}</ItemTitle>
-                <ItemSubtitle>Saldo: {h.moedas_locais || 0} moedas</ItemSubtitle>
-              </ItemInfo>
-              <ItemCount>{h.bloqueios_acumulados || 0} <ShieldCheck size={20} /></ItemCount>
+              <ItemTitle>{h.titulo}</ItemTitle>
+              <ItemLinha>
+                <ItemLinhaRotulo>
+                  <Feather name="shield" size={16} color={theme.primaryColor} />
+                  <ItemLinhaTexto>{t('comum.escudos')}</ItemLinhaTexto>
+                </ItemLinhaRotulo>
+                <ItemLinhaValor $cor={theme.primaryColor}>{h.bloqueios_acumulados || 0}</ItemLinhaValor>
+              </ItemLinha>
+              <ItemLinha>
+                <ItemLinhaRotulo>
+                  <FontAwesome5 name="coins" size={14} color={theme.warningColor} />
+                  <ItemLinhaTexto>{t('comum.moedas')}</ItemLinhaTexto>
+                </ItemLinhaRotulo>
+                <ItemLinhaValor $cor={theme.warningColor}>{h.moedas_locais || 0}</ItemLinhaValor>
+              </ItemLinha>
             </InventoryItem>
           ))}
         </InventoryList>
-      </InventorySection>
-    </StoreContainer>
+      )}
+    </Drawer>
+  );
+
+  return (
+    <StoreRoot>
+      <Fundo source={fundoLoja}>
+        <Veu>
+          <Conteudo $insetTop={insets.top}>
+            <TopBar>
+              <Pilula accessibilityLabel={t('comum.moedasLocais')}>
+                <FontAwesome5 name="coins" size={16} color={theme.warningColor} />
+                <PilulaValor>{moedasExibidas}</PilulaValor>
+                <PilulaRotulo>{t('comum.moedas')}</PilulaRotulo>
+              </Pilula>
+
+              <Pilula
+                onPress={() => {
+                  tocar('open');
+                  setInventarioAberto(true);
+                }}
+                accessibilityLabel={t('loja.meusEscudos')}
+              >
+                <Feather name="shield" size={16} color={theme.primaryColor} />
+                <PilulaValor>{totalEscudos}</PilulaValor>
+                <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.75)" />
+              </Pilula>
+            </TopBar>
+
+            <EspacoArte />
+
+            {habits.length === 0 ? (
+              <EmptyStateContainer>
+                <EmptyIconWrapper>
+                  <MaterialCommunityIcons name="store" size={32} color="white" />
+                </EmptyIconWrapper>
+                <EmptyTitle>{t('loja.nadaComprar')}</EmptyTitle>
+                <EmptyText>{t('loja.semHabito')}</EmptyText>
+              </EmptyStateContainer>
+            ) : (
+              <PainelCompra>
+                <PainelCabecalho>
+                  <IconWrapper>
+                    <MaterialCommunityIcons name="shield-plus" size={24} color={theme.primaryColor} />
+                  </IconWrapper>
+                  <CardTitle>{t('loja.comprarBloqueio')}</CardTitle>
+                </PainelCabecalho>
+                <CardText>{t('loja.escudoTexto', { custo: custoEscudo })}</CardText>
+
+                <FormGroup>
+                  <Label>{t('loja.paraQualHabito')}</Label>
+                  <SelectField
+                    onPress={() => {
+                      tocar('open');
+                      setPickerAberto(true);
+                    }}
+                    $aberto={pickerAberto}
+                  >
+                    <SelectFieldText $placeholder={!habitoSelecionado}>
+                      {habitoSelecionado ? habitoSelecionado.titulo : t('loja.selecionePlaceholder')}
+                    </SelectFieldText>
+                    <Feather name="chevron-down" size={18} color={theme.textSecondary} />
+                  </SelectField>
+                </FormGroup>
+
+                {habitoSelecionado ? (
+                  <SaldoLinha>
+                    <SaldoRotulo>{t('loja.saldoDoHabito')}</SaldoRotulo>
+                    <SaldoValor>
+                      {habitoSelecionado.moedas_locais || 0} {t('comum.moedas').toLowerCase()}
+                    </SaldoValor>
+                  </SaldoLinha>
+                ) : null}
+
+                <BuyButton onPress={handleBuyShield} disabled={comprando} $disabled={comprando}>
+                  <Feather name="shopping-bag" size={18} color={comprando ? theme.textSecondary : 'white'} />
+                  <BuyButtonText $disabled={comprando}>
+                    {comprando ? t('loja.comprando') : t('loja.comprar', { custo: custoEscudo })}
+                  </BuyButtonText>
+                </BuyButton>
+              </PainelCompra>
+            )}
+          </Conteudo>
+        </Veu>
+      </Fundo>
+
+      {inventario}
+
+      <Modal
+        visible={pickerAberto}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          tocar('close');
+          setPickerAberto(false);
+        }}
+      >
+        <PickerOverlay
+          onPress={() => {
+            tocar('close');
+            setPickerAberto(false);
+          }}
+        >
+          <PickerSheet onStartShouldSetResponder={() => true}>
+            <PickerTitulo>{t('loja.paraQualHabito')}</PickerTitulo>
+            <ScrollView>
+              {activeHabits.map((h) => (
+                <PickerOption
+                  key={h.id}
+                  onPress={() => {
+                    setSelectedHabitId(h.id);
+                    setPickerAberto(false);
+                  }}
+                >
+                  <PickerOptionText $active={h.id === selectedHabitId}>{h.titulo}</PickerOptionText>
+                  <PickerOptionMoedas>
+                    {h.moedas_locais || 0} {t('comum.moedas').toLowerCase()}
+                  </PickerOptionMoedas>
+                </PickerOption>
+              ))}
+            </ScrollView>
+          </PickerSheet>
+        </PickerOverlay>
+      </Modal>
+    </StoreRoot>
   );
 };
 

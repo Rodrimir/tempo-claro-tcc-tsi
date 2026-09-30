@@ -1,111 +1,113 @@
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components/native';
+import { Pressable } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { fonts } from '../../styles/fonts';
 
-export const popIn = keyframes`
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-`;
-
-export const ExecutionContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: var(--bg-surface);
+export const ExecutionContainer = styled.View`
+  flex: 1;
+  background-color: ${(props) => props.theme.bgSurface};
   padding: 24px;
 `;
 
-export const HeaderWrapper = styled.div`
-  text-align: center;
+export const HeaderWrapper = styled.View`
+  align-items: center;
   margin-bottom: 40px;
   margin-top: 20px;
 `;
 
-export const HeaderLabel = styled.h2`
+export const HeaderLabel = styled.Text`
+  font-family: ${fonts.semiBold};
   font-size: 20px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  color: ${(props) => props.theme.textSecondary};
 `;
 
-export const HeaderTitle = styled.h1`
+export const HeaderTitle = styled.Text`
+  font-family: ${fonts.extraBold};
   font-size: 32px;
-  font-weight: 800;
-  color: var(--text-primary);
+  text-align: center;
+  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const ContentWrapper = styled.div`
+export const ContentWrapper = styled.View`
   flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
 `;
 
-export const ControlsWrapper = styled.div`
-  display: flex;
+export const ControlsWrapper = styled.View`
+  flex-direction: row;
   gap: 24px;
   margin-top: 40px;
 `;
 
-export const SubButton = styled.button`
+export const SubButton = styled(Pressable)`
   width: 64px;
   height: 64px;
-  border-radius: 50%;
-  border: none;
-  background: var(--bg-primary);
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-  cursor: pointer;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 32px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.bgPrimary};
+  elevation: 2;
 `;
 
-export const AddButton = styled.button`
+export const SubButtonText = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 24px;
+  color: ${(props) => props.theme.textPrimary};
+`;
+
+export const AddButton = styled(Pressable)`
   width: 64px;
   height: 64px;
-  border-radius: 50%;
-  border: none;
-  background: var(--primary-color);
+  border-radius: 32px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.primaryStrong};
+  elevation: 6;
+`;
+
+export const AddButtonText = styled.Text`
+  font-family: ${fonts.bold};
   font-size: 24px;
-  font-weight: 700;
   color: white;
-  cursor: pointer;
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
 `;
 
-export const ActionsWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
+export const ActionsWrapper = styled.View`
   gap: 16px;
   padding-bottom: 24px;
 `;
 
-export const CompleteButtonWrapper = styled.div`
-  opacity: ${(props) => props.$visible ? 1 : 0};
-  pointer-events: ${(props) => props.$visible ? 'auto' : 'none'};
-  transition: opacity 0.5s ease;
+export const CompleteButtonWrapper = styled(Animated.View)`
   width: 100%;
 `;
 
-export const CompleteButton = styled.button`
+export const CompleteButton = styled(Pressable)`
   width: 100%;
   padding: 20px;
   border-radius: 9999px;
-  background: var(--success-color);
+  background-color: ${(props) => props.theme.successStrong};
+  align-items: center;
+  elevation: 6;
+`;
+
+export const CompleteButtonText = styled.Text`
+  font-family: ${fonts.bold};
   color: white;
-  font-weight: 700;
   font-size: 18px;
-  border: none;
-  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
-  cursor: pointer;
 `;
 
-export const GiveUpButton = styled.button`
+export const GiveUpButton = styled(Pressable)`
   width: 100%;
   padding: 20px;
   border-radius: 9999px;
-  background: var(--bg-surface);
-  border: 2px solid var(--border-color);
-  color: var(--text-secondary);
-  font-weight: 700;
+  background-color: ${(props) => props.theme.bgSurface};
+  border-width: 2px;
+  border-color: ${(props) => props.theme.borderColor};
+  align-items: center;
+`;
+
+export const GiveUpButtonText = styled.Text`
+  font-family: ${fonts.bold};
+  color: ${(props) => props.theme.textSecondary};
   font-size: 16px;
-  cursor: pointer;
 `;

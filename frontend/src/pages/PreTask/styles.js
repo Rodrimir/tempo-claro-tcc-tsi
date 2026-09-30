@@ -1,61 +1,71 @@
-import styled from 'styled-components';
+import styled from 'styled-components/native';
+import { Pressable } from 'react-native';
+import { fonts } from '../../styles/fonts';
 
-export const PreTaskContainer = styled.div`
+export const PreTaskContainer = styled.View`
+  flex: 1;
   padding: 24px;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
   justify-content: center;
-  background: var(--primary-color);
-  color: white;
+  background-color: ${(props) => props.theme.primaryStrong};
 `;
 
-export const BackButtonWrapper = styled.div`
+export const BackButtonWrapper = styled.View`
   position: absolute;
   top: 24px;
   left: 24px;
 `;
 
-export const BackButton = styled.button`
-  background: transparent;
-  border: none;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+export const BackButton = styled(Pressable)``;
 
-export const ContentWrapper = styled.div`
+export const ContentWrapper = styled.View`
   flex: 1;
-  display: flex;
-  flex-direction: column;
   justify-content: center;
   max-width: 320px;
-  margin: 0 auto;
+  align-self: center;
+  width: 100%;
 `;
 
-export const QuoteText = styled.h2`
+export const HabitName = styled.Text`
+  font-family: ${fonts.extraBold};
+  font-size: 28px;
+  line-height: 34px;
+  margin-bottom: 8px;
+  color: white;
+`;
+
+export const GatilhoText = styled.Text`
+  font-size: 15px;
+  font-style: italic;
+  opacity: 0.85;
+  margin-bottom: 24px;
+  color: white;
+`;
+
+export const QuoteText = styled.Text`
+  font-family: ${fonts.bold};
   font-size: 24px;
-  font-weight: 700;
-  line-height: 1.4;
+  line-height: 34px;
   margin-bottom: 16px;
+  color: white;
 `;
 
-export const ActionWrapper = styled.div`
+export const ActionWrapper = styled.View`
   padding-bottom: 24px;
   width: 100%;
 `;
 
-export const ReadyButton = styled.button`
-  background: white;
-  color: var(--primary-color);
+export const ReadyButton = styled(Pressable)`
+  background-color: white;
   font-size: 18px;
-  font-weight: 700;
   padding: 20px;
   width: 100%;
   border-radius: 9999px;
-  border: none;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
+  align-items: center;
+  elevation: 8;
+`;
+
+export const ReadyButtonText = styled.Text`
+  font-family: ${fonts.bold};
+  color: ${(props) => props.theme.primaryStrong};
+  font-size: 18px;
 `;

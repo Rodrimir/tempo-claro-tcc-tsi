@@ -1,65 +1,84 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { HeartCrack, Clock, ShieldAlert } from 'lucide-react';
-import './styles.scss';
-
-// @audit-ok [Falha (1) — tela de feedback negativo; exibe resultado com base no tipo de falha]
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { BackHandler } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'styled-components/native';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useExecutionResult } from '../../contexts/ExecutionResultContext';
+import { useI18n } from '../../contexts/LanguageContext';
+import { useSfx } from '../../contexts/SoundContext';
+import { useFloat } from '../../hooks/useFloat';
+import {
+  FailContainer,
+  ContentWrapper,
+  IconWrapper,
+  Title,
+  Subtitle,
+  CoinsCard,
+  CoinsCardText,
+  ActionButton,
+  ActionButtonText,
+} from './styles';
 
 const Fail = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const { executionResult } = useExecutionResult();
+  const { t } = useI18n();
+  const { tocar } = useSfx();
+  const flutuando = useFloat(4000, 10);
 
-  // @audit-ok [Falha (2) — lê o tipo de falha do estado de navegação]
-  // Os valores acompanham os tipos aceitos pelo backend (ver GiveUpModal).
-  const type = location.state?.type || 'FAIL_TIMEOUT';
-  // @audit-ok [Falha (3) — lê dados de feedback retornados pela API]
-  const feedbackMsg = location.state?.feedback?.texto_feedback;
+  const type = executionResult?.type || 'FAIL_TIMEOUT';
+  const feedbackMsg = executionResult?.feedback?.texto_feedback;
+  const moedasTotais = executionResult?.feedback?.moedas_totais || 0;
 
-  let icon, title, subtitle, bgColor, iconColor;
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/home');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [router]);
 
-  // @audit-ok [Falha (4) — seleciona ícone, título e cor baseado no tipo: FAIL_BLOQUEIO | FAIL_TIMEOUT | default]
+  useEffect(() => {
+    tocar('fail');
+  }, [tocar]);
+
+  let icon, title, subtitle, bgColor;
+
   if (type === 'FAIL_BLOQUEIO') {
-    icon = <ShieldAlert size={80} />;
-    title = 'Protegido!';
-    subtitle = feedbackMsg || 'Acúmulos protegidos! Sua ofensiva foi salva pelo Escudo.';
-    bgColor = 'var(--warning-color)';
-    iconColor = 'white';
+    icon = <MaterialCommunityIcons name="shield-alert" size={80} color="white" />;
+    title = t('falha.protegido');
+    subtitle = feedbackMsg || t('falha.protegidoTexto');
+    bgColor = theme.warningStrong;
   } else if (type === 'FAIL_TIMEOUT') {
-    icon = <Clock size={80} />;
-    title = 'Tempo Esgotado';
-    subtitle = feedbackMsg || 'Você demorou muito para retomar. A ofensiva foi perdida.';
-    bgColor = 'var(--danger-color)';
-    iconColor = 'white';
+    icon = <Feather name="clock" size={80} color="white" />;
+    title = t('falha.tempoEsgotado');
+    subtitle = feedbackMsg || t('falha.tempoEsgotadoTexto');
+    bgColor = theme.dangerStrong;
   } else {
-    icon = <HeartCrack size={80} />;
-    title = 'Ofensiva Perdida';
-    subtitle = feedbackMsg || 'Está tudo bem. O importante é recomeçar amanhã.';
-    bgColor = 'var(--danger-color)';
-    iconColor = 'white';
+    icon = <MaterialCommunityIcons name="heart-broken" size={80} color="white" />;
+    title = t('falha.ofensivaPerdida');
+    subtitle = feedbackMsg || t('falha.ofensivaPerdidaTexto');
+    bgColor = theme.dangerStrong;
   }
 
   return (
-    <div className="FailContainer" style={{ backgroundColor: bgColor }}>
-      <div className="ContentWrapper">
-        <div className="IconWrapper" style={{ color: iconColor }}>
-          {icon}
-        </div>
-        <h1 className="Title">{title}</h1>
-        <p className="Subtitle">{subtitle}</p>
-        <div className="CoinsCard">
-          <span>🪙 Moedas Ganhas:</span>
-          <span>{location.state?.feedback?.moedas_ganhas || 0}</span>
-        </div>
-        {/* @audit-ok [Falha (5) — retorna ao dashboard] */}
-        <button
-          className="ActionButton"
-          style={{ color: bgColor }}
-          onClick={() => navigate('/home')}
-        >
-          CONTINUAR
-        </button>
-      </div>
-    </div>
+    <FailContainer $bgColor={bgColor} style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
+      <ContentWrapper>
+        <IconWrapper style={flutuando}>{icon}</IconWrapper>
+        <Title>{title}</Title>
+        <Subtitle>{subtitle}</Subtitle>
+        <CoinsCard>
+          <CoinsCardText>{t('falha.suasMoedas')}</CoinsCardText>
+          <CoinsCardText>{moedasTotais}</CoinsCardText>
+        </CoinsCard>
+        <ActionButton onPress={() => router.replace('/home')}>
+          <ActionButtonText $bgColor={bgColor}>{t('comum.continuar').toUpperCase()}</ActionButtonText>
+        </ActionButton>
+      </ContentWrapper>
+    </FailContainer>
   );
 };
 

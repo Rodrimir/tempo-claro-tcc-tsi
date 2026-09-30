@@ -1,135 +1,117 @@
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components/native';
+import { Pressable } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { fonts } from '../../styles/fonts';
 
-export const floatUp = keyframes`
-  0% { transform: translateY(0) scale(1); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
-`;
-
-export const popIn = keyframes`
-  0% { transform: scale(0.5); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-`;
-
-export const SuccessContainer = styled.div`
-  position: relative;
+export const SuccessContainer = styled.View`
+  flex: 1;
   overflow: hidden;
-  height: 100vh;
-  // @audit-info : ajustado para diferenciar o bonus
-  background: ${(props) => props.$isBonus ? '#0ea5e9' : 'var(--success-color)'};
-  display: flex;
-  flex-direction: column;
+  background-color: ${(props) => (props.$isBonus ? props.theme.bonusStrong : props.theme.successStrong)};
   align-items: center;
   justify-content: center;
   padding: 24px;
-  color: white;
 `;
 
-export const ParticlesWrapper = styled.div`
+export const ParticlesWrapper = styled.View`
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  pointer-events: none;
 `;
 
-export const Particle = styled.div`
+export const ParticleView = styled(Animated.View)`
   position: absolute;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
   bottom: -20px;
-  animation-name: ${floatUp};
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  
-  width: ${(props) => props.$size}px;
-  height: ${(props) => props.$size}px;
-  left: ${(props) => props.$left}%;
-  animation-duration: ${(props) => props.$duration}s;
-  animation-delay: ${(props) => props.$delay}s;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
 `;
 
-export const ContentWrapper = styled.div`
+export const ContentWrapper = styled.View`
   z-index: 1;
-  text-align: center;
+  align-items: center;
   width: 100%;
   max-width: 320px;
 `;
 
-export const IconWrapper = styled.div`
+export const IconWrapper = styled(Animated.Text)`
   font-size: 80px;
   margin-bottom: 16px;
-  animation: ${popIn} 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 `;
 
-export const Title = styled.h1`
+export const Title = styled.Text`
+  font-family: ${fonts.extraBold};
   font-size: 32px;
-  font-weight: 800;
   margin-bottom: 8px;
+  color: white;
+  text-align: center;
 `;
 
-export const Subtitle = styled.p`
+export const Subtitle = styled.Text`
   font-size: 16px;
   opacity: 0.9;
   margin-bottom: 32px;
+  color: white;
+  text-align: center;
 `;
 
-export const RewardCard = styled.div`
-  background: rgba(0, 0, 0, 0.1);
+export const RewardCard = styled.View`
+  background-color: rgba(0, 0, 0, 0.1);
   border-radius: 24px;
   padding: 24px;
-  display: flex;
-  flex-direction: column;
   gap: 16px;
   margin-bottom: 40px;
+  width: 100%;
 `;
 
-export const Row = styled.div`
-  display: flex;
+export const Row = styled.View`
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
 `;
 
-export const Label = styled.span`
-  font-weight: 600;
+export const Label = styled.Text`
+  font-family: ${fonts.semiBold};
   font-size: 18px;
+  color: white;
 `;
 
-export const Value = styled.div`
-  display: flex;
+export const Value = styled.View`
+  flex-direction: row;
   align-items: center;
   gap: 8px;
+`;
+
+export const ValueText = styled.Text`
+  font-family: ${fonts.extraBold};
   color: white;
-  font-weight: 800;
   font-size: 24px;
 `;
 
-export const Divider = styled.div`
+export const Divider = styled.View`
   height: 1px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 8px 0;
+  background-color: rgba(255, 255, 255, 0.2);
 `;
 
-export const BackButton = styled.button`
+export const RewardNote = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 13px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: -4px;
+`;
+
+export const BackButton = styled(Pressable)`
   width: 100%;
   padding: 20px;
   border-radius: 9999px;
-  background: white;
-  color: ${(props) => props.$isBonus ? '#0ea5e9' : 'var(--success-color)'};
-  font-weight: 800;
+  background-color: white;
+  align-items: center;
+  elevation: 6;
+`;
+
+export const BackButtonText = styled.Text`
+  font-family: ${fonts.extraBold};
+  color: ${(props) => (props.$isBonus ? props.theme.bonusStrong : props.theme.successStrong)};
   font-size: 18px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, background 0.2s;
-
-  &:hover {
-    background: #f8f9fa;
-    transform: scale(1.02);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
 `;

@@ -1,231 +1,273 @@
-import styled from 'styled-components';
+import styled from 'styled-components/native';
+import { Pressable } from 'react-native';
+import { fonts } from '../../styles/fonts';
 
-export const Container = styled.div`
-  padding: 24px;
-  padding-bottom: 100px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-height: 100vh;
-  background: var(--bg-primary);
+export const Container = styled.ScrollView.attrs((props) => ({
+  contentContainerStyle: { padding: 24, paddingTop: 24 + (props.$insetTop || 0), paddingBottom: 100, gap: 24 },
+}))`
+  flex: 1;
+  background-color: ${(props) => props.theme.bgPrimary};
 `;
 
-export const Header = styled.div`
-  display: flex;
+export const Header = styled.View`
+  flex-direction: row;
   align-items: center;
   gap: 16px;
 `;
 
-export const BackButton = styled.button`
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-`;
+export const BackButton = styled(Pressable)``;
 
-export const HeaderText = styled.div``;
+export const HeaderText = styled.View``;
 
-export const Title = styled.h1`
+export const Title = styled.Text`
+  font-family: ${fonts.bold};
   font-size: 24px;
-  font-weight: 700;
+  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const Subtitle = styled.p`
-  color: var(--text-secondary);
+export const Subtitle = styled.Text`
+  color: ${(props) => props.theme.textSecondary};
   font-size: 14px;
 `;
 
-export const StepContainer = styled.div`
-  animation: slideInRight 0.3s ease-out;
+export const StepContainer = styled.View``;
 
-  @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-`;
-
-export const StepTitle = styled.h2`
+export const StepTitle = styled.Text`
+  font-family: ${fonts.semiBold};
   font-size: 18px;
   margin-bottom: 16px;
+  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const MoldeScrollContainer = styled.div`
-  display: flex;
-  overflow-x: auto;
-  gap: 16px;
-  padding: 16px 24px;
-  margin: 0 -24px;
-  scroll-snap-type: x mandatory;
-  &::-webkit-scrollbar {
-    display: none;
-  }
+export const MoldeGrid = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-top: 8px;
 `;
 
-export const MoldeCard = styled.div`
-  min-width: 280px;
-  background: ${(props) => props.$active ? 'var(--primary-light)' : 'var(--bg-surface)'};
-  border: 2px solid ${(props) => props.$active ? 'var(--primary-color)' : 'transparent'};
-  border-radius: 24px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  cursor: pointer;
-  scroll-snap-align: center;
-  transition: all 0.2s;
-`;
-
-export const MoldeEmoji = styled.span`
-  font-size: 64px;
+export const MoldeCard = styled(Pressable)`
+  width: 48%;
+  min-height: 168px;
   margin-bottom: 16px;
+  background-color: ${(props) => (props.$active ? props.theme.primaryLight : props.theme.bgSurface)};
+  border-width: 2px;
+  border-color: ${(props) => (props.$active ? props.theme.primaryColor : props.theme.borderColor)};
+  border-radius: 24px;
+  padding: 20px 14px;
+  align-items: center;
+  justify-content: center;
+  opacity: ${(props) => (props.$disabled ? 0.45 : 1)};
 `;
 
-export const MoldeTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 8px;
+export const MoldeEmoji = styled.Text`
+  font-size: 44px;
+  margin-bottom: 10px;
 `;
 
-export const MoldeDesc = styled.p`
-  font-size: 14px;
-  color: var(--text-secondary);
+export const MoldeAvatar = styled.View`
+  width: 72px;
+  height: 72px;
+  margin-bottom: 10px;
+  align-items: center;
+  justify-content: center;
 `;
 
-export const NextButton = styled.button`
+export const MoldeTitle = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 17px;
+  margin-bottom: 6px;
+  text-align: center;
+  color: ${(props) => props.theme.textPrimary};
+`;
+
+export const MoldeDesc = styled.Text`
+  font-size: 12px;
+  line-height: 16px;
+  color: ${(props) => props.theme.textSecondary};
+  text-align: center;
+`;
+
+export const NextButton = styled(Pressable)`
   width: 100%;
   margin-top: 24px;
   padding: 20px;
   border-radius: 9999px;
-  background: var(--primary-color);
-  color: white;
-  font-weight: 700;
-  font-size: 18px;
-  border: none;
-  display: flex;
+  background-color: ${(props) => props.theme.primaryStrong};
+  flex-direction: row;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+  elevation: 6;
 `;
 
-export const OptionsContainer = styled.div`
-  display: flex;
-  flex-direction: column;
+export const NextButtonText = styled.Text`
+  font-family: ${fonts.bold};
+  color: white;
+  font-size: 18px;
+`;
+
+export const OptionsContainer = styled.View`
   gap: 16px;
 `;
 
-export const OptionCard = styled.div`
+export const OptionCard = styled(Pressable)`
   padding: 24px;
-  background: var(--bg-surface);
+  background-color: ${(props) => props.theme.bgSurface};
   border-radius: 16px;
-  border: 1px solid ${(props) => props.$primary ? 'transparent' : 'var(--border-color)'};
-  border: ${(props) => props.$primary ? '2px solid var(--primary-color)' : '1px solid var(--border-color)'};
-  display: flex;
+  border-width: ${(props) => (props.$primary ? '2px' : '1px')};
+  border-color: ${(props) => (props.$primary ? props.theme.primaryColor : props.theme.borderColor)};
+  flex-direction: row;
   align-items: center;
   gap: 16px;
-  cursor: pointer;
 `;
 
-export const OptionIconWrapper = styled.div`
-  background: var(--primary-light);
-  color: var(--primary-color);
+export const OptionIconWrapper = styled.View`
+  background-color: ${(props) => props.theme.primaryLight};
   padding: 12px;
-  border-radius: 50%;
+  border-radius: 24px;
 `;
 
-export const OptionText = styled.div``;
+export const OptionText = styled.View`
+  flex: 1;
+`;
 
-export const OptionTitle = styled.h3`
+export const OptionTitle = styled.Text`
+  font-family: ${fonts.bold};
   font-size: 16px;
-  font-weight: 700;
+  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const OptionSubtitle = styled.p`
+export const OptionSubtitle = styled.Text`
   font-size: 12px;
-  color: var(--text-secondary);
+  color: ${(props) => props.theme.textSecondary};
 `;
 
-export const FormSection = styled.div`
-  display: flex;
-  flex-direction: column;
+export const FormSection = styled.View`
   gap: 20px;
 `;
 
-export const FormCard = styled.div`
-  display: flex;
-  flex-direction: column;
+export const FormCard = styled.View`
   gap: 16px;
-  background: var(--bg-surface);
+  background-color: ${(props) => props.theme.bgSurface};
   padding: 20px;
   border-radius: 16px;
 `;
 
-export const FormGroup = styled.div``;
+export const FormGroup = styled.View``;
 
-export const Label = styled.label`
-  display: block;
-  font-weight: 600;
+export const Label = styled.Text`
+  font-family: ${fonts.semiBold};
   font-size: 14px;
   margin-bottom: 8px;
+  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const Input = styled.input`
+export const FieldHint = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 13px;
+  color: ${(props) => props.theme.textSecondary};
+  margin-top: 6px;
+`;
+
+export const Input = styled.TextInput.attrs((props) => ({
+  placeholderTextColor: props.theme.textSecondary,
+}))`
   width: 100%;
   padding: 12px;
-  border: 1px solid var(--border-color);
+  border-width: 1px;
+  border-color: ${(props) => (props.$error ? props.theme.dangerColor : props.theme.borderColor)};
   border-radius: 12px;
   font-size: 16px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  outline: none;
+  background-color: ${(props) => props.theme.bgPrimary};
+  color: ${(props) => props.theme.textPrimary};
 `;
 
-export const GridRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+export const ErrorText = styled.Text`
+  color: ${(props) => props.theme.dangerColor};
+  font-size: 12px;
+  margin-top: 6px;
+`;
+
+export const GridRow = styled.View`
+  flex-direction: row;
   gap: 12px;
 `;
 
-export const WeekDaysContainer = styled.div`
-  display: flex;
+export const GridCell = styled.View`
+  flex: 1;
+`;
+
+export const OcorrenciaRow = styled.View`
+  padding: 12px 0px;
+  border-top-width: ${(props) => (props.$primeira ? '0px' : '1px')};
+  border-top-color: ${(props) => props.theme.borderColor};
+`;
+
+export const OcorrenciaAlvo = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 14px;
+  color: ${(props) => props.theme.primaryColor};
+  margin-bottom: 8px;
+`;
+
+export const WeekDaysContainer = styled.View`
+  flex-direction: row;
   gap: 8px;
   justify-content: space-between;
 `;
 
-export const DayButton = styled.button`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: ${(props) => props.$active ? 'var(--primary-color)' : 'var(--bg-primary)'};
-  color: ${(props) => props.$active ? 'white' : 'var(--text-secondary)'};
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
+export const DayButton = styled(Pressable)`
+  min-width: 40px;
+  height: 32px;
+  padding: 0px 4px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => (props.$active ? props.theme.primaryStrong : props.theme.bgPrimary)};
 `;
 
-export const SubmitButton = styled.button`
+export const DayButtonText = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 11px;
+  color: ${(props) => (props.$active ? 'white' : props.theme.textSecondary)};
+`;
+
+export const ReviewCard = styled.View`
+  background-color: ${(props) => props.theme.bgSurface};
+  padding: 24px;
+  border-radius: 16px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.borderColor};
+`;
+
+export const ReviewText = styled.Text`
+  font-size: 16px;
+  line-height: 27px;
+  color: ${(props) => props.theme.textPrimary};
+`;
+
+export const ReviewStrong = styled.Text`
+  font-family: ${fonts.bold};
+  color: ${(props) => props.theme.primaryColor};
+`;
+
+export const SubmitButton = styled(Pressable)`
   width: 100%;
   padding: 20px;
   border-radius: 9999px;
-  background: var(--primary-color);
-  color: white;
-  font-weight: 700;
-  font-size: 18px;
-  border: none;
-  display: flex;
+  background-color: ${(props) => (props.disabled ? props.theme.primaryLight : props.theme.primaryStrong)};
+  flex-direction: row;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+  elevation: ${(props) => (props.disabled ? 0 : 6)};
+`;
 
-  &:disabled {
-    background: var(--primary-light);
-    color: var(--primary-color);
-    cursor: not-allowed;
-    box-shadow: none;
-  }
+export const SubmitButtonText = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 18px;
+  color: ${(props) => (props.disabled ? props.theme.primaryColor : 'white')};
 `;

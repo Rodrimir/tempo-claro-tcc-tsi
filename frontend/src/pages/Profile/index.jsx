@@ -1,167 +1,388 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Modal, View, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SlideInRight } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import { useTheme } from 'styled-components/native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../contexts/LanguageContext';
 import { useThemeToggle } from '../../contexts/ThemeToggleContext';
 import { useToast } from '../../contexts/ToastContext';
-import { updateProfile } from '../../services/api';
-import { Shield, ShieldAlert, Moon, Sun, Globe } from 'lucide-react';
+import { useSfx } from '../../contexts/SoundContext';
+import { updateProfile, getMe } from '../../services/api';
+import { FUSOS } from './timezones';
 import {
-  ProfileContainer,
-  Title,
-  BannerText,
-  BannerAction,
-  FormContainer,
+  Scrim,
+  Panel,
+  PanelScroll,
+  IdentidadeBloco,
+  Avatar,
+  AvatarLetra,
+  IdentidadeTexto,
+  Nome,
+  Email,
+  FecharButton,
   SectionTitle,
-  FormGroup,
-  Label,
-  Input,
-  Select,
-  SubmitButton,
-  LogoutButton,
-  ModalText,
-  ModalSelect,
-  ModalBuyButton,
-  ModalCancelButton,
-  SettingsRow,
-  ToggleSwitch
+  MenuRow,
+  MenuIcone,
+  MenuTexto,
+  MenuLabel,
+  MenuValor,
+  MenuValorDinamico,
+  Separador,
+  SegmentedControl,
+  LanguageChip,
+  LanguageChipText,
+  ThemeOptionButton,
+  PickerOverlay,
+  PickerSheet,
+  PickerTitulo,
+  PickerGroupLabel,
+  PickerOption,
+  PickerOptionText,
+  CenterOverlay,
+  DialogCard,
+  DialogTitle,
+  DialogText,
+  DialogInput,
+  DialogActions,
+  DialogCancel,
+  DialogCancelText,
+  DialogConfirm,
+  DialogConfirmText,
 } from './styles';
 
-// @audit-ok [Perfil (1) — tela de dados do usuário: nome, fuso horário, tema e troca de senha]
-
 const Profile = () => {
+  const router = useRouter();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { logout, user, updateLocalUser } = useAuth();
-  const { isDark, toggleTheme } = useThemeToggle();
+  const { isDark, tema, setTema } = useThemeToggle();
+  const { mudo, setMudo, tocar } = useSfx();
   const { addToast } = useToast();
+  const { idioma, setIdioma, idiomas, t } = useI18n();
 
-  // @audit-ok [Perfil (2) — estado inicial do formulário a partir do usuário autenticado]
-  // Antes o nome vinha fixo como 'Usuário'. Agora usa o dado que o backend devolve
-  // em AuthResponseDTO.user no login, persistido pelo AuthContext.
-  const [formData, setFormData] = useState({
-    nome: user?.name || '',
-    senhaAtual: '',
-    novaSenha: '',
-    fusoHorario: 'America/Sao_Paulo'
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nome, setNome] = useState(user?.name || '');
+  const [fusoHorario, setFusoHorario] = useState('America/Sao_Paulo');
+  const [fusoAberto, setFusoAberto] = useState(false);
+  const [nomeAberto, setNomeAberto] = useState(false);
+  const [rascunhoNome, setRascunhoNome] = useState('');
+  const [sairAberto, setSairAberto] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
-  // O AuthContext resolve o usuário de forma assíncrona na verificação do token,
-  // então o nome pode chegar depois desta tela montar.
   useEffect(() => {
-    if (user?.name) {
-      setFormData(prev => (prev.nome ? prev : { ...prev, nome: user.name }));
-    }
-  }, [user]);
+    getMe()
+      .then((res) => {
+        if (res.data.nome) setNome(res.data.nome);
+        setFusoHorario(res.data.fuso_horario || 'America/Sao_Paulo');
+        if (res.data.tema) setTema(res.data.tema);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // @audit-ok [Perfil (3) — processa submissão do formulário de atualização]
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const fechar = () => router.replace('/home');
+
+  const fusoLabel = FUSOS.find((f) => f.value === fusoHorario)?.label || fusoHorario;
+
+  const trocarIdioma = async (codigo) => {
+    if (codigo === idioma) return;
+    const anterior = idioma;
+    setIdioma(codigo);
     try {
-      // @audit-ok [Perfil (4) — monta payload incluindo senhas apenas se novaSenha foi preenchida]
-      // As chaves são snake_case porque é isso que ProfileUpdateDTO declara. Antes
-      // eram enviadas em camelCase (fusoHorario/senhaAtual/novaSenha): o Jackson
-      // não as reconhecia, então fuso e senha nunca chegavam a ser atualizados —
-      // e mesmo assim a tela exibia "Perfil atualizado com sucesso!".
-      await updateProfile({
-        nome: formData.nome,
-        fuso_horario: formData.fusoHorario,
-        ...(formData.novaSenha && {
-          senha_atual: formData.senhaAtual,
-          nova_senha: formData.novaSenha
-        })
-      });
-      // @audit-ok [Perfil (15) — confirma sucesso e limpa campos de senha]
-      updateLocalUser({ name: formData.nome });
-      addToast('Perfil atualizado com sucesso!', 'success');
-      // @audit-ok [Perfil (16) — limpa campos de senha após salvar]
-      setFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '' }));
+      await updateProfile({ preferencia_idioma: codigo });
+      updateLocalUser({ preferencia_idioma: codigo });
     } catch (err) {
-      console.error("Erro ao atualizar perfil", err);
-      addToast('Erro ao atualizar perfil. Verifique seus dados.', 'error');
-    } finally {
-      setIsSubmitting(false);
+      setIdioma(anterior);
+      addToast(err.response?.data?.message || t('perfil.erroIdioma'), 'error');
     }
   };
 
+  const trocarTema = async (novo) => {
+    const anterior = tema;
+    setTema(novo);
+    try {
+      await updateProfile({ tema: novo });
+    } catch (err) {
+      setTema(anterior);
+      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+    }
+  };
+
+  const salvarFuso = async (valor) => {
+    const anterior = fusoHorario;
+    setFusoHorario(valor);
+    setFusoAberto(false);
+    try {
+      await updateProfile({ fuso_horario: valor });
+      updateLocalUser({ fuso_horario: valor });
+      addToast(t('perfil.salvoOk'), 'success');
+    } catch (err) {
+      setFusoHorario(anterior);
+      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+    }
+  };
+
+  const salvarNome = async () => {
+    const limpo = rascunhoNome.trim();
+    if (!limpo) return;
+    setSalvando(true);
+    try {
+      await updateProfile({ nome: limpo });
+      updateLocalUser({ name: limpo });
+      setNome(limpo);
+      setNomeAberto(false);
+      addToast(t('perfil.salvoOk'), 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const inicial = (nome || user?.email || '?').trim().charAt(0).toUpperCase();
+
   return (
-    <ProfileContainer>
-      <Title>Seu Perfil</Title>
+    <View style={{ flex: 1 }}>
+      <Scrim onPress={fechar} accessibilityLabel={t('comum.fechar')} />
 
-      <FormContainer onSubmit={handleUpdate}>
-        <SectionTitle>Preferências do App</SectionTitle>
+      <Panel entering={SlideInRight.duration(220)}>
+        <PanelScroll $insetTop={insets.top}>
+          <IdentidadeBloco>
+            <Avatar>
+              <AvatarLetra>{inicial}</AvatarLetra>
+            </Avatar>
+            <IdentidadeTexto>
+              <Nome numberOfLines={1}>{nome || t('perfil.titulo')}</Nome>
+              <Email numberOfLines={1}>{user?.email}</Email>
+            </IdentidadeTexto>
+            <FecharButton onPress={fechar} accessibilityLabel={t('comum.fechar')}>
+              <Feather name="x" size={20} color={theme.textPrimary} />
+            </FecharButton>
+          </IdentidadeBloco>
 
-        <SettingsRow>
-          <div className="label">
-            <Globe size={20} aria-hidden="true" /> Idioma
-          </div>
-          <div style={{ background: 'var(--primary-light)', padding: '4px 8px', borderRadius: '8px', border: '2px solid var(--primary-color)', color: 'var(--text-primary)', fontWeight: 600 }}>
-            🇧🇷 PT
-          </div>
-        </SettingsRow>
+          <SectionTitle>{t('perfil.preferencias')}</SectionTitle>
 
-        <SettingsRow $clickable onClick={toggleTheme} role="button" aria-label="Alternar Tema Escuro">
-          <div className="label">
-            {isDark ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
-            Tema Escuro
-          </div>
-          <ToggleSwitch $active={isDark}><div className="dot" /></ToggleSwitch>
-        </SettingsRow>
+          <MenuRow>
+            <MenuIcone>
+              <Feather name="globe" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.idioma')}</MenuLabel>
+            </MenuTexto>
+            <SegmentedControl>
+              {Object.entries(idiomas).map(([codigo, info]) => (
+                <LanguageChip
+                  key={codigo}
+                  $active={idioma === codigo}
+                  accessibilityLabel={info.nome}
+                  onPress={() => {
+                    tocar('alternar');
+                    trocarIdioma(codigo);
+                  }}
+                >
+                  <LanguageChipText $active={idioma === codigo}>{info.bandeira}</LanguageChipText>
+                  <LanguageChipText $active={idioma === codigo}>{info.curto}</LanguageChipText>
+                </LanguageChip>
+              ))}
+            </SegmentedControl>
+          </MenuRow>
 
-        <div style={{ marginTop: '24px' }}></div>
-        <SectionTitle>Seus Dados</SectionTitle>
+          <Separador />
 
-        <FormGroup>
-          <Label htmlFor="profile-nome">Nome</Label>
-          <Input
-            id="profile-nome"
-            type="text"
-            value={formData.nome}
-            onChange={e => setFormData({ ...formData, nome: e.target.value })}
-          />
-        </FormGroup>
+          <MenuRow>
+            <MenuIcone>
+              <Feather name={isDark ? 'moon' : 'sun'} size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.tema')}</MenuLabel>
+            </MenuTexto>
+            <SegmentedControl>
+              <ThemeOptionButton
+                $active={tema === 'claro'}
+                accessibilityLabel={t('perfil.temaClaroLabel')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarTema('claro');
+                }}
+              >
+                <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+              <ThemeOptionButton
+                $active={tema === 'escuro'}
+                accessibilityLabel={t('perfil.temaEscuroLabel')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarTema('escuro');
+                }}
+              >
+                <Feather name="moon" size={16} color={tema === 'escuro' ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+              <ThemeOptionButton
+                $active={tema === 'dinamico'}
+                accessibilityLabel={t('perfil.temaDinamicoLabel')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarTema('dinamico');
+                }}
+              >
+                <Feather name="clock" size={16} color={tema === 'dinamico' ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+            </SegmentedControl>
+          </MenuRow>
+          {tema === 'dinamico' ? <MenuValorDinamico>{t('perfil.temaDinamicoExplicacao')}</MenuValorDinamico> : null}
 
-        <FormGroup>
-          <Label htmlFor="profile-fuso">Fuso Horário</Label>
-          <Select
-            id="profile-fuso"
-            value={formData.fusoHorario}
-            onChange={e => setFormData({ ...formData, fusoHorario: e.target.value })}
+          <Separador />
+
+          <MenuRow>
+            <MenuIcone>
+              <Feather name={mudo ? 'volume-x' : 'volume-2'} size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.som')}</MenuLabel>
+            </MenuTexto>
+            <SegmentedControl>
+              <ThemeOptionButton
+                $active={!mudo}
+                accessibilityLabel={t('perfil.somLigadoLabel')}
+                onPress={() => {
+                  setMudo(false);
+                  tocar('alternar');
+                }}
+              >
+                <Feather name="volume-2" size={16} color={!mudo ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+              <ThemeOptionButton
+                $active={mudo}
+                accessibilityLabel={t('perfil.somMudoLabel')}
+                onPress={() => setMudo(true)}
+              >
+                <Feather name="volume-x" size={16} color={mudo ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+            </SegmentedControl>
+          </MenuRow>
+
+          <SectionTitle>{t('perfil.seusDados')}</SectionTitle>
+
+          <MenuRow
+            onPress={() => {
+              setRascunhoNome(nome);
+              setNomeAberto(true);
+            }}
           >
-            <option value="America/Sao_Paulo">Brasília (BRT)</option>
-            <option value="America/New_York">Nova York (EST)</option>
-            <option value="Europe/London">Londres (GMT)</option>
-          </Select>
-        </FormGroup>
+            <MenuIcone>
+              <Feather name="user" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.nome')}</MenuLabel>
+              <MenuValor numberOfLines={1}>{nome || '—'}</MenuValor>
+            </MenuTexto>
+            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+          </MenuRow>
 
-        <FormGroup>
-          <Label htmlFor="profile-senha-atual">Senha Atual</Label>
-          <Input
-            id="profile-senha-atual"
-            type="password"
-            value={formData.senhaAtual}
-            onChange={e => setFormData({ ...formData, senhaAtual: e.target.value })}
-          />
-        </FormGroup>
+          <Separador />
 
-        <FormGroup>
-          <Label htmlFor="profile-nova-senha">Nova Senha</Label>
-          <Input
-            id="profile-nova-senha"
-            type="password"
-            value={formData.novaSenha}
-            onChange={e => setFormData({ ...formData, novaSenha: e.target.value })}
-          />
-        </FormGroup>
+          <MenuRow onPress={() => setFusoAberto(true)}>
+            <MenuIcone>
+              <Feather name="clock" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.fuso')}</MenuLabel>
+              <MenuValor numberOfLines={1}>{fusoLabel}</MenuValor>
+            </MenuTexto>
+            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+          </MenuRow>
 
-        <SubmitButton type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
-          {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
-        </SubmitButton>
-      </FormContainer>
+          <Separador />
 
-      {/* @audit-ok [Logout — chama AuthContext.logout que limpa token e desmarca autenticação] */}
-      <LogoutButton onClick={logout} aria-label="Sair da sua conta">
-        Sair do Aplicativo
-      </LogoutButton>
-    </ProfileContainer>
+          <MenuRow onPress={() => router.push('/change-password')}>
+            <MenuIcone>
+              <Feather name="lock" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.trocarSenha')}</MenuLabel>
+              <MenuValor>{t('perfil.trocarSenhaSub')}</MenuValor>
+            </MenuTexto>
+            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+          </MenuRow>
+
+          <SectionTitle>{t('perfil.conta')}</SectionTitle>
+
+          <MenuRow $danger onPress={() => setSairAberto(true)}>
+            <MenuIcone $danger>
+              <Feather name="log-out" size={18} color={theme.dangerColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel $danger>{t('perfil.sair')}</MenuLabel>
+            </MenuTexto>
+          </MenuRow>
+        </PanelScroll>
+      </Panel>
+
+      <Modal visible={fusoAberto} transparent animationType="fade" onRequestClose={() => setFusoAberto(false)}>
+        <PickerOverlay onPress={() => setFusoAberto(false)}>
+          <PickerSheet onStartShouldSetResponder={() => true}>
+            <PickerTitulo>{t('perfil.fuso')}</PickerTitulo>
+            <ScrollView>
+              {['brasil', 'outros'].map((grupo) => (
+                <View key={grupo}>
+                  <PickerGroupLabel>{t(`perfil.grupoFuso.${grupo}`)}</PickerGroupLabel>
+                  {FUSOS.filter((f) => f.group === grupo).map((f) => (
+                    <PickerOption key={f.value} onPress={() => salvarFuso(f.value)}>
+                      <PickerOptionText $active={f.value === fusoHorario}>{f.label}</PickerOptionText>
+                      {f.value === fusoHorario ? (
+                        <Feather name="check" size={18} color={theme.primaryColor} />
+                      ) : null}
+                    </PickerOption>
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
+          </PickerSheet>
+        </PickerOverlay>
+      </Modal>
+
+      <Modal visible={nomeAberto} transparent animationType="fade" onRequestClose={() => setNomeAberto(false)}>
+        <CenterOverlay>
+          <DialogCard>
+            <DialogTitle>{t('perfil.nome')}</DialogTitle>
+            <DialogInput
+              value={rascunhoNome}
+              onChangeText={setRascunhoNome}
+              autoFocus
+              maxLength={60}
+              placeholder={t('perfil.nome')}
+            />
+            <DialogActions>
+              <DialogCancel onPress={() => setNomeAberto(false)}>
+                <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
+              </DialogCancel>
+              <DialogConfirm onPress={salvarNome} disabled={salvando || !rascunhoNome.trim()}>
+                <DialogConfirmText>{salvando ? t('perfil.salvando') : t('comum.salvar')}</DialogConfirmText>
+              </DialogConfirm>
+            </DialogActions>
+          </DialogCard>
+        </CenterOverlay>
+      </Modal>
+
+      <Modal visible={sairAberto} transparent animationType="fade" onRequestClose={() => setSairAberto(false)}>
+        <CenterOverlay>
+          <DialogCard>
+            <DialogTitle>{t('perfil.sair')}</DialogTitle>
+            <DialogText>{t('perfil.sairConfirmacao')}</DialogText>
+            <DialogActions>
+              <DialogCancel onPress={() => setSairAberto(false)}>
+                <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
+              </DialogCancel>
+              <DialogConfirm $danger onPress={logout}>
+                <DialogConfirmText>{t('perfil.sairConfirmar')}</DialogConfirmText>
+              </DialogConfirm>
+            </DialogActions>
+          </DialogCard>
+        </CenterOverlay>
+      </Modal>
+    </View>
   );
 };
 

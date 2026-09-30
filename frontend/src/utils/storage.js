@@ -1,88 +1,60 @@
-import CryptoJS from 'crypto-js';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// @audit-ok [Armazenamento Encriptado — CryptoJS AES para todos os dados sensíveis no localStorage]
-
-const SECRET_KEY = import.meta.env.VITE_CRYPTO_SECRET || '20211PL.TSI0023';
-
-const encryptData = (data) => {
-  if (data === null || data === undefined) return null;
-  const stringified = typeof data === 'string' ? data : JSON.stringify(data);
-  return CryptoJS.AES.encrypt(stringified, SECRET_KEY).toString();
-};
-
-const decryptData = (ciphertext) => {
-  if (!ciphertext) return null;
-  try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, SECRET_KEY);
-    const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
-    if (!decryptedString) return null;
-    try {
-      return JSON.parse(decryptedString);
-    } catch (e) {
-      return decryptedString;
-    }
-  } catch (error) {
-    return null;
-  }
-};
-
-// @audit-ok [Execução Timer (7) — salva estado encriptado do timer no localStorage]
-export const saveExecutionState = (habitId, token, elapsed, startedAt) => {
+export const saveExecutionState = async (habitId, token, elapsed, startedAt) => {
   const payload = { token, elapsed, startedAt };
-  const encrypted = encryptData(payload);
-  localStorage.setItem(`tempoClaro_exec_${habitId}`, encrypted);
+  await AsyncStorage.setItem(`tempoClaro_exec_${habitId}`, JSON.stringify(payload));
 };
 
-// @audit-ok [Execução Timer (9) — lê e decripta estado do timer do localStorage]
-export const loadExecutionState = (habitId) => {
-  const encrypted = localStorage.getItem(`tempoClaro_exec_${habitId}`);
-  return decryptData(encrypted);
+export const loadExecutionState = async (habitId) => {
+  const stored = await AsyncStorage.getItem(`tempoClaro_exec_${habitId}`);
+  return stored ? JSON.parse(stored) : null;
 };
 
-// @audit-ok [Execução Timer (27) — remove estado do timer após conclusão]
-export const clearExecutionState = (habitId) => {
-  localStorage.removeItem(`tempoClaro_exec_${habitId}`);
+export const clearExecutionState = async (habitId) => {
+  await AsyncStorage.removeItem(`tempoClaro_exec_${habitId}`);
 };
 
-// @audit-ok [Execução Timer (10) — valida se a pausa está dentro da tolerância de 1 hora]
-export const isWithinTolerance = (lastTimestamp) => {
+export const isWithinTolerance = async (lastTimestamp) => {
   if (!lastTimestamp) return true;
   const diff = Date.now() - parseInt(lastTimestamp, 10);
   return diff < 3600000;
 };
 
-// @audit-ok [Verificação de Token (3) — lê e decripta JWT do localStorage]
-export const getAuthToken = () => {
-  const encrypted = localStorage.getItem('tempoClaro_token');
-  return decryptData(encrypted);
+export const saveExecutingHabitId = async (habitId) => {
+  await AsyncStorage.setItem('tempoClaro_execucao_habito_id', JSON.stringify(habitId));
 };
 
-// @audit-ok [Login (15) — encripta e armazena JWT no localStorage]
-export const setAuthToken = (token) => {
-  const encrypted = encryptData(token);
-  localStorage.setItem('tempoClaro_token', encrypted);
+export const loadExecutingHabitId = async () => {
+  const stored = await AsyncStorage.getItem('tempoClaro_execucao_habito_id');
+  return stored ? JSON.parse(stored) : null;
 };
 
-// @audit-ok [Verificação de Token (13) — remove JWT do localStorage no logout ou 401]
-export const clearAuthToken = () => {
-  localStorage.removeItem('tempoClaro_token');
+export const clearExecutingHabitId = async () => {
+  await AsyncStorage.removeItem('tempoClaro_execucao_habito_id');
 };
 
-// @audit-ok [Perfil (17) — persiste o usuário retornado no login/cadastro]
-// O backend devolve { token, user: { name, email } } em AuthResponseDTO, mas esse
-// `user` era descartado — por isso a tela de Perfil exibia 'Usuário' fixo. Como
-// não existe GET /profile, guardar aqui é o que permite mostrar o nome real.
-export const setUserProfile = (profile) => {
-  const encrypted = encryptData(profile);
-  if (encrypted) localStorage.setItem('tempoClaro_user', encrypted);
+export const getAuthToken = async () => {
+  return SecureStore.getItemAsync('tempoClaro_token');
 };
 
-// @audit-ok [Perfil (18) — lê o usuário persistido]
-export const getUserProfile = () => {
-  const encrypted = localStorage.getItem('tempoClaro_user');
-  return decryptData(encrypted);
+export const setAuthToken = async (token) => {
+  await SecureStore.setItemAsync('tempoClaro_token', token);
 };
 
-export const clearUserProfile = () => {
-  localStorage.removeItem('tempoClaro_user');
+export const clearAuthToken = async () => {
+  await SecureStore.deleteItemAsync('tempoClaro_token');
+};
+
+export const setUserProfile = async (profile) => {
+  await AsyncStorage.setItem('tempoClaro_user', JSON.stringify(profile));
+};
+
+export const getUserProfile = async () => {
+  const stored = await AsyncStorage.getItem('tempoClaro_user');
+  return stored ? JSON.parse(stored) : null;
+};
+
+export const clearUserProfile = async () => {
+  await AsyncStorage.removeItem('tempoClaro_user');
 };

@@ -1,13 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { BackHandler } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Crypto from 'expo-crypto';
+import { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTimer } from '../../hooks/useTimer';
-import { submitExecution } from '../../services/api';
+import { useHoldToIncrement } from '../../hooks/useHoldToIncrement';
+import { submitExecution, getDashboard } from '../../services/api';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
+import { useExecutionResult } from '../../contexts/ExecutionResultContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useSfx } from '../../contexts/SoundContext';
+import { saveExecutingHabitId, loadExecutingHabitId, clearExecutingHabitId } from '../../utils/storage';
 import CircularProgress from '../../components/common/CircularProgress';
 import MonospaceTimer from '../../components/common/MonospaceTimer';
 import GiveUpModal from '../../components/common/GiveUpModal';
-import PwaPauseModal from '../../components/common/PwaPauseModal';
+import LoadingScreen from '../../components/common/LoadingScreen';
+import { useI18n } from '../../contexts/LanguageContext';
 import {
   ExecutionContainer,
   HeaderWrapper,
@@ -16,151 +25,231 @@ import {
   ContentWrapper,
   ControlsWrapper,
   SubButton,
+  SubButtonText,
   AddButton,
+  AddButtonText,
   ActionsWrapper,
   CompleteButtonWrapper,
   CompleteButton,
-  GiveUpButton
+  CompleteButtonText,
+  GiveUpButton,
+  GiveUpButtonText,
 } from './styles';
 
-// @audit-ok [Execução Timer (1) — tela de execução ativa: gerencia timer regressivo ou contador de quantidade]
-
 const ExecutionScreen = () => {
-  const navigate = useNavigate();
-  const { currentHabit } = useCurrentHabit();
+  const router = useRouter();
+  const { t } = useI18n();
+  const { currentHabit, setCurrentHabit } = useCurrentHabit();
+  const [habit, setHabit] = useState(currentHabit || null);
+  const [fase, setFase] = useState(currentHabit ? 'pronto' : 'recuperando');
+
+  useEffect(() => {
+    if (currentHabit) {
+      saveExecutingHabitId(currentHabit.id);
+      setHabit(currentHabit);
+      setFase('pronto');
+      return;
+    }
+
+    let cancelado = false;
+    (async () => {
+      const habitoIdSalvo = await loadExecutingHabitId();
+      if (!habitoIdSalvo) {
+        router.replace('/home');
+        return;
+      }
+      try {
+        const res = await getDashboard();
+        if (cancelado) return;
+        const lista = res.data.habits || res.data || [];
+        const encontrado = lista.find((h) => h.id === habitoIdSalvo);
+        if (!encontrado) {
+          await clearExecutingHabitId();
+          router.replace('/home');
+          return;
+        }
+        await saveExecutingHabitId(encontrado.id);
+        setCurrentHabit(encontrado);
+        setHabit(encontrado);
+        setFase('pronto');
+      } catch {
+        if (!cancelado) router.replace('/home');
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [currentHabit]);
+
+  if (fase !== 'pronto' || !habit) {
+    return <LoadingScreen message={t('execucao.retomandoExecucao')} />;
+  }
+
+  return <ExecutionActive habit={habit} />;
+};
+
+const ExecutionActive = ({ habit }) => {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { addToast } = useToast();
+  const { t } = useI18n();
+  const { tocar } = useSfx();
+  const { setExecutionResult } = useExecutionResult();
   const [executionToken, setExecutionToken] = useState('');
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
-  const [showPwaModal, setShowPwaModal] = useState(false);
   const [quantity, setQuantity] = useState(0);
 
-  // @audit-ok [Execução Timer (2) — gera token único de idempotência para esta sessão de execução]
+  const metaOcorrenciaAtual = habit.alvo_ocorrencia_atual ?? habit.meta_base;
+  const alvoEmSegundos = metaOcorrenciaAtual * 60;
+  const passo = Math.max(1, Math.round(metaOcorrenciaAtual / 10));
+  const incrementoPorTick = Math.max(1, Math.round(metaOcorrenciaAtual * 0.005));
+  const { onPressIn: onAddPressIn, onPressOut: onAddPressOut } = useHoldToIncrement(
+    () => {
+      tocar('tap');
+      setQuantity((prev) => prev + passo);
+    },
+    () => {
+      tocar('tap');
+      setQuantity((prev) => prev + incrementoPorTick);
+    }
+  );
+
   useEffect(() => {
-    const token = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
-    setExecutionToken(token);
+    setExecutionToken(Crypto.randomUUID());
   }, []);
 
-  const habit = currentHabit || {
-    id: 1,
-    titulo: 'Modo Anônimo',
-    tipo_medida: 'TEMPO',
-    meta_base: 1500,
-    bloqueios_acumulados: 0
-  };
-
-  // @audit-ok [Execução Timer (3) — inicializa o hook do timer com a meta do hábito em segundos]
-  const {
-    timeLeft,
-    overachieveTime,
-    isOverachieving,
-    pause,
-    resume,
-    clearTimerState
-  } = useTimer(
-    habit.tipo_medida === 'TEMPO' ? habit.meta_base : 0,
+  const { timeLeft, overachieveTime, isOverachieving, pause, resume, clearTimerState } = useTimer(
+    habit.tipo_medida === 'TEMPO' ? alvoEmSegundos : 0,
     habit.id,
     executionToken,
     habit.tipo_medida === 'TEMPO'
   );
 
-  const isQuantityDone = quantity >= habit.meta_base;
+  useEffect(() => {
+    if (!executionToken) return;
+    resume();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [executionToken]);
 
-  // @audit-ok [Execução Timer (14) — processa conclusão: calcula bônus, envia para API e navega para sucesso]
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      pause();
+      setShowGiveUpModal(true);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [pause]);
+
+  const isQuantityDone = quantity >= metaOcorrenciaAtual;
+  const podeConcluir = isOverachieving || isQuantityDone;
+
+  const estiloConcluir = useAnimatedStyle(() => ({
+    opacity: withTiming(podeConcluir ? 1 : 0, { duration: 500 }),
+  }));
+
   const handleComplete = async () => {
     try {
-      // @audit-ok [Execução Timer (15) — pausa o timer antes de enviar]
       pause();
-      // @audit-ok [Execução Timer (16) — determina se merece bônus: ultrapassou 20% da meta]
-      const isExtra = habit.tipo_medida === 'TEMPO'
-        ? isOverachieving && overachieveTime >= (habit.meta_base * 0.2)
-        : quantity >= (habit.meta_base * 1.2);
-
       const payload = {
         execution_token: executionToken,
-        tipo: isExtra ? 'COMPLETE_EXTRA' : 'COMPLETE_PADRAO',
-        valor_realizado: habit.tipo_medida === 'TEMPO' ? (habit.meta_base + overachieveTime) : quantity
+        valor_realizado:
+          habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual + Math.floor(overachieveTime / 60) : quantity,
       };
-
-      // @audit-ok [Execução Timer (17) — envia POST /habits/{id}/executions]
       const res = await submitExecution(habit.id, payload);
-      // @audit-ok [Execução Timer (27) — limpa estado salvo do localStorage]
-      clearTimerState();
-      // @audit-ok [Execução Timer (28) — navega para tela de sucesso passando dados da recompensa]
-      navigate('/success', { state: { bonus: isExtra, feedback: res.data } });
+      await clearTimerState();
+      await clearExecutingHabitId();
+      const subiuDeNivel = (res.data.novo_nivel || 0) > (habit.nivel_avatar || 0);
+      setExecutionResult({ feedback: res.data, subiuDeNivel });
+      router.replace('/success');
     } catch (err) {
-      addToast('Erro ao registrar conclusão. Tente novamente.', 'error');
+      addToast(err.response?.data?.message || t('execucao.erroConclusao'), 'error');
     }
   };
 
-  // @audit-ok [Desistência (5) — processa desistência: envia tipo de falha para API e navega para fail]
   const handleGiveUp = async (type) => {
     try {
-      // @audit-ok [Desistência (6) — pausa o timer antes de enviar]
       pause();
-      // @audit-ok [Desistência (7) — monta payload com tipo de falha e valor parcial realizado]
       const payload = {
         execution_token: executionToken,
         tipo: type,
-        valor_realizado: habit.tipo_medida === 'TEMPO' ? (habit.meta_base - timeLeft) : quantity
+        valor_realizado:
+          habit.tipo_medida === 'TEMPO' ? Math.floor((alvoEmSegundos - timeLeft) / 60) : quantity,
       };
-      // @audit-ok [Desistência (8) — envia POST /habits/{id}/executions com tipo FAIL]
       const res = await submitExecution(habit.id, payload);
-      // @audit-ok [Desistência (15) — limpa estado salvo do localStorage]
-      clearTimerState();
-      // @audit-ok [Desistência (16) — navega para tela de falha]
-      navigate('/fail', { state: { type, feedback: res.data } });
+      await clearTimerState();
+      await clearExecutingHabitId();
+      setExecutionResult({ type, feedback: res.data });
+      router.replace('/fail');
     } catch (err) {
-      addToast('Erro ao registrar desistência. Tente novamente.', 'error');
+      addToast(err.response?.data?.message || t('execucao.erroDesistencia'), 'error');
+      resume();
     }
   };
 
   return (
-    <ExecutionContainer>
+    <ExecutionContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <HeaderWrapper>
-        <HeaderLabel>Focando em</HeaderLabel>
+        <HeaderLabel>{t('execucao.focandoEm')}</HeaderLabel>
         <HeaderTitle>{habit.titulo}</HeaderTitle>
+        {habit.meta_frequencia_diaria > 1 ? (
+          <HeaderLabel>
+            {t('execucao.deHoje', { feito: habit.execucoes_hoje || 0, total: habit.meta_frequencia_diaria })}
+          </HeaderLabel>
+        ) : null}
       </HeaderWrapper>
 
       <ContentWrapper>
         {habit.tipo_medida === 'TEMPO' ? (
           <MonospaceTimer isOverachieving={isOverachieving} overachieveTime={overachieveTime} timeLeft={timeLeft} />
         ) : (
-          <CircularProgress quantity={quantity} meta_base={habit.meta_base} />
+          <CircularProgress quantity={quantity} meta_base={metaOcorrenciaAtual} onQuantityChange={setQuantity} />
         )}
 
         {habit.tipo_medida === 'QUANTIDADE' && (
           <ControlsWrapper>
-            <SubButton onClick={() => setQuantity(Math.max(0, quantity - 50))}>-50</SubButton>
-            <AddButton onClick={() => setQuantity(quantity + 50)}>+50</AddButton>
+            <SubButton
+              onPress={() => {
+                tocar('tap');
+                setQuantity(Math.max(0, quantity - passo));
+              }}
+            >
+              <SubButtonText>-{passo}</SubButtonText>
+            </SubButton>
+            <AddButton onPressIn={onAddPressIn} onPressOut={onAddPressOut}>
+              <AddButtonText>+{passo}</AddButtonText>
+            </AddButton>
           </ControlsWrapper>
         )}
       </ContentWrapper>
 
       <ActionsWrapper>
-        {/* @audit-ok [Execução Timer (13) — botão CONCLUIR aparece somente quando timer zera ou quantidade atingida] */}
-        <CompleteButtonWrapper $visible={isOverachieving || isQuantityDone}>
-          <CompleteButton onClick={handleComplete}>CONCLUIR TAREFA</CompleteButton>
+        <CompleteButtonWrapper style={estiloConcluir} pointerEvents={podeConcluir ? 'auto' : 'none'}>
+          <CompleteButton onPress={handleComplete}>
+            <CompleteButtonText>{t('execucao.concluirTarefa')}</CompleteButtonText>
+          </CompleteButton>
         </CompleteButtonWrapper>
 
-        {/* @audit-ok [Desistência (1) — botão Desistir pausa o timer e abre o modal de confirmação] */}
-        <GiveUpButton onClick={() => { pause(); setShowGiveUpModal(true); }}>
-          Desistir
+        <GiveUpButton
+          onPress={() => {
+            tocar('open');
+            pause();
+            setShowGiveUpModal(true);
+          }}
+        >
+          <GiveUpButtonText>{t('execucao.desistir')}</GiveUpButtonText>
         </GiveUpButton>
       </ActionsWrapper>
 
-      {/* @audit-ok [Desistência (3) — modal exibe opções com base nos bloqueios disponíveis] */}
       {showGiveUpModal && (
         <GiveUpModal
           bloqueiosAcumulados={habit.bloqueios_acumulados}
           handleGiveUp={handleGiveUp}
-          onCancel={() => { setShowGiveUpModal(false); resume(); }}
-        />
-      )}
-
-      {showPwaModal && (
-        <PwaPauseModal
-          onResume={() => { setShowPwaModal(false); resume(); }}
-          onTimeout={() => { setShowPwaModal(false); handleGiveUp('FAIL_TIMEOUT'); }}
+          onCancel={() => {
+            tocar('close');
+            setShowGiveUpModal(false);
+            resume();
+          }}
         />
       )}
     </ExecutionContainer>

@@ -1,44 +1,49 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin, register as apiRegister, getDashboard } from '../services/api';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { DeviceEventEmitter } from 'react-native';
+import { useRouter } from 'expo-router';
+import {
+  login as apiLogin,
+  register as apiRegister,
+  verifyEmail as apiVerifyEmail,
+  resetPassword as apiResetPassword,
+  getDashboard,
+  setUnauthorizedHandler,
+} from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { traduzir, IDIOMA_PADRAO } from '../i18n';
 import {
   setAuthToken,
   clearAuthToken,
   getAuthToken,
   setUserProfile,
   getUserProfile,
-  clearUserProfile
+  clearUserProfile,
 } from '../utils/storage';
-
-// @audit-ok [AuthContext — estado global de autenticação compartilhado por toda a aplicação]
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  // @audit-ok [Perfil (19) — usuário autenticado disponível globalmente]
   const [user, setUser] = useState(null);
+  const router = useRouter();
 
-  // @audit-ok [Verificação de Token (2) — executa ao montar o provider para checar sessão existente]
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        // @audit-ok [Verificação de Token (3) — lê JWT encriptado do localStorage]
-        const token = getAuthToken();
+        const token = await getAuthToken();
         if (!token) {
           setIsAuthenticated(false);
           setLoading(false);
           return;
         }
-        // @audit-ok [Verificação de Token (5) — valida token chamando o dashboard]
         await getDashboard();
-        // @audit-ok [Verificação de Token (12) — token válido: marca como autenticado]
-        setUser(getUserProfile());
+        setUser(await getUserProfile());
         setIsAuthenticated(true);
       } catch (error) {
         setIsAuthenticated(false);
-        clearAuthToken();
-        clearUserProfile();
+        await clearAuthToken();
+        await clearUserProfile();
       } finally {
         setLoading(false);
       }
@@ -46,65 +51,92 @@ export const AuthProvider = ({ children }) => {
     verifyAuth();
   }, []);
 
-  // @audit-ok [Login (5) — recebe dados do formulário e chama a API de autenticação]
-  const login = async (data) => {
-    // @audit-ok [Login (6) — monta payload com email e password para o backend]
-    const payload = {
-      email: data.email,
-      password: data.senha
-    };
-    const response = await apiLogin(payload);
-    persistSession(response);
-  };
+  useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      const idioma = (await AsyncStorage.getItem('idioma')) || IDIOMA_PADRAO;
+      DeviceEventEmitter.emit('tempoClaro:toast', {
+        message: traduzir(idioma, 'comum.sessaoExpirada'),
+        type: 'error',
+        duration: 2000,
+      });
+      setTimeout(async () => {
+        await clearAuthToken();
+        await clearUserProfile();
+        setIsAuthenticated(false);
+        setUser(null);
+        router.replace('/login');
+      }, 2000);
+    });
+  }, [router]);
 
-  // @audit-ok [Login (15) / Cadastro (17) — guarda token e usuário da resposta]
-  const persistSession = (response) => {
+  const persistSession = async (response) => {
     const token = response.data?.token;
     const profile = response.data?.user || null;
     if (token) {
-      // @audit-ok [Login (15) — armazena JWT encriptado no localStorage]
-      setAuthToken(token);
+      await setAuthToken(token);
       if (profile) {
-        setUserProfile(profile);
+        await setUserProfile(profile);
         setUser(profile);
       }
-      // @audit-ok [Login (16) — atualiza estado global de autenticação]
       setIsAuthenticated(true);
     }
   };
 
-  // @audit-ok [Cadastro (5) — recebe dados do formulário e chama a API de cadastro]
+  const login = async (data) => {
+    const payload = {
+      email: data.email,
+      password: data.senha,
+    };
+    const response = await apiLogin(payload);
+    await persistSession(response);
+  };
+
   const register = async (data) => {
-    // @audit-ok [Cadastro (6) — monta payload com nome, email e password]
     const payload = {
       nome: data.nome,
       email: data.email,
-      password: data.senha
+      password: data.senha,
+      preferencia_idioma: data.idioma,
     };
-    const response = await apiRegister(payload);
-    persistSession(response);
+    await apiRegister(payload);
   };
 
-  // @audit-ok [Logout — limpa token e desmarca autenticação]
-  const logout = () => {
+  const confirmarEmail = async (email, codigo) => {
+    const response = await apiVerifyEmail({ email, codigo });
+    await persistSession(response);
+  };
+
+  const redefinirSenha = async (email, codigo, novaSenha) => {
+    const response = await apiResetPassword({ email, codigo, nova_senha: novaSenha });
+    await persistSession(response);
+  };
+
+  const logout = async () => {
     setIsAuthenticated(false);
     setUser(null);
-    clearAuthToken();
-    clearUserProfile();
+    await clearAuthToken();
+    await clearUserProfile();
   };
 
-  // @audit-ok [Perfil (20) — reflete localmente o nome novo após PUT /profile]
-  const updateLocalUser = (patch) => {
-    setUser(prev => {
-      const next = { ...(prev || {}), ...patch };
-      setUserProfile(next);
-      return next;
-    });
+  const updateLocalUser = async (patch) => {
+    const next = { ...(user || {}), ...patch };
+    await setUserProfile(next);
+    setUser(next);
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, loading, user, login, register, logout, updateLocalUser }}
+      value={{
+        isAuthenticated,
+        loading,
+        user,
+        login,
+        register,
+        confirmarEmail,
+        redefinirSenha,
+        logout,
+        updateLocalUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

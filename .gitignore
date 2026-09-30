@@ -1,9 +1,24 @@
-/backend/bin
-/backend/bin/main
-/backend/bin/main/com
-/backend/bin/main/com/rodrigo
-/backend/bin/main/com/rodrigo/backend2java
-/backend/bin/main/com/rodrigo/backend2java
-/backend/bin/main/com/rodrigo/backend2java/model/dto
-/backend/bin/main/com/rodrigo/backend2java/model/dto/request
+# Artefatos de build
+/backend/target/
+/backend/bin/
 
+# Dependências e builds do app
+node_modules/
+/frontend/.expo/
+/frontend/android/app/build/
+/docs
+/.vscode
+/.idea
+/.claude
+# Variáveis de ambiente — jwt.secret e as credenciais do banco vêm daqui em prod
+.env
+.env.local
+*.env
+
+# Material do TCC que não vai para o repositório
+/docs/tcc
+
+# Configuração local do Spring (credenciais de SMTP etc.) — o Spring lê
+# ./config/application.properties automaticamente, com precedência sobre o
+# application.properties do classpath. Nunca versionar.
+/backend/config/

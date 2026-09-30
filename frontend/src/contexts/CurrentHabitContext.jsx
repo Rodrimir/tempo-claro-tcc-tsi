@@ -1,6 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
-
-// @audit-ok [CurrentHabitContext — compartilha o hábito ativo do carrossel entre Home, BottomNav, PreTask, Execution e Stats]
+import { createContext, useContext, useState } from 'react';
 
 const CurrentHabitContext = createContext();
 

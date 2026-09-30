@@ -1,80 +1,84 @@
-import styled from 'styled-components';
+import styled from 'styled-components/native';
+import { Pressable } from 'react-native';
+import { fonts } from '../../../styles/fonts';
 
-export const Overlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  z-index: 200;
-  display: flex;
+export const Overlay = styled.View`
+  flex: 1;
+  background-color: rgba(15, 23, 42, 0.85);
   align-items: center;
   justify-content: center;
   padding: 24px;
 `;
 
-export const ModalCard = styled.div`
-  background: var(--bg-surface);
+export const ModalCard = styled.View`
+  background-color: ${(props) => props.theme.bgSurface};
   width: 100%;
   border-radius: 24px;
   padding: 24px;
+  align-items: center;
+`;
+
+export const Title = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: ${(props) => props.theme.textPrimary};
   text-align: center;
 `;
 
-export const Title = styled.h3`
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-`;
-
-export const Subtitle = styled.p`
+export const Subtitle = styled.Text`
   font-size: 14px;
-  color: var(--text-secondary);
+  color: ${(props) => props.theme.textSecondary};
   margin-bottom: 24px;
+  text-align: center;
 `;
 
-export const ButtonContainer = styled.div`
-  display: flex;
-  flex-direction: column;
+export const ButtonContainer = styled.View`
+  width: 100%;
   gap: 12px;
 `;
 
-export const PrimaryButton = styled.button`
+export const PrimaryButton = styled(Pressable)`
   width: 100%;
   padding: 16px;
   border-radius: 12px;
-  background: var(--success-color);
+  background-color: ${(props) => props.theme.successStrong};
+  align-items: center;
+  elevation: 4;
+`;
+
+export const PrimaryButtonText = styled.Text`
+  font-family: ${fonts.bold};
   color: white;
-  font-weight: 700;
   font-size: 18px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
 `;
 
-export const ShieldButton = styled.button`
+export const ShieldButton = styled(Pressable)`
   padding: 16px;
   border-radius: 12px;
-  background: var(--warning-color);
+  background-color: ${(props) => props.theme.warningStrong};
+  align-items: center;
+  margin-top: 8px;
+`;
+
+export const ShieldButtonText = styled.Text`
+  font-family: ${fonts.bold};
   color: white;
-  font-weight: 700;
   font-size: 16px;
-  border: none;
-  cursor: pointer;
+`;
+
+export const DangerButton = styled(Pressable)`
+  padding: 16px;
+  border-radius: 12px;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-width: 1px;
+  border-color: rgba(239, 68, 68, 0.3);
+  align-items: center;
   margin-top: 8px;
 `;
 
-export const DangerButton = styled.button`
-  padding: 16px;
-  border-radius: 12px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--danger-color);
-  font-weight: 600;
+export const DangerButtonText = styled.Text`
+  font-family: ${fonts.semiBold};
+  color: ${(props) => props.theme.dangerColor};
   font-size: 16px;
-  cursor: pointer;
-  margin-top: 8px;
 `;

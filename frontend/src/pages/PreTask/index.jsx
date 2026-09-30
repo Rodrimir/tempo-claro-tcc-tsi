@@ -1,59 +1,66 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Quote, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
 import { getPreTaskPriming } from '../../services/api';
+import { useI18n } from '../../contexts/LanguageContext';
 import {
   PreTaskContainer,
   BackButtonWrapper,
   BackButton,
   ContentWrapper,
+  HabitName,
+  GatilhoText,
   QuoteText,
   ActionWrapper,
-  ReadyButton
+  ReadyButton,
+  ReadyButtonText,
 } from './styles';
 
-// @audit-ok [Pré-Tarefa Priming (6) — exibe texto motivacional antes do início da execução]
-
 const PreTask = () => {
-  const navigate = useNavigate();
-  const [text, setText] = useState('Carregando...');
+  const { t } = useI18n();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [text, setText] = useState(t('preTask.carregando'));
   const { currentHabit } = useCurrentHabit();
 
-  // @audit-ok [Pré-Tarefa Priming (7) — redireciona para home se não há hábito selecionado; busca priming]
   useEffect(() => {
     if (!currentHabit) {
-      navigate('/home', { replace: true });
+      router.replace('/home');
       return;
     }
-    // @audit-ok [Pré-Tarefa Priming (8) — chama GET /habits/{id}/priming]
     getPreTaskPriming(currentHabit.id)
-      .then(res => {
-        // @audit-ok [Pré-Tarefa Priming (16) — exibe texto retornado pela API]
+      .then((res) => {
         setText(`"${res.data.texto}"`);
       })
       .catch(() => {
-        setText('"A excelência não é um ato, mas um hábito."');
+        setText(t('preTask.fraseFallback'));
       });
-  }, [currentHabit, navigate]);
+  }, [currentHabit]);
+
+  if (!currentHabit) {
+    return null;
+  }
 
   return (
-    <PreTaskContainer>
-      <BackButtonWrapper>
-        <BackButton onClick={() => navigate('/home')} aria-label="Voltar para a Home">
-          <ArrowLeft size={32} />
+    <PreTaskContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
+      <BackButtonWrapper style={{ top: insets.top + 24 }}>
+        <BackButton onPress={() => router.push('/home')} accessibilityLabel={t('preTask.voltarParaHome')}>
+          <Feather name="arrow-left" size={32} color="white" />
         </BackButton>
       </BackButtonWrapper>
 
       <ContentWrapper>
-        <Quote size={48} style={{ marginBottom: '24px', opacity: 0.5 }} />
+        <HabitName>{currentHabit?.titulo}</HabitName>
+        {currentHabit?.gatilho_ancora ? <GatilhoText>⚓ {currentHabit.gatilho_ancora}</GatilhoText> : null}
+        <FontAwesome5 name="quote-right" size={40} color="white" style={{ opacity: 0.5, marginBottom: 24 }} />
         <QuoteText>{text}</QuoteText>
       </ContentWrapper>
 
       <ActionWrapper>
-        {/* @audit-ok [Pré-Tarefa Priming (17) — navega para a execução ao confirmar prontidão] */}
-        <ReadyButton onClick={() => navigate('/execute')}>
-          ESTOU PRONTO
+        <ReadyButton onPress={() => router.push('/execute')}>
+          <ReadyButtonText>{t('preTask.estouPronto')}</ReadyButtonText>
         </ReadyButton>
       </ActionWrapper>
     </PreTaskContainer>
