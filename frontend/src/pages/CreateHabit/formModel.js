@@ -40,7 +40,27 @@ export function formDataDaSugestao(sugestao, tituloPadrao) {
   };
 }
 
-export function formDataInicial(editHabit, tituloPadrao) {
+// Na edição, se já houver uma alteração esperando o dia seguinte, o formulário abre com ela: é o
+// que vai valer amanhã.
+function comAlteracaoPendente(habito) {
+  const pendente = habito?.alteracao_pendente;
+  if (!pendente) return habito;
+  const vezes = pendente.meta_frequencia_diaria || 1;
+  return {
+    ...habito,
+    meta_base: pendente.meta_base,
+    meta_maxima: pendente.meta_maxima,
+    incremento: pendente.incremento,
+    dias_incremento: pendente.dias_incremento,
+    frequencia_semanal: pendente.frequencia_semanal,
+    meta_frequencia_diaria: vezes,
+    horario_ocorrencia_atual: vezes <= 1 ? pendente.ocorrencias?.[0]?.horario_inicio || pendente.horario_agendado : null,
+    ocorrencias: pendente.ocorrencias || [],
+  };
+}
+
+export function formDataInicial(habitoEditado, tituloPadrao) {
+  const editHabit = comAlteracaoPendente(habitoEditado);
   if (!editHabit) {
     return {
       titulo: tituloPadrao,
@@ -86,4 +106,24 @@ export function calcularAlvos(metaBase, vezes) {
 
 export function moldeDe(alvo) {
   return alvo ? MOLDES.find((m) => m.id === alvo.categoria) || MOLDES[0] : MOLDES[0];
+}
+
+// A configuração de execução editada só vale amanhã (título e gatilho mudam na hora). Diz se o
+// envio muda algo além do título e do gatilho, para o aviso depois de salvar.
+export function mudaSoAmanha(habito, payload) {
+  if (!habito) return false;
+  if (habito.alteracao_pendente) return true;
+  const horas = (lista) => (lista || []).map((o) => `${horaCurta(o.horario_inicio)}|${horaCurta(o.horario_fim)}`).join(';');
+  const vezes = payload.meta_frequencia_diaria || 1;
+  const horariosAtuais = vezes > 1 ? horas(habito.ocorrencias) : horaCurta(habito.horario_ocorrencia_atual);
+  const horariosNovos = vezes > 1 ? horas(payload.ocorrencias) : horaCurta(payload.horario_agendado) || '23:59';
+  return (
+    habito.meta_base !== payload.meta_base ||
+    (habito.meta_maxima ?? null) !== (payload.meta_maxima ?? null) ||
+    (habito.incremento ?? 0) !== (payload.incremento ?? 0) ||
+    (habito.dias_incremento ?? 10) !== (payload.dias_incremento ?? 10) ||
+    habito.frequencia_semanal !== payload.frequencia_semanal ||
+    (habito.meta_frequencia_diaria || 1) !== vezes ||
+    horariosAtuais !== horariosNovos
+  );
 }

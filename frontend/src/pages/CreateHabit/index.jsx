@@ -1,15 +1,16 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { createHabit, updateHabit } from '@/services/api';
 import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/LanguageContext';
 import { useSfx } from '@/contexts/SoundContext';
-import { MOLDES, SOM_DO_MOLDE, TOTAL_STEPS, formDataDaSugestao, formDataInicial, moldeDe } from './formModel';
+import { MOLDES, SOM_DO_MOLDE, TOTAL_STEPS, formDataDaSugestao, formDataInicial, moldeDe, mudaSoAmanha } from './formModel';
 import { validarFormulario } from './validation';
 import { Categoria } from '@/model/Categoria';
 import { MAX_VEZES_AO_DIA } from '@/model/Habito';
@@ -25,7 +26,8 @@ const CreateHabit = () => {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { modo, categoria: categoriaParam, sugestao: sugestaoParam } = useLocalSearchParams();
+  const { modo, categoria: categoriaParam, sugestao: sugestaoParam, guia } = useLocalSearchParams();
+  const emGuia = guia === '1';
 
   const sugestao = useMemo(() => {
     if (!sugestaoParam) return null;
@@ -39,18 +41,17 @@ const CreateHabit = () => {
   const { addToast } = useToast();
   const { t } = useI18n();
   const { tocar } = useSfx();
+  const { marcarOnboardingConcluido } = useAuth();
 
-  const currentHabitRef = useRef(currentHabit);
-  useEffect(() => {
-    currentHabitRef.current = currentHabit;
-  }, [currentHabit]);
-
+  // A tela é empilhada a cada abertura, então o estado inicial basta para criar ou editar. A
+  // calibração volta para esta mesma tela trocando os parâmetros (router.dismissTo), e o efeito
+  // abaixo aplica a sugestão recebida.
   const alvoInicial = modo === 'editar' ? currentHabit : null;
 
   const moldeDeParam = categoriaParam ? MOLDES.find((m) => m.id === categoriaParam) : null;
   const moldeDePartida = moldeDeParam || moldeDe(alvoInicial);
 
-  const [editHabit, setEditHabit] = useState(alvoInicial);
+  const [editHabit] = useState(alvoInicial);
   const [step, setStep] = useState(alvoInicial || sugestao ? 3 : moldeDeParam ? 3 : 1);
   const [molde, setMolde] = useState(moldeDePartida);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,21 +63,25 @@ const CreateHabit = () => {
       : formDataInicial(alvoInicial, tituloPadraoDoMolde)
   );
 
+  const [parametrosAplicados, setParametrosAplicados] = useState(`${categoriaParam}|${sugestaoParam}`);
+  const chaveDosParametros = `${categoriaParam}|${sugestaoParam}`;
+  if (chaveDosParametros !== parametrosAplicados) {
+    setParametrosAplicados(chaveDosParametros);
+    if (moldeDeParam) {
+      setMolde(moldeDeParam);
+      const titulo = t(`criar.moldes.${moldeDeParam.chave}.titulo`);
+      setFormData(sugestao ? formDataDaSugestao(sugestao, titulo) : formDataInicial(null, titulo));
+      setErrors({});
+      setStep(3);
+    }
+  }
+
   const isEditMode = Boolean(editHabit);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (sugestaoParam || categoriaParam) return;
-      const alvo = modo === 'editar' ? currentHabitRef.current : null;
-      const moldeAlvo = moldeDe(alvo);
-      setEditHabit(alvo);
-      setMolde(moldeAlvo);
-      setStep(alvo ? 3 : 1);
-      setFormData(formDataInicial(alvo, t(`criar.moldes.${moldeAlvo.chave}.titulo`)));
-      setErrors({});
-      setIsSubmitting(false);
-    }, [modo, sugestaoParam, categoriaParam, t])
-  );
+  const sair = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/home');
+  }, [router]);
 
   const handleNext = () => {
     tocar('continuar');
@@ -186,13 +191,14 @@ const CreateHabit = () => {
       };
       if (isEditMode) {
         await updateHabit(editHabit.id, payload);
-        addToast(t('criar.atualizadoOk'), 'success');
+        addToast(t(mudaSoAmanha(editHabit, payload) ? 'criar.atualizadoAmanha' : 'criar.atualizadoOk'), 'success');
       } else {
         await createHabit(payload);
         addToast(t('criar.criadoOk'), 'success');
+        if (emGuia) await marcarOnboardingConcluido().catch(() => {});
       }
       tocar('success');
-      router.replace('/home');
+      router.dismissTo('/home');
     } catch (err) {
       const mensagem = getApiErrorMessage(err, t('criar.erroSalvar'));
       tocar('erro');
@@ -208,11 +214,7 @@ const CreateHabit = () => {
       : formData.frequencia_semanal.map((i) => nomesDiasSemana[i]).join(', ');
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <Container $insetTop={insets.top}>
       <Header>
         {step > (isEditMode ? 3 : 1) ? (
@@ -224,7 +226,7 @@ const CreateHabit = () => {
             accessibilityRole="button"
             onPress={() => {
               tocar('voltar');
-              router.replace('/home');
+              sair();
             }}
             accessibilityLabel={t('criar.voltarParaHome')}
           >
@@ -254,7 +256,9 @@ const CreateHabit = () => {
           theme={theme}
           t={t}
           tocar={tocar}
-          onCalibrar={() => router.push({ pathname: '/calibration', params: { categoria: molde.id } })}
+          onCalibrar={() =>
+            router.push({ pathname: '/calibration', params: { categoria: molde.id, ...(emGuia ? { guia: '1' } : {}) } })
+          }
           onNext={handleNext}
         />
       )}

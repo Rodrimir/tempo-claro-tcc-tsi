@@ -11,7 +11,7 @@ export function useFloat(duration = 3000, distance = 8) {
       ),
       -1
     );
-  }, []);
+  }, [valor, distance, duration]);
   return useAnimatedStyle(() => ({ transform: [{ translateY: valor.value }] }));
 }
 
@@ -25,6 +25,6 @@ export function usePulse() {
       ),
       -1
     );
-  }, []);
+  }, [escala]);
   return useAnimatedStyle(() => ({ transform: [{ scale: escala.value }] }));
 }

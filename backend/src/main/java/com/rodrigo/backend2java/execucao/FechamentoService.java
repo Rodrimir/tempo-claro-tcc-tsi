@@ -28,7 +28,9 @@ public class FechamentoService {
     }
 
     // O dia em que o hábito foi criado conta a favor quando a meta foi cumprida, mas não penaliza:
-    // sem meta cumprida, só zera os contadores, sem consumir escudo.
+    // sem meta cumprida, só zera os contadores, sem consumir escudo. Ocorrências dispensadas (o
+    // hábito foi criado depois do horário delas) saem da meta do dia; se todas foram dispensadas,
+    // o dia é neutro: não soma nem quebra a ofensiva e não gasta escudo.
     @Transactional
     public void fecharDia(final Habito habito, final StatusHabito status, final LocalDate dia,
             final boolean diaDaCriacao) {
@@ -39,7 +41,13 @@ public class FechamentoService {
         }
 
         final var totalRealizado = totalRealizadoNoDia(habito.getId(), dia);
-        final var metaDoDia = metaDoDia(habito);
+        final var alvoDispensado = status.getAlvoDispensadoHoje() == null ? 0 : status.getAlvoDispensadoHoje();
+        if (alvoDispensado >= metaDoDia(habito)) {
+            limparContadoresDoDia(status, dia);
+            statusHabitoRepository.save(status);
+            return;
+        }
+        final var metaDoDia = Math.max(1, metaDoDia(habito) - alvoDispensado);
         final var percentualDoDia = (double) totalRealizado / metaDoDia;
 
         final var metaCumprida = totalRealizado >= metaDoDia;
@@ -103,6 +111,7 @@ public class FechamentoService {
         status.setValorAcumuladoHoje(0);
         status.setMoedasCreditadasHoje(0);
         status.setBloqueioUsadoHoje(false);
+        status.setAlvoDispensadoHoje(0);
         status.setUltimoReset(dia);
     }
 }

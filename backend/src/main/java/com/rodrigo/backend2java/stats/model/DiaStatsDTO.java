@@ -10,5 +10,9 @@ public record DiaStatsDTO(
         Integer execucoes,
         Boolean meta_cumprida,
         Boolean parcial,
-        Boolean dia_programado) {
+        Boolean dia_programado,
+        // Dia anterior à criação do hábito: não conta na constância.
+        Boolean antes_da_criacao,
+        // Dia da criação em que as ocorrências já tinham passado: concluído sem execução.
+        Boolean dispensado) {
 }

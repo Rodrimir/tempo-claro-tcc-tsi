@@ -12,9 +12,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.rodrigo.backend2java.infra.util.SenhaValidator;
+import com.rodrigo.backend2java.infra.i18n.Mensagens;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
-import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.verificacao.CodigoVerificacaoService;
 import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
@@ -54,13 +54,7 @@ public class AuthService {
 
                 return AuthResponseDTO.builder()
                                 .token(token)
-                                .user(AuthResponseDTO.UserDTO.builder()
-                                                .name(usuario.getNome())
-                                                .email(usuario.getEmail())
-                                                .fuso_horario(usuario.getFusoHorario())
-                                                .tema(usuario.getTema())
-                                                .preferencia_idioma(usuario.getPreferenciaIdioma())
-                                                .build())
+                                .user(AuthResponseDTO.UserDTO.de(usuario))
                                 .build();
         }
 
@@ -80,17 +74,15 @@ public class AuthService {
                 // @note - 7.1a (Cadastro) e-mail já cadastrado lança RegraDeNegocioException (HTTP
                 // 422, GlobalExceptionHandler.java item 13.2), nenhuma escrita acontece.
                 if (usuarioRepository.existsByEmail(request.email())) {
-                        throw new RegraDeNegocioException("E-mail já está em uso");
+                        throw new RegraDeNegocioException("auth.emailEmUso");
                 }
 
                 // @note - 7.1b (Cadastro) senha fora dos critérios do servidor lança
-                // ValidacaoException (HTTP 400, GlobalExceptionHandler.java item 13.3). Redundante
+                // ValidacaoException (HTTP 400, GlobalExceptionHandler.java item 13.3), via
+                // SenhaValidator.exigirValida. Redundante
                 // com Login/validation.js (item 2.1) só quando o cliente é o app oficial; é a
                 // única barreira para qualquer outro consumidor da API.
-                final var motivoSenhaInvalida = SenhaValidator.motivoInvalida(request.password());
-                if (motivoSenhaInvalida != null) {
-                        throw new ValidacaoException(motivoSenhaInvalida);
-                }
+                SenhaValidator.exigirValida(request.password());
 
                 // @note - 7.1c (Cadastro) monta e salva a entidade Usuario. Ver Usuario.java e
                 // UsuarioRepository.java (item 9) para o detalhe do que é gravado.
@@ -117,7 +109,7 @@ public class AuthService {
                                 novoUsuario.getPreferenciaIdioma());
 
                 return MessageResponseDTO.builder().success(true)
-                                .message("Cadastro recebido! Enviamos um código de verificação para o seu e-mail.")
+                                .message(Mensagens.daRequisicao("auth.cadastroRecebido"))
                                 .build();
         }
 
@@ -125,7 +117,7 @@ public class AuthService {
                 codigoVerificacaoService.validarCodigo(request.email(), request.codigo(), TipoCodigo.VERIFICACAO_EMAIL);
 
                 final var usuario = usuarioRepository.findByEmail(request.email())
-                                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado."));
+                                .orElseThrow(() -> new RecursoNaoEncontradoException("usuario.naoEncontrado"));
                 usuario.setEmailVerificado(true);
                 usuarioRepository.save(usuario);
 
@@ -133,27 +125,21 @@ public class AuthService {
 
                 return AuthResponseDTO.builder()
                                 .token(token)
-                                .user(AuthResponseDTO.UserDTO.builder()
-                                                .name(usuario.getNome())
-                                                .email(usuario.getEmail())
-                                                .fuso_horario(usuario.getFusoHorario())
-                                                .tema(usuario.getTema())
-                                                .preferencia_idioma(usuario.getPreferenciaIdioma())
-                                                .build())
+                                .user(AuthResponseDTO.UserDTO.de(usuario))
                                 .build();
         }
 
         public MessageResponseDTO reenviarCodigoVerificacao(final ResendCodeRequestDTO request) {
                 final var usuario = usuarioRepository.findByEmail(request.email())
-                                .orElseThrow(() -> new RecursoNaoEncontradoException("E-mail não encontrado."));
+                                .orElseThrow(() -> new RecursoNaoEncontradoException("auth.emailNaoEncontrado"));
                 if (usuario.isEmailVerificado()) {
-                        throw new RegraDeNegocioException("E-mail já verificado. Você já pode entrar.");
+                        throw new RegraDeNegocioException("auth.emailJaVerificado");
                 }
 
                 codigoVerificacaoService.emitirEEnviar(usuario.getEmail(), TipoCodigo.VERIFICACAO_EMAIL,
                                 usuario.getPreferenciaIdioma());
 
-                return MessageResponseDTO.builder().success(true).message("Novo código enviado.").build();
+                return MessageResponseDTO.builder().success(true).message(Mensagens.daRequisicao("auth.novoCodigoEnviado")).build();
         }
 
         public MessageResponseDTO esqueciSenha(final ForgotPasswordRequestDTO request) {
@@ -173,20 +159,17 @@ public class AuthService {
                 });
 
                 return MessageResponseDTO.builder().success(true)
-                                .message("Se este e-mail estiver cadastrado, enviamos um código de recuperação.")
+                                .message(Mensagens.daRequisicao("auth.recuperacaoEnviada"))
                                 .build();
         }
 
         public AuthResponseDTO redefinirSenha(final ResetPasswordRequestDTO request) {
-                final var motivoSenhaInvalida = SenhaValidator.motivoInvalida(request.nova_senha());
-                if (motivoSenhaInvalida != null) {
-                        throw new ValidacaoException(motivoSenhaInvalida);
-                }
+                SenhaValidator.exigirValida(request.nova_senha());
 
                 codigoVerificacaoService.validarCodigo(request.email(), request.codigo(), TipoCodigo.RECUPERACAO_SENHA);
 
                 final var usuario = usuarioRepository.findByEmail(request.email())
-                                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado."));
+                                .orElseThrow(() -> new RecursoNaoEncontradoException("usuario.naoEncontrado"));
                 usuario.setSenhaHash(passwordEncoder.encode(request.nova_senha()));
                 usuario.setEmailVerificado(true);
                 usuarioRepository.save(usuario);
@@ -195,13 +178,7 @@ public class AuthService {
 
                 return AuthResponseDTO.builder()
                                 .token(token)
-                                .user(AuthResponseDTO.UserDTO.builder()
-                                                .name(usuario.getNome())
-                                                .email(usuario.getEmail())
-                                                .fuso_horario(usuario.getFusoHorario())
-                                                .tema(usuario.getTema())
-                                                .preferencia_idioma(usuario.getPreferenciaIdioma())
-                                                .build())
+                                .user(AuthResponseDTO.UserDTO.de(usuario))
                                 .build();
         }
 }

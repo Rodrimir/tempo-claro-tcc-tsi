@@ -48,18 +48,25 @@ function encerrarAcompanhamento(config) {
 let acordando = null;
 
 // Chamada fora do axios, sem token, só para tirar a API do sono enquanto a pessoa ainda está na
-// tela de entrada. A resposta não importa (a raiz devolve 403), e por isso não passa pelo
-// interceptor que trata 403 como sessão expirada.
+// tela de entrada. Usa a rota pública /health, que não toca no banco.
 export function acordarServidor() {
   if (!acordando) {
-    acordando = fetch(URL_DA_API.replace(/\/api\/?$/, '/')).catch(() => null);
+    acordando = fetch(`${URL_DA_API.replace(/\/$/, '')}/health`).catch(() => null);
   }
   return acordando;
+}
+
+// O servidor responde no idioma do app: mensagens de erro e textos de sucesso vêm traduzidos.
+let idiomaDasRequisicoes = 'pt-BR';
+
+export function definirIdiomaDasRequisicoes(idioma) {
+  idiomaDasRequisicoes = idioma || 'pt-BR';
 }
 
 api.interceptors.request.use(async (config) => {
   comecarAcompanhamento();
   config.acompanhada = true;
+  config.headers['Accept-Language'] = idiomaDasRequisicoes;
   try {
     const token = await getAuthToken();
     if (token) {
@@ -73,6 +80,13 @@ api.interceptors.request.use(async (config) => {
 });
 
 let unauthorizedHandler = null;
+// Várias requisições podem voltar 403 juntas (painel e estatísticas, por exemplo); o aviso de
+// sessão expirada e a saída para o login acontecem uma vez só.
+let sessaoExpirando = false;
+
+export function liberarAvisoDeSessao() {
+  sessaoExpirando = false;
+}
 
 export function setUnauthorizedHandler(fn) {
   unauthorizedHandler = fn;
@@ -93,7 +107,8 @@ api.interceptors.response.use(
       // interceptor nunca chega a agir sobre uma resposta de registro.
       const url = error.config?.url || '';
       const isAuthUrl = url.includes('/auth/login') || url.includes('/auth/register');
-      if (!isAuthUrl && unauthorizedHandler) {
+      if (!isAuthUrl && unauthorizedHandler && !sessaoExpirando) {
+        sessaoExpirando = true;
         unauthorizedHandler();
       }
     }
@@ -125,6 +140,13 @@ export const updateProfile = async (data) => api.put('/profile', data);
 
 export const getMe = async () => api.get('/me');
 
+export const excluirConta = async (confirmacao) => api.delete('/me', { data: { confirmacao } });
+
+export const definirPreferenciasIniciais = async (preferencia_idioma, fuso_horario) =>
+  api.post('/me/onboarding/preferencias', { preferencia_idioma, fuso_horario });
+
+export const concluirOnboarding = async () => api.post('/me/onboarding/concluir');
+
 export const createHabit = async (data) => api.post('/habits', data);
 
 export const updateHabit = async (id, data) => api.put(`/habits/${id}`, data);
@@ -132,6 +154,8 @@ export const updateHabit = async (id, data) => api.put(`/habits/${id}`, data);
 export const excluirHabito = async (id) => api.delete(`/habits/${id}`);
 
 export const getMonthlyStats = async (habitoId) => api.get('/stats/monthly', { params: { habitoId } });
+
+export const getWeeklyStats = async (habitoId) => api.get('/stats/weekly', { params: { habitoId } });
 
 export const getPreTaskPriming = async (id) => api.get(`/habits/${id}/priming`);
 

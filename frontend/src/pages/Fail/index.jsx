@@ -53,15 +53,15 @@ const Fail = () => {
     subtitle = feedbackMsg || t('falha.protegidoTexto');
     bgColor = theme.warningStrong;
   } else if (type === 'FAIL_TIMEOUT') {
-    icon = <Feather name="clock" size={80} color="white" />;
+    icon = <Feather name="pause-circle" size={80} color="white" />;
     title = t('falha.tempoEsgotado');
     subtitle = feedbackMsg || t('falha.tempoEsgotadoTexto');
-    bgColor = theme.dangerStrong;
+    bgColor = theme.bonusStrong;
   } else {
-    icon = <MaterialCommunityIcons name="heart-broken" size={80} color="white" />;
+    icon = <Feather name="sunrise" size={80} color="white" />;
     title = t('falha.ofensivaPerdida');
     subtitle = feedbackMsg || t('falha.ofensivaPerdidaTexto');
-    bgColor = theme.dangerStrong;
+    bgColor = theme.bonusStrong;
   }
 
   return (

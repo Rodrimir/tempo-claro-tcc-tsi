@@ -11,7 +11,7 @@ const LoadingScreen = ({ message }) => {
 
   useEffect(() => {
     rotacao.value = withRepeat(withTiming(360, { duration: 4000, easing: Easing.linear }), -1);
-  }, []);
+  }, [rotacao]);
 
   const estiloRotacao = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotacao.value}deg` }],

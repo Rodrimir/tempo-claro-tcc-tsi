@@ -53,7 +53,7 @@ public class CodigoVerificacaoService {
         final var ultimoEmitido = repository.findFirstByEmailAndTipoOrderByCriadoEmDesc(email, tipo.name());
         if (ultimoEmitido.isPresent()
                 && ultimoEmitido.get().getCriadoEm().plusSeconds(THROTTLE_REENVIO_SEGUNDOS).isAfter(OffsetDateTime.now())) {
-            throw new RegraDeNegocioException("Aguarde um pouco antes de pedir um novo código.");
+            throw new RegraDeNegocioException("codigo.aguarde");
         }
 
         invalidarPendentes(email, tipo);
@@ -82,18 +82,18 @@ public class CodigoVerificacaoService {
     public void validarCodigo(final String email, final String codigoDigitado, final TipoCodigo tipo) {
         final var pendente = repository
                 .findFirstByEmailAndTipoAndUsadoEmIsNullOrderByCriadoEmDesc(email, tipo.name())
-                .orElseThrow(() -> new RegraDeNegocioException("Nenhum código pendente para este e-mail. Peça um novo."));
+                .orElseThrow(() -> new RegraDeNegocioException("codigo.nenhumPendente"));
 
         if (pendente.getExpiraEm().isBefore(OffsetDateTime.now())) {
-            throw new RegraDeNegocioException("Código expirado. Peça um novo.");
+            throw new RegraDeNegocioException("codigo.expirado");
         }
         if (pendente.getTentativas() >= MAX_TENTATIVAS) {
-            throw new RegraDeNegocioException("Muitas tentativas erradas. Peça um novo código.");
+            throw new RegraDeNegocioException("codigo.muitasTentativas");
         }
         if (!passwordEncoder.matches(codigoDigitado, pendente.getCodigoHash())) {
             pendente.setTentativas((short) (pendente.getTentativas() + 1));
             repository.save(pendente);
-            throw new RegraDeNegocioException("Código incorreto.");
+            throw new RegraDeNegocioException("codigo.incorreto");
         }
 
         pendente.setUsadoEm(OffsetDateTime.now());

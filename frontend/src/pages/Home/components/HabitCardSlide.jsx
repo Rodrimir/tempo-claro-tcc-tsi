@@ -73,6 +73,14 @@ export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFechar
                   : t('home.suaTarefa')}
           </CardSubtitle>
           {habit.gatilho_ancora ? <GatilhoText $completed={completed}>⚓ {habit.gatilho_ancora}</GatilhoText> : null}
+          {completed && habit.ocorrencias?.length > 0 && habit.ocorrencias.every((o) => o.dispensada) ? (
+            <GatilhoText $completed={completed}>{t('home.dispensadoHoje')}</GatilhoText>
+          ) : null}
+          {habit.alteracao_pendente ? (
+            <GatilhoText $completed={completed} accessibilityLiveRegion="polite">
+              🗓️ {t('home.alteracaoPendente')}
+            </GatilhoText>
+          ) : null}
           {ocorrenciaParaResumo ? (
             <TarefaBloco>
               <TarefaResumo

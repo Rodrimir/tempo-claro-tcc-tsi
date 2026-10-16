@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { IDIOMAS, IDIOMA_PADRAO, traduzir } from '@/i18n';
 import { useAuth } from './AuthContext';
 import { definirIdiomaDosErros } from '@/utils/erros';
+import { definirIdiomaDasRequisicoes } from '@/services/api';
 
 const LanguageContext = createContext();
 
@@ -47,9 +48,10 @@ export const LanguageProvider = ({ children }) => {
     }
   }
 
-  useEffect(() => {
-    definirIdiomaDosErros(idioma);
-  }, [idioma]);
+  // Na renderização, e não num efeito, para que a primeira requisição depois da troca já saia
+  // no idioma novo.
+  definirIdiomaDosErros(idioma);
+  definirIdiomaDasRequisicoes(idioma);
 
   const valor = useMemo(
     () => ({

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Modal } from 'react-native';
+import { Modal, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { useI18n } from '@/contexts/LanguageContext';
@@ -38,6 +38,9 @@ function TimePickerField({ value, onChange, placeholder, error, limpavel = false
   const theme = useTheme();
   const { t } = useI18n();
   const [aberto, setAberto] = useState(false);
+  const { height: alturaDaTela, width: larguraDaTela } = useWindowDimensions();
+  // As colunas encolhem em telas baixas, para o seletor inteiro caber sem cortar os botões.
+  const alturaDasColunas = Math.max(140, Math.min(220, Math.round(alturaDaTela * 0.3)));
   const [hora, setHora] = useState(HORA_PADRAO);
   const [minuto, setMinuto] = useState(MINUTO_PADRAO);
   const scrollHoras = useRef(null);
@@ -90,13 +93,13 @@ function TimePickerField({ value, onChange, placeholder, error, limpavel = false
 
       <Modal visible={aberto} transparent animationType="fade" onRequestClose={() => setAberto(false)}>
         <Overlay accessibilityRole="button" accessibilityLabel={t('comum.fechar')} onPress={() => setAberto(false)}>
-          <Sheet onStartShouldSetResponder={() => true}>
+          <Sheet onStartShouldSetResponder={() => true} style={{ padding: larguraDaTela < 360 ? 16 : 24 }}>
             <SheetTitle>{t('comum.escolhaHorario')}</SheetTitle>
             <Preview>
               {hora}:{minuto}
             </Preview>
 
-            <ColumnsRow>
+            <ColumnsRow style={{ height: alturaDasColunas }}>
               <Column>
                 <ColumnLabel>{t('comum.hora')}</ColumnLabel>
                 <ColumnScroll ref={scrollHoras}>

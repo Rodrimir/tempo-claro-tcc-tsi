@@ -1,4 +1,6 @@
 package com.rodrigo.backend2java.autenticacao.model;
+
+import com.rodrigo.backend2java.infra.util.EmailNormalizado;
 import lombok.Builder;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,16 +11,19 @@ import jakarta.validation.constraints.Size;
 // GlobalExceptionHandler.java (item 13.1). Ver README §8 > Cadastro > item 5.
 @Builder
 public record RegisterRequestDTO(
-        @NotBlank(message = "O nome é obrigatório")
-        @Size(max = 150, message = "O nome deve ter no máximo 150 caracteres") String nome,
+        @NotBlank(message = "{validacao.nome.obrigatorio}")
+        @Size(max = 150, message = "{validacao.nome.tamanho}") String nome,
 
-        @NotBlank(message = "O email é obrigatório")
-        @Email(message = "Email inválido")
-        @Size(max = 255, message = "O email deve ter no máximo 255 caracteres") String email,
+        @NotBlank(message = "{validacao.email.obrigatorio}")
+        @Email(message = "{validacao.email.invalido}")
+        @Size(max = 255, message = "{validacao.email.tamanho}") String email,
 
-        @NotBlank(message = "A senha é obrigatória") String password,
+        @NotBlank(message = "{validacao.senha.obrigatoria}") String password,
 
         String preferencia_idioma) {
+    public RegisterRequestDTO {
+        email = EmailNormalizado.de(email);
+    }
 }
 // @audit-issue - 5.1 (Cadastro) [outcome: fixed] nome e email não tinham @Size, e nome podia
 // estourar o usu_nome VARCHAR(150) do banco (Usuario.java, item 9.2) como um

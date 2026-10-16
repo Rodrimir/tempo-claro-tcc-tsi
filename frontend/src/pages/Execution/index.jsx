@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -87,7 +87,7 @@ const ExecutionScreen = () => {
     return () => {
       cancelado = true;
     };
-  }, [currentHabit]);
+  }, [currentHabit, router, setCurrentHabit]);
 
   if (fase !== 'pronto' || !habit) {
     return <LoadingScreen message={t('execucao.retomandoExecucao')} />;
@@ -125,11 +125,13 @@ const ExecutionActive = ({ habit }) => {
     }
   );
 
+  const avisarReinicio = useCallback(() => addToast(t('execucao.cronometroReiniciado'), 'default'), [addToast, t]);
   const { timeLeft, overachieveTime, isOverachieving, pause, resume, clearTimerState } = useTimer(
     habit.tipo_medida === TipoMedida.TEMPO ? alvoEmSegundos : 0,
     habit.id,
     executionToken,
-    habit.tipo_medida === TipoMedida.TEMPO
+    habit.tipo_medida === TipoMedida.TEMPO,
+    avisarReinicio
   );
 
   useEffect(() => {
@@ -140,7 +142,7 @@ const ExecutionActive = ({ habit }) => {
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      pause();
+      pause({ congelar: true });
       setShowGiveUpModal(true);
       return true;
     });
@@ -300,7 +302,7 @@ const ExecutionActive = ({ habit }) => {
           accessibilityState={{ disabled: enviando }}
           onPress={() => {
             tocar('open');
-            pause();
+            pause({ congelar: true });
             setShowGiveUpModal(true);
           }}
         >

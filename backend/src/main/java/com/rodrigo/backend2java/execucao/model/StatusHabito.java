@@ -70,4 +70,10 @@ public class StatusHabito {
 
     @Column(name = "sta_ultimo_reset")
     private LocalDate ultimoReset;
+
+    // Soma dos alvos das ocorrências dispensadas hoje, porque o hábito foi criado depois do horário
+    // delas. A meta do dia, para moedas e para o fechamento, é a meta base menos este valor.
+    @Builder.Default
+    @Column(name = "sta_alvo_dispensado_hoje")
+    private Integer alvoDispensadoHoje = 0;
 }

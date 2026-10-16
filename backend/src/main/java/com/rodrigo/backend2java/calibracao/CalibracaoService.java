@@ -83,7 +83,7 @@ public class CalibracaoService {
         final var perguntasRespondidas = new HashSet<String>();
         for (final var resposta : request.respostas()) {
             if (!perguntasRespondidas.add(resposta.pergunta_codigo())) {
-                throw new ValidacaoException("A pergunta " + resposta.pergunta_codigo() + " foi respondida mais de uma vez.");
+                throw new ValidacaoException("calibracao.perguntaRepetida", resposta.pergunta_codigo());
             }
         }
 
@@ -92,6 +92,7 @@ public class CalibracaoService {
                         CalibracaoRequestDTO.RespostaDTO::pergunta_codigo,
                         CalibracaoRequestDTO.RespostaDTO::valor,
                         (primeira, segunda) -> segunda));
+        exigirRespostasDoCatalogo(definicao, respostas);
 
         final var frequenciaSemanal = lerMascaraDeDias(respostas.get(PERGUNTA_DIAS));
         final var diasMarcados = (int) frequenciaSemanal.chars().filter(c -> c == '1').count();
@@ -172,12 +173,12 @@ public class CalibracaoService {
             final String categoriaDoHabito) {
         final var calibracao = calibracaoRepository.findById(calibracaoId)
                 .filter(c -> usuarioId.equals(c.getUsuarioId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Calibração não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("calibracao.naoEncontrada"));
         if (calibracao.getHabitoId() != null && !calibracao.getHabitoId().equals(habitoId)) {
-            throw new RegraDeNegocioException("Esta calibração já foi usada em outro hábito.");
+            throw new RegraDeNegocioException("calibracao.jaUsada");
         }
         if (!calibracao.getCategoria().equals(categoriaDoHabito)) {
-            throw new RegraDeNegocioException("A calibração é de outra categoria de hábito.");
+            throw new RegraDeNegocioException("calibracao.outraCategoria");
         }
         calibracao.setHabitoId(habitoId);
         calibracao.setAceita(true);
@@ -219,6 +220,22 @@ public class CalibracaoService {
         return Math.max(meta, vezesAoDia);
     }
 
+    // Uma resposta só vale se for de uma pergunta do catálogo e, nas perguntas de escolha, uma das
+    // opções. Pergunta sem resposta continua usando o valor padrão, como antes.
+    private void exigirRespostasDoCatalogo(final CategoriaCalibracao definicao, final Map<String, String> respostas) {
+        for (final var entrada : respostas.entrySet()) {
+            final var pergunta = definicao.perguntas().stream()
+                    .filter(p -> p.codigo().equals(entrada.getKey()))
+                    .findFirst()
+                    .orElseThrow(() -> new ValidacaoException("calibracao.respostaInvalida",
+                            entrada.getKey(), entrada.getValue()));
+            if (pergunta.opcoes() != null && !pergunta.opcoes().isEmpty()
+                    && opcaoEscolhida(pergunta, entrada.getValue()) == null) {
+                throw new ValidacaoException("calibracao.respostaInvalida", entrada.getKey(), entrada.getValue());
+            }
+        }
+    }
+
     private OpcaoCalibracao opcaoEscolhida(final PerguntaCalibracao pergunta, final String valor) {
         if (valor == null || pergunta.opcoes() == null) {
             return null;
@@ -236,8 +253,7 @@ public class CalibracaoService {
         }
         final var mascara = valor.trim();
         if (!mascara.matches("^[01]{7}$") || "0000000".equals(mascara)) {
-            throw new ValidacaoException(
-                    "Dias da semana inválidos: use 7 posições de 0/1, com pelo menos um dia marcado");
+            throw new ValidacaoException("calibracao.diasInvalidos");
         }
         return mascara;
     }
@@ -257,10 +273,10 @@ public class CalibracaoService {
         try {
             vezes = Integer.parseInt(valor.trim());
         } catch (final NumberFormatException e) {
-            throw new ValidacaoException("Número de momentos do dia inválido: " + valor);
+            throw new ValidacaoException("calibracao.vezesInvalidas", valor);
         }
         if (vezes < 1 || vezes > maximo) {
-            throw new ValidacaoException("Escolha entre 1 e " + maximo + " momentos no dia");
+            throw new ValidacaoException("calibracao.vezesForaDoLimite", maximo);
         }
         return vezes;
     }
@@ -272,7 +288,7 @@ public class CalibracaoService {
                 try {
                     horarios.add(LocalTime.parse(parte.trim()));
                 } catch (final DateTimeParseException e) {
-                    throw new ValidacaoException("Horário inválido: " + parte.trim());
+                    throw new ValidacaoException("calibracao.horarioInvalido", parte.trim());
                 }
             }
         }

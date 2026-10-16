@@ -8,7 +8,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="stats" />
       <Tabs.Screen name="store" />
       <Tabs.Screen name="profile" />
-      <Tabs.Screen name="create" options={{ href: null }} />
     </Tabs>
   );
 }

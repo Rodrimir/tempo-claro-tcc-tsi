@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotNull;
 
 @Builder
 public record ExecutionRequestDTO(
-        @NotNull(message = "Token de execução é obrigatório") UUID execution_token,
+        @NotNull(message = "{validacao.execucao.token}") UUID execution_token,
 
         String tipo,
 
-        @NotNull(message = "O valor realizado é obrigatório") @Min(value = 0, message = "Valor não pode ser negativo") Integer valor_realizado) {
+        @NotNull(message = "{validacao.execucao.valorObrigatorio}") @Min(value = 0, message = "{validacao.execucao.valorNegativo}") Integer valor_realizado) {
 }

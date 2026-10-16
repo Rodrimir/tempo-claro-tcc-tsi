@@ -1,5 +1,8 @@
 package com.rodrigo.backend2java.stats;
 
+import org.springframework.context.i18n.LocaleContextHolder;
+import com.rodrigo.backend2java.infra.i18n.Mensagens;
+
 import java.util.UUID;
 import java.util.Comparator;
 import java.time.LocalDate;
@@ -23,6 +26,8 @@ public class StatsService {
     private static final int TOTAL_RECORDES = 3;
 
     private static final String[] NOMES_DIA_SEMANA = { "Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb" };
+
+    private static final String[] NOMES_DIA_SEMANA_EN = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
     private final AcessoHabitoService acessoHabitoService;
     private final HistoricoExecucaoRepository historicoExecucaoRepository;
@@ -52,6 +57,29 @@ public class StatsService {
                 .agregarDesistenciasPorDia(habitoId, inicio, hoje).stream()
                 .collect(Collectors.toMap(HistoricoExecucaoRepository.AgregadoDiario::getData, agregado -> agregado));
 
+        final var diasComDispensa = new java.util.HashSet<>(
+                historicoExecucaoRepository.listarDiasComDispensa(habitoId, inicio, hoje));
+
+        // A constância conta a partir do primeiro dia do hábito. Um histórico anterior à criação só
+        // existe em dados montados à mão, e nesse caso o primeiro registro vale como começo.
+        final var zona = ZonaUsuario.resolver(acesso.dono());
+        var inicioDoHabito = habito.getCriadoEm() == null
+                ? inicio
+                : habito.getCriadoEm().atZoneSameInstant(zona).toLocalDate();
+        for (final var data : agregadosPorData.keySet()) {
+            if (data.isBefore(inicioDoHabito)) {
+                inicioDoHabito = data;
+            }
+        }
+        for (final var data : parciaisPorData.keySet()) {
+            if (data.isBefore(inicioDoHabito)) {
+                inicioDoHabito = data;
+            }
+        }
+        final var nomes = Mensagens.EN.getLanguage().equals(LocaleContextHolder.getLocale().getLanguage())
+                ? NOMES_DIA_SEMANA_EN
+                : NOMES_DIA_SEMANA;
+
         final var dias = new ArrayList<DiaStatsDTO>(diasJanela);
         var diasComMetaCumprida = 0;
         var diasProgramados = 0;
@@ -70,22 +98,26 @@ public class StatsService {
             final var metaCumprida = temCompleto && valor >= metaDoDia;
 
             final var diaProgramado = FrequenciaSemanal.ehDiaProgramado(habito.getFrequenciaSemanal(), data);
-            if (diaProgramado) {
+            final var antesDaCriacao = data.isBefore(inicioDoHabito);
+            final var dispensado = diasComDispensa.contains(data) && !temCompleto;
+            if (diaProgramado && !antesDaCriacao && !dispensado) {
                 diasProgramados++;
             }
 
-            if (metaCumprida && diaProgramado) {
+            if (metaCumprida && diaProgramado && !antesDaCriacao) {
                 diasComMetaCumprida++;
             }
 
             dias.add(DiaStatsDTO.builder()
                     .data(data)
-                    .nome(NOMES_DIA_SEMANA[data.getDayOfWeek().getValue() % 7])
+                    .nome(nomes[data.getDayOfWeek().getValue() % 7])
                     .valor_realizado(valor)
                     .execucoes(execucoes)
                     .meta_cumprida(metaCumprida)
                     .parcial(!temCompleto && parcial != null)
                     .dia_programado(diaProgramado)
+                    .antes_da_criacao(antesDaCriacao)
+                    .dispensado(dispensado)
                     .build());
         }
 

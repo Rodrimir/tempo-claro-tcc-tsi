@@ -3,7 +3,8 @@ import { AppState } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { saveExecutionState, loadExecutionState, clearExecutionState, isWithinTolerance } from '@/utils/storage';
 
-export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true) => {
+// aoReiniciar: chamado quando a pessoa volta depois do limite de tolerância e o cronômetro recomeça.
+export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true, aoReiniciar) => {
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isActive, setIsActive] = useState(false);
   const [isOverachieving, setIsOverachieving] = useState(false);
@@ -15,6 +16,15 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
   const deadlineRef = useRef(deadlineInicial);
   const stateRef = useRef({ isOverachieving: false });
   const executionTokenRef = useRef(executionToken);
+  // Momento em que uma pausa explícita (o diálogo de parar aberto) começou. Ao retomar, o prazo
+  // anda o mesmo tanto, para o tempo pensando no diálogo não contar. Em segundo plano o relógio
+  // continua correndo (RNF04: a execução continua de onde estava).
+  const congeladoEmRef = useRef(null);
+  const aoReiniciarRef = useRef(aoReiniciar);
+
+  useEffect(() => {
+    aoReiniciarRef.current = aoReiniciar;
+  }, [aoReiniciar]);
 
   useEffect(() => {
     executionTokenRef.current = executionToken;
@@ -45,10 +55,11 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     }
   }, []);
 
-  const pause = useCallback(async () => {
+  const pause = useCallback(async ({ congelar = false } = {}) => {
     if (!isTimer) return;
     setIsActive(false);
     clearTimer();
+    if (congelar && congeladoEmRef.current == null) congeladoEmRef.current = Date.now();
     await saveExecutionState(habitId, executionTokenRef.current, { deadline: deadlineRef.current }, Date.now());
   }, [habitId, isTimer]);
 
@@ -58,14 +69,24 @@ export const useTimer = (initialSeconds, habitId, executionToken, isTimer = true
     if (savedState) {
       const dentroDaTolerancia = await isWithinTolerance(savedState.startedAt);
       if (!dentroDaTolerancia) {
+        // Passou do limite fora do app: o cronômetro recomeça do zero, em vez de ficar parado.
         await clearExecutionState(habitId);
+        congeladoEmRef.current = null;
+        deadlineRef.current = Date.now() + initialSeconds * 1000;
+        recompute();
+        setIsActive(true);
+        aoReiniciarRef.current?.();
         return;
       }
       deadlineRef.current = savedState.elapsed.deadline;
-      recompute();
     }
+    if (congeladoEmRef.current != null) {
+      deadlineRef.current += Date.now() - congeladoEmRef.current;
+      congeladoEmRef.current = null;
+    }
+    recompute();
     setIsActive(true);
-  }, [habitId, isTimer, recompute]);
+  }, [habitId, isTimer, initialSeconds, recompute]);
 
   useEffect(() => {
     if (!isTimer) return;

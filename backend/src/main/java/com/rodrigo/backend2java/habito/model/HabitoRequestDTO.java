@@ -12,24 +12,24 @@ import jakarta.validation.constraints.NotNull;
 
 @Builder
 public record HabitoRequestDTO(
-        @NotBlank(message = "O título é obrigatório") @Size(max = 60, message = "O título pode ter no máximo 60 caracteres") String titulo,
+        @NotBlank(message = "{validacao.titulo.obrigatorio}") @Size(max = 60, message = "{validacao.titulo.tamanho}") String titulo,
 
         String categoria,
 
-        @NotNull(message = "A meta base é obrigatória") @Min(value = 1, message = "A meta base deve ser maior que zero") Integer meta_base,
+        @NotNull(message = "{validacao.metaBase.obrigatoria}") @Min(value = 1, message = "{validacao.metaBase.minima}") Integer meta_base,
 
-        @NotBlank(message = "O tipo de medida é obrigatório") String tipo_medida,
+        @NotBlank(message = "{validacao.tipoMedida.obrigatorio}") String tipo_medida,
 
-        @Min(value = 1, message = "Vezes ao dia deve ser pelo menos 1") @Max(value = 12, message = "Vezes ao dia não pode passar de 12") Integer meta_frequencia_diaria,
+        @Min(value = 1, message = "{validacao.vezesAoDia.minimo}") @Max(value = 12, message = "{validacao.vezesAoDia.maximo}") Integer meta_frequencia_diaria,
 
-        @Size(max = 120, message = "O gatilho pode ter no máximo 120 caracteres") String gatilho_ancora,
+        @Size(max = 120, message = "{validacao.gatilho.tamanho}") String gatilho_ancora,
         LocalTime horario_agendado,
 
         Integer meta_maxima,
-        @Min(value = 0, message = "O incremento não pode ser negativo") Integer incremento,
-        @Min(value = 1, message = "O incremento deve se repetir a cada 1 dia ou mais") Integer dias_incremento,
+        @Min(value = 0, message = "{validacao.incremento.negativo}") Integer incremento,
+        @Min(value = 1, message = "{validacao.diasIncremento.minimo}") Integer dias_incremento,
 
-        @Pattern(regexp = "^[01]{7}$", message = "A frequência semanal deve ter 7 dígitos, cada um 0 ou 1") String frequencia_semanal,
+        @Pattern(regexp = "^[01]{7}$", message = "{validacao.frequencia.formato}") String frequencia_semanal,
 
         List<OcorrenciaRequestDTO> ocorrencias,
 

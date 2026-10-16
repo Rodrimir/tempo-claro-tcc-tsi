@@ -255,7 +255,7 @@ pg_ctl -D $PGDATA -l /tmp/pg.log \
   -o "-p 5433 -c unix_socket_directories='' -c listen_addresses=localhost" start
 psql -h 127.0.0.1 -p 5433 -U postgres -c "CREATE DATABASE backend_db_teste;"
 
-cd backend && ./mvnw test                # 171 testes
+cd backend && ./mvnw test                # 238 testes
 
 pg_ctl -D $PGDATA stop -m fast           # ao terminar
 ```
@@ -267,9 +267,25 @@ substituído, nos testes, por uma implementação falsa que expõe o último có
 há como cadastrar pela API, porque `AuthService.cadastrar` é transacional e desfaz o cadastro
 quando o envio do e-mail falha.
 
-Os relatórios saem em `backend/target/surefire-reports/`. Dos 171, 144 são os da campanha de
-06/10/2026; os outros 27 vieram com a correção dos defeitos, em
-`CorrecaoDefeitosIntegracaoTest` e `UsuarioServiceUsuarioAusenteTest`.
+Os relatórios saem em `backend/target/surefire-reports/`. Dos 238, 144 são os da campanha de
+06/10/2026; 27 vieram com a correção dos defeitos, em `CorrecaoDefeitosIntegracaoTest` e
+`UsuarioServiceUsuarioAusenteTest`; e 67 cobrem as regras de 16/10/2026, no pacote `regras`
+(fuso adiado, dia retroativo, edição adiada, liberação da tarefa, exclusão de conta, mensagens em
+inglês, preferências e guia). As regras que dependem da hora do dia ficam desligadas no perfil de
+teste (`app.regras.horario-do-dia=false`) e são ligadas, com relógio fixo, só nas classes que as
+testam; em produção valem sempre.
+
+### Testes do app
+
+```sh
+cd frontend
+npm test                 # 37 testes de unidade (jest-expo)
+npm run i18n:check       # mesmas chaves em pt e en, nenhum texto fixo no JSX
+npx expo lint            # sem erros nem avisos
+```
+
+O roteiro de ponta a ponta da API, com 117 casos, fica em `docs/campanha-v1.1/e2e_api.py` (pasta
+local, fora do git), com as instruções de uso no cabeçalho.
 
 ### Gerando o APK
 
@@ -402,7 +418,27 @@ cadastro. Devolve token em caso de sucesso, de modo que a redefinição já abre
 ### `GET /api/me`
 
 Token. Sem corpo. Devolve nome, e-mail, idioma, tema e fuso horário do usuário do token, e de
-nenhum outro.
+nenhum outro, mais as preferências `notificacoes_ativas` e `som_ativo`, o indicador
+`onboarding_concluido` e, quando há troca de fuso agendada, `fuso_pendente` e `fuso_vigente_em`.
+`fuso_horario` é sempre o fuso em vigor.
+
+### `DELETE /api/me`
+
+Token. Corpo `{"confirmacao": "excluir!"}` (ou `"delete!"`). Qualquer outra palavra responde 400.
+Apaga a conta e, pelo `ON DELETE CASCADE`, hábitos, sub-atividades, status, histórico, calibrações
+e dispositivos; os códigos de verificação do e-mail saem junto. O token antigo passa a responder 403.
+
+### `POST /api/me/onboarding/preferencias` e `POST /api/me/onboarding/concluir`
+
+Token. A primeira recebe `preferencia_idioma` e `fuso_horario` (passos 1 e 2 do guia de primeiro
+acesso): o idioma vale na hora, e o fuso também se a conta ainda não tem hábito ativo; com hábito,
+segue a troca adiada do perfil. A segunda grava `usu_onboarding_concluido_em`; repetir não muda a
+data. As duas devolvem o mesmo corpo do `GET /api/me`.
+
+### `GET /api/health`
+
+Pública. Responde 200 com `{"status":"ok"}` sem tocar no banco. Serve de health check do Render e
+de alvo do ping de keep-alive.
 
 ### `PUT /api/profile`
 
@@ -411,11 +447,13 @@ Token. Todos os campos são opcionais, e só os enviados são alterados.
 | Campo | Tipo | Observação |
 | --- | --- | --- |
 | `nome` | string | — |
-| `fuso_horario` | string | Precisa ser um identificador de fuso válido |
+| `fuso_horario` | string | Um dos fusos do Brasil ou da América do Norte (`FusosSuportados`). Só vale a partir da meia-noite seguinte no fuso em vigor; escolher o fuso em vigor cancela a troca pendente |
 | `tema` | string | Restrito pela checagem da coluna `usu_tema` |
 | `preferencia_idioma` | string | `"pt-BR"` ou `"en-US"`; valor fora da lista é recusado aqui, diferente do cadastro, onde cai no padrão |
 | `senha_atual` | string | Exigido quando `nova_senha` vem preenchido |
 | `nova_senha` | string | Passa pelo `SenhaValidator` |
+| `notificacoes_ativas` | boolean | Lembretes ligados ou desligados |
+| `som_ativo` | boolean | Sons dos efeitos ligados ou desligados |
 
 | Status | Quando ocorre |
 | --- | --- |
@@ -424,12 +462,14 @@ Token. Todos os campos são opcionais, e só os enviados são alterados.
 | 422 | `senha_atual` incorreta |
 
 Não há campo de e-mail: o DTO não o aceita, de modo que a troca de endereço não é oferecida nem
-possível. Também não existe rota de exclusão de conta.
+possível. Nome em branco responde 400.
 
 ### `GET /api/dashboard`
 
 Token. Devolve os hábitos ativos do usuário com o status calculado para o dia, o saldo de moedas, a
-ofensiva e o limite de hábitos ativos. Hábitos excluídos não aparecem.
+ofensiva e o limite de hábitos ativos. Hábitos excluídos não aparecem. Cada ocorrência traz
+`dispensada` (o hábito foi criado depois do horário dela: conta como feita hoje, sem moeda), e o
+hábito traz `alteracao_pendente` quando há uma edição esperando o dia seguinte.
 
 ### `POST /api/habits`
 
@@ -456,8 +496,11 @@ Token. É o contrato mais extenso da API.
 
 ### `PUT /api/habits/{id}`
 
-Token. Mesmo corpo da criação. Recria as sub-atividades conforme a nova configuração, preservando o
-histórico de execuções.
+Token. Mesmo corpo da criação. Título e gatilho-âncora mudam na hora. O resto da configuração (meta,
+progressão, teto, dias da semana, vezes ao dia e horários) é validado agora e guardado em
+`habitos_config_pendente`; vale a partir do dia seguinte no fuso do usuário, quando a apuração fecha
+o dia antigo com a configuração antiga e então recria as sub-atividades, preservando o histórico.
+Uma nova edição substitui a pendente, e voltar à configuração em vigor a cancela.
 
 ### `DELETE /api/habits/{id}`
 
@@ -495,8 +538,9 @@ insuficiente.
 
 Token. Parâmetro `habitoId`. Desempenho diário, os três maiores recordes e a constância, numa janela
 de trinta dias na rota mensal e de sete dias na semanal. A constância conta só os dias cobrados pela
-frequência semanal, no numerador e no denominador, e por isso nunca passa de 100%. Hábito excluído
-responde 404.
+frequência semanal, no numerador e no denominador, e por isso nunca passa de 100%. Desde
+16/10/2026 a contagem começa no dia da criação do hábito, e o dia todo dispensado fica de fora;
+cada dia traz `antes_da_criacao` e `dispensado`. Hábito excluído responde 404.
 
 ### `GET /api/calibration/questions`
 
@@ -974,6 +1018,10 @@ tabela `dispositivos_push` (B19), porque o push remoto é trabalho futuro na se�
 | Remetente do Resend | O domínio verificado no Resend é `monzai.com.br` (o DKIM está em `resend._domainkey.monzai.com.br`; `send.monzai.com.br` é só o subdomínio de retorno). Definir `RESEND_FROM_EMAIL="Tempo Claro <verificacao@monzai.com.br>"` no Render. Em 16/10/2026 esse remetente entregou para dois endereços, um deles fora da conta do Resend |
 
 ### O que o sistema não faz
+
+A campanha de 16/10/2026 (`docs/campanha-v1.1/CAMPANHA_E_CORRECOES.md`) levantou mais treze achados,
+C01 a C13, todos corrigidos na v1.2.0; o principal era a barra inferior por cima do formulário de
+criação, que fazia o toque em "Revisar" cair no botão de começar.
 
 Encerrar sessão no servidor, renovar token, revogar token e distinguir perfis de acesso não existem
 no código. A sessão termina pela expiração do token, e o cliente apenas descarta as credenciais

@@ -137,6 +137,8 @@ export default {
     boasVindasTitulo: "Bem-vindo ao Tempo Claro",
     boasVindasTexto:
       "Diferente de uma lista de tarefas cheia, aqui você foca em no máximo {limite} hábito{plural} por vez — sem dispersão, sem sobrecarga. Crie o primeiro pra começar.",
+    dispensadoHoje: "Hoje já conta como feito: o horário tinha passado quando você criou o hábito.",
+    alteracaoPendente: "Mudanças de meta e horário valem a partir de amanhã.",
   },
 
   preTask: {
@@ -149,15 +151,16 @@ export default {
   execucao: {
     concluirTarefa: "CONCLUIR TAREFA",
     focandoEm: "Focando em",
-    desistir: "Desistir",
     erroConclusao: "Erro ao registrar conclusão. Tente novamente.",
-    erroDesistencia: "Erro ao registrar desistência. Tente novamente.",
     jaRegistrada: "Sua execução já tinha sido registrada. Confira o resultado na tela inicial.",
     diminuir: "Diminuir {passo}",
     aumentar: "Aumentar {passo}",
     aumentarDica: "Segure para aumentar mais rápido.",
     retomandoExecucao: "Retomando sua execução",
     deHoje: "{feito} de {total} hoje",
+    desistir: "Parar",
+    erroDesistencia: "Erro ao registrar a pausa. Tente novamente.",
+    cronometroReiniciado: "Você ficou mais de uma hora fora. O cronômetro recomeçou.",
   },
 
   sucesso: {
@@ -177,11 +180,10 @@ export default {
     protegido: "Protegido!",
     protegidoTexto: "Acúmulos protegidos! Sua ofensiva foi salva pelo Escudo.",
     suasMoedas: "🪙 Suas moedas:",
-    tempoEsgotado: "Tempo Esgotado",
-    tempoEsgotadoTexto:
-      "Você demorou muito para retomar. A ofensiva foi perdida.",
-    ofensivaPerdida: "Ofensiva Perdida",
-    ofensivaPerdidaTexto: "Está tudo bem. O importante é recomeçar amanhã.",
+    tempoEsgotado: "Pausa registrada",
+    tempoEsgotadoTexto: "O que você fez até aqui ficou guardado. Se der, volte mais tarde: o dia só fecha à meia-noite.",
+    ofensivaPerdida: "Tudo bem por hoje",
+    ofensivaPerdidaTexto: "Amanhã tem outro começo.",
   },
 
   stats: {
@@ -200,10 +202,37 @@ export default {
     diasSeguidos: "Dias Seguidos",
     melhorDia: "Melhor Dia",
     constancia: "Constância do Mês",
-    constanciaSub: "{feitos} de {total} dias cobrados com a meta cumprida",
     recordes: "Seus Recordes do Mês",
-    desempenho: "Desempenho (Últimos {dias} dias)",
     legendaParcial: "Barras em laranja são tentativas parciais (desistência)",
+    diasSeguidosSub: "dias seguidos cumprindo a meta",
+    melhorDiaSub: "em {data}",
+    melhorDiaVazio: "ainda sem recorde",
+    constanciaPeriodo: "Constância ({n} dias)",
+    constanciaSub: "{feitos} de {total} dias programados com a meta cumprida",
+    recordesPeriodo: "Seus recordes ({n} dias)",
+    desempenho: "Desempenho (últimos {dias} dias)",
+    periodoDias: "{n} dias",
+    hoje: "Hoje",
+    feitoDe: "{feito} de {meta}",
+    metaLinha: "Meta {meta}",
+    legendaCumprida: "Meta cumprida",
+    legendaParcialCurta: "Parcial",
+    legendaSemExecucao: "Sem execução ou folga",
+    legendaMeta: "Sua meta",
+    comoLer: "Cada barra é um dia: quanto mais alta, mais você fez. A linha tracejada é a sua meta. Toque numa barra para ver o dia.",
+    estado: {
+      cumprida: "meta cumprida",
+      parcial: "parcial",
+      semExecucao: "sem execução",
+      folga: "dia de folga",
+      antes: "antes de o hábito existir",
+      dispensado: "concluído sem execução (o horário já tinha passado)",
+    },
+    ordinal: {
+      "1": "1º",
+      "2": "2º",
+      "3": "3º",
+    },
   },
 
   loja: {
@@ -227,7 +256,6 @@ export default {
   },
 
   perfil: {
-    grupoFuso: { brasil: "Brasil", outros: "Outros" },
     preferencias: "Preferências do App",
     seusDados: "Seus Dados",
     salvando: "Salvando...",
@@ -269,6 +297,27 @@ export default {
     sairConfirmacao:
       "Você vai precisar entrar de novo com e-mail e senha. Seus hábitos continuam salvos.",
     sairConfirmar: "Sair",
+    grupoFuso: {
+      brasil: "Brasil",
+      americaDoNorte: "América do Norte",
+    },
+    lembretes: "Lembretes",
+    lembretesLigadosLabel: "Lembretes ligados",
+    lembretesDesligadosLabel: "Lembretes desligados",
+    lembretesSemPermissao: "Permita as notificações do Tempo Claro nas configurações do Android para receber lembretes.",
+    fusoAgendado: "Pronto! O novo fuso vale a partir da próxima meia-noite.",
+    fusoPendente: "Muda para {fuso} em {quando}",
+    fusoExplicacao: "A troca vale a partir da próxima meia-noite, para o dia de hoje terminar no fuso em que começou.",
+    palavraExcluir: "excluir!",
+    excluirConta: "Excluir conta",
+    excluirContaSub: "Apaga a conta e todos os hábitos",
+    excluirContaTitulo: "Excluir a conta?",
+    excluirContaTexto: "Isso apaga para sempre sua conta, seus hábitos, o histórico, as moedas e os escudos. Não dá para desfazer.",
+    excluirContaDigite: "Para confirmar, digite {palavra}",
+    excluirContaConfirmar: "Excluir para sempre",
+    excluindoConta: "Excluindo...",
+    contaExcluida: "Sua conta foi excluída.",
+    erroExcluirConta: "Não foi possível excluir a conta. Tente novamente.",
   },
 
   criar: {
@@ -344,6 +393,7 @@ export default {
       EXERCICIO: { titulo: "Halterzinho", desc: "Disciplina física." },
       RESERVADO: { titulo: "Em breve", desc: "Funcionalidade futura." },
     },
+    atualizadoAmanha: "Hábito salvo! As mudanças de meta e horário valem a partir de amanhã.",
   },
 
   calibracao: {
@@ -377,11 +427,12 @@ export default {
   },
 
   desistir: {
-    temCerteza: "Tem certeza?",
-    afetaConsistencia: "Isso afetará sua consistência diária.",
-    voltarContinuar: "Voltar e Continuar",
-    assumirFalha: "Assumir Falha",
-    usarEscudo: "🛡️ Usar Escudo ({n})",
+
+    temCerteza: "Quer parar por agora?",
+    afetaConsistencia: "Tudo bem. O que você fez fica registrado, e dá para voltar hoje mesmo.",
+    voltarContinuar: "Continuar",
+    assumirFalha: "Parar por agora",
+    usarEscudo: "🛡️ Parar e proteger a ofensiva ({n})",
   },
 
   timer: {
@@ -393,6 +444,13 @@ export default {
     jaConcluida: "Esta tarefa já foi concluída hoje!",
     tarefaConcluida: "Tarefa Concluída",
     comecarFocado: "Começar Hábito Focado",
+    criar: "Criar",
+    comecar: "Começar",
+    feito: "Feito",
+    criarDescricao: "Criar um hábito",
+    comecarDescricao: "Começar a tarefa de {titulo}",
+    aguardandoDescricao: "A tarefa de {titulo} abre às {hora}",
+    feitoDescricao: "{titulo} já foi feito hoje",
   },
 
   notificacao: {
@@ -400,6 +458,35 @@ export default {
     faltam15:
       "Faltam 15 minutos para fazermos a atividade, não esqueça de mim!!",
     naHora: "Está na hora de fazer {atividade}",
+  },
+
+  guia: {
+    proximo: "Próximo",
+    entendi: "Entendi",
+    toqueNoBotao: "Toque no botão destacado",
+    erroConcluir: "Não foi possível concluir o guia. Tente de novo.",
+    perguntaIdioma: "Oi! Eu vou te mostrar o Tempo Claro rapidinho. Primeiro: em qual idioma você prefere?",
+    perguntaFuso: "Agora confirme seu fuso horário. É ele que decide a hora em que o seu dia vira.",
+    fusoSugerido: "Sugerido",
+    doAparelho: "do aparelho",
+    confirmarFuso: "Confirmar e continuar",
+    salvando: "Salvando...",
+    erroPreferencias: "Não foi possível salvar. Verifique a conexão e tente de novo.",
+    passoDe: "Passo {atual} de {total}",
+    passos: {
+      boasVindas: "Pronto! Agora um tour de menos de um minuto pelo app.",
+      inicio: "Aqui ficam seus hábitos. Deslize para o lado para trocar de hábito.",
+      dados: "Aqui você vê como está indo, dia a dia.",
+      central: "Quando chegar a hora, toque aqui para fazer a tarefa. O rótulo embaixo mostra o que ele faz agora.",
+      loja: "Na loja você troca moedas por escudos.",
+      perfil: "Idioma, tema, fuso, som e lembretes ficam aqui.",
+      ofensiva: "Esta é a sua ofensiva: os dias seguidos cumprindo a meta. Se um dia passar sem a meta, ela zera.",
+      moedas: "Cumpriu a meta, ganhou 100 moedas. Passou de 120%, ganha 150. De 150%, 200.",
+      escudos: "Um escudo custa 400 moedas e protege a sua ofensiva num dia difícil.",
+      grafico: "Na tela de Dados, cada barra é um dia. Verde é meta cumprida, laranja é parcial, e a linha tracejada é a sua meta.",
+      final: "Agora é com você: toque aqui e crie seu primeiro hábito.",
+      finalComHabitos: "Seus hábitos já estão aqui. É só tocar em Começar na hora certa.",
+    },
   },
 
   diasSemanaCurto: ["D", "S", "T", "Q", "Q", "S", "S"],

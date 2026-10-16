@@ -57,7 +57,8 @@ const Calibration = () => {
   const { addToast } = useToast();
   const { t } = useI18n();
   const { tocar } = useSfx();
-  const { categoria } = useLocalSearchParams();
+  const { categoria, guia } = useLocalSearchParams();
+  const doGuia = guia === '1' ? { guia: '1' } : {};
 
   const [questionario, setQuestionario] = useState(null);
   const [indice, setIndice] = useState(0);
@@ -82,7 +83,7 @@ const Calibration = () => {
     return () => {
       ativo = false;
     };
-  }, [categoria, addToast, router]);
+  }, [categoria, addToast, router, t]);
 
   const perguntas = questionario?.perguntas ?? [];
   const pergunta = perguntas[indice];
@@ -123,7 +124,7 @@ const Calibration = () => {
       enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [categoria, respostas, addToast]);
+  }, [categoria, respostas, addToast, t]);
 
   const vezesAoDia = Number(respostas.VEZES_AO_DIA || 1);
 
@@ -238,9 +239,11 @@ const Calibration = () => {
             accessibilityRole="button"
             onPress={() => {
               tocar('continuar');
-              router.replace({
+              // Volta para o formulário que abriu a calibração, em vez de empilhar outro.
+              router.dismissTo({
                 pathname: '/create',
                 params: {
+                  ...doGuia,
                   categoria,
                   sugestao: JSON.stringify({ ...s, calibracao_id: sugestao.calibracao_id }),
                 },
@@ -253,7 +256,7 @@ const Calibration = () => {
             accessibilityRole="button"
             onPress={() => {
               tocar('tap');
-              router.replace({ pathname: '/create', params: { categoria } });
+              router.dismissTo({ pathname: '/create', params: { ...doGuia, categoria } });
             }}
           >
             <SecondaryButtonText>{t('calibracao.ajustarManual')}</SecondaryButtonText>

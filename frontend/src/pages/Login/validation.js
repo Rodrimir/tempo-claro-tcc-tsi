@@ -14,8 +14,12 @@ export const RE_ESPECIAL = /[^A-Za-z0-9]/;
 
 export const criarLoginSchema = (t) =>
   yup.object({
+    // Sem espaços nas pontas e em minúsculas, como o servidor guarda: o autocompletar do teclado
+    // costuma deixar um espaço no fim, e a primeira letra maiúscula.
     email: yup
       .string()
+      .trim()
+      .lowercase()
       .email(t('validacao.emailInvalido'))
       .required(t('validacao.campoObrigatorio')),
     senha: yup.string().required(t('validacao.campoObrigatorio')),
@@ -38,6 +42,8 @@ export const criarRegisterSchema = (t) =>
       .max(TAMANHO_MAXIMO_NOME, t('validacao.nomeMuitoLongo', { maximo: TAMANHO_MAXIMO_NOME })),
     email: yup
       .string()
+      .trim()
+      .lowercase()
       .email(t('validacao.emailInvalido'))
       .required(t('validacao.preenchaTudo')),
     // @audit-info - 2.1 (Cadastro) [outcome: fixed] senha não tinha .max(): uma senha maior que

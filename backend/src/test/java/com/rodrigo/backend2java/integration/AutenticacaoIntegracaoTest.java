@@ -121,6 +121,6 @@ class AutenticacaoIntegracaoTest extends BaseAPIIntegracaoTest {
                 MessageResponseDTO.class);
 
         assertEquals(HttpStatus.UNAUTHORIZED, resposta.getStatusCode());
-        assertEquals("Erro credenciais invalidas!", resposta.getBody().message());
+        assertEquals("E-mail ou senha incorretos.", resposta.getBody().message());
     }
 }

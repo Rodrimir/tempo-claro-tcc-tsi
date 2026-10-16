@@ -42,13 +42,16 @@ class UsuarioIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         final var depois = usuarioRepository.findById(idUsuarioTeste).orElseThrow();
         assertEquals("Nome Editado", depois.getNome());
-        assertEquals("America/Bahia", depois.getFusoHorario());
+        // Desde 16/10/2026 a troca de fuso só vale na meia-noite seguinte do fuso de antes.
+        assertEquals("America/Sao_Paulo", depois.getFusoHorario());
+        assertEquals("America/Bahia", depois.getFusoPendente());
         assertEquals("escuro", depois.getTema());
         assertEquals(antes.getSenhaHash(), depois.getSenhaHash());
 
         final var me = get("/api/me", UsuarioResponseDTO.class).getBody();
         assertEquals("Nome Editado", me.nome());
-        assertEquals("America/Bahia", me.fuso_horario());
+        assertEquals("America/Sao_Paulo", me.fuso_horario());
+        assertEquals("America/Bahia", me.fuso_pendente());
         assertEquals("escuro", me.tema());
     }
 

@@ -3,6 +3,7 @@ import { Pressable } from 'react-native';
 import { fonts } from '@/styles/fonts';
 
 export const Container = styled.ScrollView.attrs((props) => ({
+  keyboardShouldPersistTaps: 'handled',
   contentContainerStyle: { padding: 24, paddingTop: 24 + (props.$insetTop || 0), paddingBottom: 100, gap: 24 },
 }))`
   flex: 1;

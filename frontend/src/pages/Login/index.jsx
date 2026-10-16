@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Feather } from '@expo/vector-icons';
 import { PasswordInput } from '@/components/common/PasswordInput';
@@ -87,15 +87,14 @@ const Login = () => {
   const {
     control,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(isLoginTab ? loginSchema : registerSchema),
     defaultValues: { nome: '', email: '', senha: '', confirmarSenha: '' },
   });
 
-  const senhaDigitada = watch('senha');
-  const confirmacaoDigitada = watch('confirmarSenha');
+  const senhaDigitada = useWatch({ control, name: 'senha' });
+  const confirmacaoDigitada = useWatch({ control, name: 'confirmarSenha' });
   const tamanhoOk = (senhaDigitada || '').length >= TAMANHO_MINIMO_SENHA;
   const maiusculaOk = RE_MAIUSCULA.test(senhaDigitada || '');
   const especialOk = RE_ESPECIAL.test(senhaDigitada || '');
@@ -110,7 +109,7 @@ const Login = () => {
       ),
       -1
     );
-  }, []);
+  }, [flutuar]);
   const estiloFlutuar = useAnimatedStyle(() => ({
     transform: [{ translateY: flutuar.value }],
   }));

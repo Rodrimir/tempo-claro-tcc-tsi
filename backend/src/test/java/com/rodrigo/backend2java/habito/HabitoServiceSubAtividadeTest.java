@@ -42,13 +42,15 @@ class HabitoServiceSubAtividadeTest {
     private HistoricoExecucaoRepository historicoExecucaoRepository;
     @Mock
     private ApuracaoService apuracaoService;
+    @Mock
+    private ConfigPendenteRepository configPendenteRepository;
 
     private final GeradorDeOcorrencias gerador = new GeradorDeOcorrencias();
 
     private HabitoService novoHabitoService() {
         return new HabitoService(habitoRepository, statusHabitoRepository, subAtividadeRepository,
                 proximoVencimentoService, acessoHabitoService, calibracaoService, historicoExecucaoRepository,
-                gerador, apuracaoService);
+                gerador, apuracaoService, configPendenteRepository, java.time.Clock.systemUTC(), false);
     }
 
     @Test

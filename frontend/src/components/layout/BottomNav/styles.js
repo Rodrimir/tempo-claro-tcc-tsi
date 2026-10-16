@@ -11,15 +11,23 @@ export const NavContainer = styled.View`
   padding-top: 12px;
 `;
 
+// O botão fica 16 px acima da barra; o rótulo embaixo diz o que ele faz agora.
 export const PlayButtonWrapper = styled.View`
-  transform: translateY(-16px);
+  align-items: center;
+  margin-top: -16px;
+  gap: 2px;
+`;
+
+export const PlayLabel = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 12px;
+  max-width: 80px;
 `;
 
 export const PlayButton = styled(Pressable)`
   width: 56px;
   height: 56px;
   border-radius: 28px;
-  background-color: ${(props) => (props.$completed ? props.theme.successStrong : props.theme.primaryStrong)};
   align-items: center;
   justify-content: center;
   elevation: 6;

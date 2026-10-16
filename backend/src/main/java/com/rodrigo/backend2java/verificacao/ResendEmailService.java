@@ -73,12 +73,10 @@ public class ResendEmailService implements EmailService {
         } catch (RestClientResponseException recusaDoResend) {
             log.error("Resend recusou o envio ({}): {}", recusaDoResend.getStatusCode().value(),
                     recusaDoResend.getResponseBodyAsString());
-            throw new RegraDeNegocioException(
-                    "Não foi possível enviar o e-mail de verificação agora. Tente novamente em instantes.");
+            throw new RegraDeNegocioException("email.falhaEnvio");
         } catch (RestClientException falhaNoEnvio) {
             log.error("Falha de comunicação com o Resend: {}", falhaNoEnvio.getMessage());
-            throw new RegraDeNegocioException(
-                    "Não foi possível enviar o e-mail de verificação agora. Tente novamente em instantes.");
+            throw new RegraDeNegocioException("email.falhaEnvio");
         }
     }
 

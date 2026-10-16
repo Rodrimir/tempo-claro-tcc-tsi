@@ -37,7 +37,7 @@ const PreTask = () => {
       .catch(() => {
         setText(t('preTask.fraseFallback'));
       });
-  }, [currentHabit]);
+  }, [currentHabit, router, t]);
 
   if (!currentHabit) {
     return null;

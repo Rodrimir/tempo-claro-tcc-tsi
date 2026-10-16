@@ -29,6 +29,9 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
     @Autowired
     private HistoricoExecucaoRepository historicoExecucaoRepository;
 
+    @Autowired
+    private com.rodrigo.backend2java.habito.HabitoRepository habitoRepository;
+
     private UUID criarHabito() {
         final var request = HabitoRequestDTO.builder()
                 .titulo("Hábito de stats")
@@ -141,6 +144,10 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
                 .frequencia_semanal("0111110")
                 .build();
         final var habitoId = post("/api/habits", request, HabitoResponseDTO.class).getBody().id();
+        // Desde 16/10/2026 a constância conta a partir da criação: o hábito passa a existir há 40 dias.
+        final var habito = habitoRepository.findById(habitoId).orElseThrow();
+        habito.setCriadoEm(habito.getCriadoEm().minusDays(40));
+        habitoRepository.save(habito);
 
         final var resposta = get("/api/stats/monthly?habitoId=" + habitoId, StatsResponseDTO.class).getBody();
 

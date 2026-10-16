@@ -7,5 +7,7 @@ public record ProfileUpdateDTO(
         String tema,
         String preferencia_idioma,
         String senha_atual,
-        String nova_senha) {
+        String nova_senha,
+        Boolean notificacoes_ativas,
+        Boolean som_ativo) {
 }

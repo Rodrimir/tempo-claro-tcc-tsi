@@ -8,6 +8,9 @@ import {
   resetPassword as apiResetPassword,
   getMe,
   setUnauthorizedHandler,
+  liberarAvisoDeSessao,
+  excluirConta as apiExcluirConta,
+  concluirOnboarding as apiConcluirOnboarding,
 } from '@/services/api';
 import { cancelarTodas } from '@/services/notificacoes';
 import { definirFusoDoUsuario } from '@/utils/fuso';
@@ -20,7 +23,25 @@ import {
   setUserProfile,
   getUserProfile,
   clearUserProfile,
+  limparEstadoDeExecucao,
 } from '@/utils/storage';
+
+// O /me usa "nome" e o login usa "name"; o app guarda tudo no formato do login.
+export function perfilDoServidor(perfil, salvo) {
+  return {
+    ...(salvo || {}),
+    name: perfil.nome ?? perfil.name ?? salvo?.name,
+    email: perfil.email ?? salvo?.email,
+    fuso_horario: perfil.fuso_horario ?? salvo?.fuso_horario,
+    fuso_pendente: perfil.fuso_pendente ?? null,
+    fuso_vigente_em: perfil.fuso_vigente_em ?? null,
+    tema: perfil.tema ?? salvo?.tema,
+    preferencia_idioma: perfil.preferencia_idioma ?? salvo?.preferencia_idioma,
+    notificacoes_ativas: perfil.notificacoes_ativas ?? salvo?.notificacoes_ativas ?? true,
+    som_ativo: perfil.som_ativo ?? salvo?.som_ativo ?? true,
+    onboarding_concluido: perfil.onboarding_concluido ?? salvo?.onboarding_concluido ?? false,
+  };
+}
 
 const AuthContext = createContext();
 
@@ -34,6 +55,17 @@ export const AuthProvider = ({ children }) => {
   // novo na mesma passada em que recebem o usuário.
   definirFusoDoUsuario(user?.fuso_horario);
 
+  // Sair da conta, por vontade própria, sessão expirada ou exclusão: nada da conta anterior fica no
+  // aparelho (token, perfil, lembretes agendados e execução em andamento).
+  const limparSessaoLocal = async () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    await clearAuthToken();
+    await clearUserProfile();
+    await limparEstadoDeExecucao().catch(() => {});
+    await cancelarTodas().catch(() => {});
+  };
+
   useEffect(() => {
     const verifyAuth = async () => {
       try {
@@ -46,14 +78,7 @@ export const AuthProvider = ({ children }) => {
         const salvo = await getUserProfile();
         try {
           const { data: perfil } = await getMe();
-          const atualizado = {
-            ...(salvo || {}),
-            name: perfil.nome ?? salvo?.name,
-            email: perfil.email ?? salvo?.email,
-            fuso_horario: perfil.fuso_horario ?? salvo?.fuso_horario,
-            tema: perfil.tema ?? salvo?.tema,
-            preferencia_idioma: perfil.preferencia_idioma ?? salvo?.preferencia_idioma,
-          };
+          const atualizado = perfilDoServidor(perfil, salvo);
           await setUserProfile(atualizado);
           setUser(atualizado);
         } catch (erro) {
@@ -84,19 +109,18 @@ export const AuthProvider = ({ children }) => {
         duration: 2000,
       });
       setTimeout(async () => {
-        await clearAuthToken();
-        await clearUserProfile();
-        setIsAuthenticated(false);
-        setUser(null);
+        await limparSessaoLocal();
         router.replace('/login');
+        liberarAvisoDeSessao();
       }, 2000);
     });
   }, [router]);
 
   const persistSession = async (response) => {
     const token = response.data?.token;
-    const profile = response.data?.user || null;
+    const profile = response.data?.user ? perfilDoServidor(response.data.user, null) : null;
     if (token) {
+      liberarAvisoDeSessao();
       await setAuthToken(token);
       if (profile) {
         await setUserProfile(profile);
@@ -105,6 +129,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
     }
   };
+
 
   const login = async (data) => {
     const payload = {
@@ -140,11 +165,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    await clearAuthToken();
-    await clearUserProfile();
-    await cancelarTodas().catch(() => {});
+    await limparSessaoLocal();
+  };
+
+  const excluirMinhaConta = async (confirmacao) => {
+    await apiExcluirConta(confirmacao);
+    await limparSessaoLocal();
+  };
+
+  const marcarOnboardingConcluido = async () => {
+    const { data } = await apiConcluirOnboarding();
+    const next = perfilDoServidor(data, user);
+    await setUserProfile(next);
+    setUser(next);
   };
 
   const updateLocalUser = async (patch) => {
@@ -164,6 +197,8 @@ export const AuthProvider = ({ children }) => {
         confirmarEmail,
         redefinirSenha,
         logout,
+        excluirMinhaConta,
+        marcarOnboardingConcluido,
         updateLocalUser,
       }}
     >

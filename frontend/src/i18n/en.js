@@ -133,6 +133,8 @@ export default {
     maisOpcoesPara: 'More options for {titulo}',
     boasVindasTitulo: 'Welcome to Tempo Claro',
     boasVindasTexto: 'Unlike a packed to-do list, here you focus on at most {limite} habit{plural} at a time — no scattering, no overload. Create your first one to get started.',
+    dispensadoHoje: 'Today already counts as done: the time had passed when you created the habit.',
+    alteracaoPendente: 'Goal and time changes start tomorrow.',
   },
 
   preTask: {
@@ -145,15 +147,16 @@ export default {
   execucao: {
     concluirTarefa: 'FINISH TASK',
     focandoEm: 'Focusing on',
-    desistir: 'Give up',
     erroConclusao: "Couldn't record your session. Please try again.",
-    erroDesistencia: "Couldn't record it. Please try again.",
     jaRegistrada: 'Your execution had already been logged. Check the result on the home screen.',
     diminuir: 'Decrease by {passo}',
     aumentar: 'Increase by {passo}',
     aumentarDica: 'Hold to increase faster.',
     retomandoExecucao: 'Resuming your session',
     deHoje: '{feito} of {total} today',
+    desistir: 'Stop',
+    erroDesistencia: 'Could not save the pause. Please try again.',
+    cronometroReiniciado: 'You were away for more than an hour. The timer started over.',
   },
 
   sucesso: {
@@ -172,10 +175,10 @@ export default {
     protegido: 'Protected!',
     protegidoTexto: 'Your streak was saved by the Shield.',
     suasMoedas: '🪙 Your coins:',
-    tempoEsgotado: 'Time Is Up',
-    tempoEsgotadoTexto: 'You took too long to come back. The streak was lost.',
-    ofensivaPerdida: 'Streak Lost',
-    ofensivaPerdidaTexto: 'It is okay. What matters is starting again tomorrow.',
+    tempoEsgotado: 'Paused for now',
+    tempoEsgotadoTexto: 'What you did so far is saved. If you can, come back later: the day only closes at midnight.',
+    ofensivaPerdida: 'That is okay for today',
+    ofensivaPerdidaTexto: 'Tomorrow is another start.',
   },
 
   stats: {
@@ -192,10 +195,37 @@ export default {
     diasSeguidos: 'Day Streak',
     melhorDia: 'Best Day',
     constancia: 'Monthly Consistency',
-    constanciaSub: '{feitos} of {total} required days with the goal met',
     recordes: 'Your Records This Month',
-    desempenho: 'Performance (Last {dias} days)',
     legendaParcial: 'Orange bars are partial attempts (gave up)',
+    diasSeguidosSub: 'days in a row meeting the goal',
+    melhorDiaSub: 'on {data}',
+    melhorDiaVazio: 'no record yet',
+    constanciaPeriodo: 'Consistency ({n} days)',
+    constanciaSub: '{feitos} of {total} scheduled days with the goal met',
+    recordesPeriodo: 'Your records ({n} days)',
+    desempenho: 'Performance (last {dias} days)',
+    periodoDias: '{n} days',
+    hoje: 'Today',
+    feitoDe: '{feito} of {meta}',
+    metaLinha: 'Goal {meta}',
+    legendaCumprida: 'Goal met',
+    legendaParcialCurta: 'Partial',
+    legendaSemExecucao: 'Not done or day off',
+    legendaMeta: 'Your goal',
+    comoLer: 'Each bar is a day: the taller, the more you did. The dashed line is your goal. Tap a bar to see that day.',
+    estado: {
+      cumprida: 'goal met',
+      parcial: 'partial',
+      semExecucao: 'not done',
+      folga: 'day off',
+      antes: 'before the habit existed',
+      dispensado: 'done without a session (the time had already passed)',
+    },
+    ordinal: {
+      '1': '1st',
+      '2': '2nd',
+      '3': '3rd',
+    },
   },
 
   loja: {
@@ -219,7 +249,6 @@ export default {
   },
 
   perfil: {
-    grupoFuso: { brasil: 'Brazil', outros: 'Other' },
     preferencias: 'App Preferences',
     seusDados: 'Your Data',
     salvando: 'Saving...',
@@ -258,6 +287,27 @@ export default {
     senhaIgualAtual: 'The new password must be different from the current one.',
     sairConfirmacao: "You'll need to sign in again with your email and password. Your habits stay saved.",
     sairConfirmar: 'Sign out',
+    grupoFuso: {
+      brasil: 'Brazil',
+      americaDoNorte: 'North America',
+    },
+    lembretes: 'Reminders',
+    lembretesLigadosLabel: 'Reminders on',
+    lembretesDesligadosLabel: 'Reminders off',
+    lembretesSemPermissao: 'Allow Tempo Claro notifications in the Android settings to get reminders.',
+    fusoAgendado: 'Done! The new time zone starts at the next midnight.',
+    fusoPendente: 'Changes to {fuso} on {quando}',
+    fusoExplicacao: 'The change starts at the next midnight, so today ends in the time zone it started in.',
+    palavraExcluir: 'delete!',
+    excluirConta: 'Delete account',
+    excluirContaSub: 'Erases the account and all habits',
+    excluirContaTitulo: 'Delete the account?',
+    excluirContaTexto: 'This permanently erases your account, habits, history, coins and shields. It cannot be undone.',
+    excluirContaDigite: 'To confirm, type {palavra}',
+    excluirContaConfirmar: 'Delete forever',
+    excluindoConta: 'Deleting...',
+    contaExcluida: 'Your account was deleted.',
+    erroExcluirConta: 'Could not delete the account. Please try again.',
   },
 
   criar: {
@@ -330,6 +380,7 @@ export default {
       EXERCICIO: { titulo: 'Halterzinho', desc: 'Build physical discipline.' },
       RESERVADO: { titulo: 'Coming soon', desc: 'Future feature.' },
     },
+    atualizadoAmanha: 'Habit saved! Goal and time changes start tomorrow.',
   },
 
   calibracao: {
@@ -361,11 +412,12 @@ export default {
   },
 
   desistir: {
-    temCerteza: 'Are you sure?',
-    afetaConsistencia: 'This will affect your daily consistency.',
-    voltarContinuar: 'Go Back and Continue',
-    assumirFalha: 'Take the Loss',
-    usarEscudo: '🛡️ Use Shield ({n})',
+
+    temCerteza: 'Want to stop for now?',
+    afetaConsistencia: 'That is okay. What you did is saved, and you can come back later today.',
+    voltarContinuar: 'Keep going',
+    assumirFalha: 'Stop for now',
+    usarEscudo: '🛡️ Stop and protect my streak ({n})',
   },
 
   timer: {
@@ -377,12 +429,48 @@ export default {
     jaConcluida: 'This task is already done today! 🎉',
     tarefaConcluida: 'Task Done',
     comecarFocado: 'Start Focused Habit',
+    criar: 'Create',
+    comecar: 'Start',
+    feito: 'Done',
+    criarDescricao: 'Create a habit',
+    comecarDescricao: 'Start the {titulo} task',
+    aguardandoDescricao: 'The {titulo} task opens at {hora}',
+    feitoDescricao: '{titulo} is already done today',
   },
 
   notificacao: {
     canal: 'Habit reminders',
     faltam15: "15 minutes left until we do the activity, don't forget about me!!",
     naHora: 'Time to do {atividade}',
+  },
+
+  guia: {
+    proximo: 'Next',
+    entendi: 'Got it',
+    toqueNoBotao: 'Tap the highlighted button',
+    erroConcluir: 'Could not finish the guide. Please try again.',
+    perguntaIdioma: 'Hi! I will show you Tempo Claro real quick. First: which language do you prefer?',
+    perguntaFuso: 'Now confirm your time zone. It decides when your day turns over.',
+    fusoSugerido: 'Suggested',
+    doAparelho: 'from device',
+    confirmarFuso: 'Confirm and continue',
+    salvando: 'Saving...',
+    erroPreferencias: 'Could not save. Check your connection and try again.',
+    passoDe: 'Step {atual} of {total}',
+    passos: {
+      boasVindas: 'All set! Now a tour of less than a minute.',
+      inicio: 'Your habits live here. Swipe sideways to switch habits.',
+      dados: 'Here you see how you are doing, day by day.',
+      central: 'When it is time, tap here to do the task. The label below shows what it does right now.',
+      loja: 'In the store you trade coins for shields.',
+      perfil: 'Language, theme, time zone, sound and reminders are here.',
+      ofensiva: 'This is your streak: the days in a row you met the goal. If a day goes by without it, it resets.',
+      moedas: 'Meet the goal and get 100 coins. Over 120%, 150. Over 150%, 200.',
+      escudos: 'A shield costs 400 coins and protects your streak on a hard day.',
+      grafico: 'In Stats, each bar is a day. Green is goal met, orange is partial, and the dashed line is your goal.',
+      final: 'Now it is your turn: tap here and create your first habit.',
+      finalComHabitos: 'Your habits are already here. Just tap Start at the right time.',
+    },
   },
 
   diasSemanaCurto: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],

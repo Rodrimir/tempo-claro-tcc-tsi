@@ -1,4 +1,6 @@
 package com.rodrigo.backend2java.infra.security;
+
+import com.rodrigo.backend2java.infra.i18n.Mensagens;
 import com.rodrigo.backend2java.infra.jwt.CustomJwtAuthenticationConverter;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -68,6 +70,8 @@ public class SecurityConfig {
                             path.matcher("/swagger-ui.html"),
                             path.matcher("/swagger-ui/**")
                     ).permitAll();
+                    // Ping de keep-alive do Render: não toca no banco.
+                    authorize.requestMatchers(path.matcher(HttpMethod.GET, "/api/health")).permitAll();
                     authorize.requestMatchers(path.matcher(HttpMethod.POST, "/api/auth/login")).permitAll();
                     // @note - 6.1 (Cadastro) POST /api/auth/register está em permitAll(): a rota
                     // não exige token. Ver README §8 > Cadastro > item 6.
@@ -90,7 +94,9 @@ public class SecurityConfig {
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write("{\"success\":false,\"message\":\"Token ausente ou expirado.\"}");
+        final var idioma = Mensagens.doIdioma(request.getHeader("Accept-Language"));
+        response.getWriter().write("{\"success\":false,\"message\":\""
+                + Mensagens.em(idioma, "auth.tokenAusente") + "\"}");
     }
 
     @Bean
@@ -98,7 +104,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(origensPermitidas);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept-Language"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

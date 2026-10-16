@@ -24,29 +24,24 @@ public class GeradorDeOcorrencias {
                 : 1;
 
         if (vezesAoDia > MAX_VEZES_AO_DIA) {
-            throw new ValidacaoException(
-                    "Frequência diária máxima é " + MAX_VEZES_AO_DIA + " vezes ao dia");
+            throw new ValidacaoException("habito.vezesMaximo", MAX_VEZES_AO_DIA);
         }
         if (metaBase == null || metaBase < vezesAoDia) {
-            throw new ValidacaoException(
-                    "A meta base deve ser maior ou igual à frequência diária (" + vezesAoDia
-                            + "x) para poder repartir a meta entre as ocorrências");
+            throw new ValidacaoException("habito.metaMenorQueVezes", vezesAoDia);
         }
 
         final var usaOcorrenciasIndividuais = ocorrencias != null && !ocorrencias.isEmpty();
         if (usaOcorrenciasIndividuais) {
             if (ocorrencias.size() != vezesAoDia) {
-                throw new ValidacaoException("Informe o horário de cada uma das " + vezesAoDia
-                        + " ocorrências do dia: foram recebidas " + ocorrencias.size() + ".");
+                throw new ValidacaoException("habito.ocorrenciasFaltando", vezesAoDia, ocorrencias.size());
             }
             for (var i = 0; i < ocorrencias.size(); i++) {
                 if (ocorrencias.get(i).horario_inicio() == null) {
-                    throw new ValidacaoException("Informe o horário de início da ocorrência " + (i + 1) + ".");
+                    throw new ValidacaoException("habito.ocorrenciaSemHorario", i + 1);
                 }
             }
         } else if (vezesAoDia > 1 && horarioAgendado == null) {
-            throw new ValidacaoException(
-                    "Informe o horário de execução (obrigatório com mais de 1 vez ao dia)");
+            throw new ValidacaoException("habito.horarioObrigatorio");
         }
 
         final var horarioUnico = horarioAgendado != null ? horarioAgendado : HORARIO_PADRAO;

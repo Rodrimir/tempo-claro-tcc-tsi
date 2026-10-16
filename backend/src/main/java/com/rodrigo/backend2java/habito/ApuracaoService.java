@@ -32,16 +32,21 @@ public class ApuracaoService {
     private final ProximoVencimentoService proximoVencimentoService;
     private final FechamentoService fechamentoService;
     private final GeradorDeOcorrencias geradorDeOcorrencias;
+    private final ConfigPendenteRepository configPendenteRepository;
+    private final AplicadorDeConfiguracao aplicadorDeConfiguracao;
 
     public ApuracaoService(HabitoRepository habitoRepository, StatusHabitoRepository statusHabitoRepository,
             SubAtividadeRepository subAtividadeRepository, ProximoVencimentoService proximoVencimentoService,
-            FechamentoService fechamentoService, GeradorDeOcorrencias geradorDeOcorrencias) {
+            FechamentoService fechamentoService, GeradorDeOcorrencias geradorDeOcorrencias,
+            ConfigPendenteRepository configPendenteRepository, AplicadorDeConfiguracao aplicadorDeConfiguracao) {
         this.habitoRepository = habitoRepository;
         this.statusHabitoRepository = statusHabitoRepository;
         this.subAtividadeRepository = subAtividadeRepository;
         this.proximoVencimentoService = proximoVencimentoService;
         this.fechamentoService = fechamentoService;
         this.geradorDeOcorrencias = geradorDeOcorrencias;
+        this.configPendenteRepository = configPendenteRepository;
+        this.aplicadorDeConfiguracao = aplicadorDeConfiguracao;
     }
 
     public record Apuracao(StatusHabito status, int diasApurados) {
@@ -55,9 +60,9 @@ public class ApuracaoService {
     @Transactional
     public Apuracao apurarAteHoje(final UUID habitoId, final Usuario usuario) {
         final var status = statusHabitoRepository.travarPorHabitoId(habitoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Status do hábito não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("habito.statusNaoEncontrado"));
         final var habito = habitoRepository.findById(habitoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Hábito não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("habito.naoEncontrado"));
 
         final var zona = ZonaUsuario.resolver(usuario);
         final var hoje = LocalDate.now(zona);
@@ -71,9 +76,18 @@ public class ApuracaoService {
                 ? null
                 : habito.getCriadoEm().atZoneSameInstant(zona).toLocalDate();
 
+        // Edição adiada: os dias anteriores a vigente_em fecham com a configuração antiga; a nova
+        // entra antes de fechar o primeiro dia em que já vale, ou agora, se esse dia é hoje.
+        final var pendente = configPendenteRepository.findById(habitoId).orElse(null);
+        var configuracaoAplicada = false;
+
         var apurados = 0;
         var dia = status.getUltimoReset().plusDays(1);
         while (dia.isBefore(hoje) && apurados < MAX_DIAS_POR_PASSADA) {
+            if (pendente != null && !configuracaoAplicada && !dia.isBefore(pendente.getVigenteEm())) {
+                aplicadorDeConfiguracao.aplicar(habito, pendente);
+                configuracaoAplicada = true;
+            }
             final var seguidosAntes = status.getDiasSeguidos();
             fechamentoService.fecharDia(habito, status, dia, dia.equals(diaDaCriacao));
             if (status.getDiasSeguidos() > seguidosAntes) {
@@ -83,7 +97,13 @@ public class ApuracaoService {
             dia = dia.plusDays(1);
         }
 
-        if (apurados == 0) {
+        if (pendente != null && !configuracaoAplicada && !hoje.isBefore(pendente.getVigenteEm())
+                && !dia.isBefore(hoje)) {
+            aplicadorDeConfiguracao.aplicar(habito, pendente);
+            configuracaoAplicada = true;
+        }
+
+        if (apurados == 0 && !configuracaoAplicada) {
             return new Apuracao(status, 0);
         }
 

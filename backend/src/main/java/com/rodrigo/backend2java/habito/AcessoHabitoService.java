@@ -26,19 +26,19 @@ public class AcessoHabitoService {
         final var habito = habitoRepository.findById(habitoId)
                 .filter(h -> h.getUsuarioId().equals(dono.getId()))
                 .filter(h -> Boolean.TRUE.equals(h.getAtivo()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Hábito não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("habito.naoEncontrado"));
         return new HabitoComDono(habito, dono);
     }
 
     public Usuario usuarioPorEmail(final String emailContexto) {
         return usuarioRepository.findByEmail(emailContexto)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("usuario.naoEncontrado"));
     }
 
     // Trava a linha do usuário até o fim da transação de quem chamou, para serializar operações
     // que decidem a partir de uma contagem (limite de hábitos ativos, calibração repetida).
     public Usuario travarUsuarioPorEmail(final String emailContexto) {
         return usuarioRepository.travarPorEmail(emailContexto)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("usuario.naoEncontrado"));
     }
 }

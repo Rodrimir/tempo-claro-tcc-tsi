@@ -27,7 +27,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 // mas não tinha campo nesta entidade: só UsuarioRepository.atualizarPerfil (query nativa, edição
 // de perfil) a escrevia, então nas escritas via JPA (cadastro, verificação de e-mail, redefinição
 // de senha) ela ficava congelada no DEFAULT CURRENT_TIMESTAMP da criação. Corrigido com o campo
-// atualizadoEm e os callbacks marcarAtualizacao (@PrePersist/@PreUpdate) abaixo.
+// atualizadoEm e os callbacks marcarAtualizacao (@PrePersist/@PreUpdate) abaixo. Desde 16/10/2026
+// a edição de perfil também grava pela entidade, sem query nativa.
 @Entity
 @Table(name = "usuarios")
 @NoArgsConstructor
@@ -74,10 +75,29 @@ public class Usuario implements UserDetails {
     @Column(name = "usu_email_verificado")
     private boolean emailVerificado = false;
 
+    @Builder.Default
+    @Column(name = "usu_notificacoes_ativas")
+    private boolean notificacoesAtivas = true;
+
+    @Builder.Default
+    @Column(name = "usu_som_ativo")
+    private boolean somAtivo = true;
+
+    // Nulo até a pessoa terminar o guia de primeiro acesso.
+    @Column(name = "usu_onboarding_concluido_em")
+    private OffsetDateTime onboardingConcluidoEm;
+
+    // Troca de fuso feita pelo Perfil: vale a partir de fusoVigenteEm, a meia-noite seguinte no
+    // fuso de antes. ZonaUsuario.resolver já devolve o novo fuso quando esse instante passa.
+    @Column(name = "usu_fuso_pendente")
+    private String fusoPendente;
+
+    @Column(name = "usu_fuso_vigente_em")
+    private OffsetDateTime fusoVigenteEm;
+
     // @note - 9.2 (Cadastro) marcarAtualizacao: mantém usu_atualizado_em correto em toda escrita
     // via JPA (cadastro item 7.1c, verificação de e-mail e redefinição de senha), sem cada serviço
-    // ter de lembrar de setar o campo. UsuarioRepository.atualizarPerfil não passa por aqui (query
-    // nativa não dispara callback de entidade), mas já escreve a coluna no próprio UPDATE.
+    // ter de lembrar de setar o campo.
     @PrePersist
     @PreUpdate
     private void marcarAtualizacao() {

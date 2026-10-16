@@ -91,7 +91,7 @@ const Store = () => {
     } finally {
       if (!silencioso) setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   const primeiraCarga = useRef(true);
   useFocusEffect(
@@ -101,9 +101,8 @@ const Store = () => {
     }, [loadHabits])
   );
 
-  const activeHabits = habits.filter(
-    (h) => h.status !== STATUS_HABITO.EXCLUIDO && h.status !== STATUS_HABITO.COMPLETED
-  );
+  // O escudo protege dias futuros, então um hábito já concluído hoje também pode comprar.
+  const activeHabits = habits.filter((h) => h.status !== STATUS_HABITO.EXCLUIDO);
   const habitoSelecionado = activeHabits.find((h) => h.id === selectedHabitId);
   const inventarioHabits = habits.filter((h) => h.status !== STATUS_HABITO.EXCLUIDO);
   const totalEscudos = inventarioHabits.reduce((soma, h) => soma + (h.bloqueios_acumulados || 0), 0);

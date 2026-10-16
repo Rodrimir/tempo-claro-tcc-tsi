@@ -8,7 +8,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.rodrigo.backend2java.habito.HabitoRepository;
 import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
+import com.rodrigo.backend2java.verificacao.CodigoVerificacaoRepository;
 import com.rodrigo.backend2java.usuario.model.ProfileUpdateDTO;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,13 +28,21 @@ class UsuarioServiceUsuarioAusenteTest {
     private UsuarioRepository usuarioRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private HabitoRepository habitoRepository;
+    @Mock
+    private CodigoVerificacaoRepository codigoVerificacaoRepository;
+
+    private UsuarioService servico() {
+        return new UsuarioService(usuarioRepository, passwordEncoder, habitoRepository, codigoVerificacaoRepository);
+    }
 
     @Test
     void ct070_buscarPerfilDeUsuarioAusente_lancaRecursoNaoEncontrado() {
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         assertThrows(RecursoNaoEncontradoException.class,
-                () -> new UsuarioService(usuarioRepository, passwordEncoder).buscarPerfil("ninguem@teste.com"));
+                () -> servico().buscarPerfil("ninguem@teste.com"));
     }
 
     @Test
@@ -40,7 +50,7 @@ class UsuarioServiceUsuarioAusenteTest {
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         assertThrows(RecursoNaoEncontradoException.class,
-                () -> new UsuarioService(usuarioRepository, passwordEncoder)
+                () -> servico()
                         .atualizarPerfil("ninguem@teste.com", ProfileUpdateDTO.builder().nome("X").build()));
     }
 }

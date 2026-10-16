@@ -12,4 +12,6 @@ public interface CodigoVerificacaoRepository extends JpaRepository<CodigoVerific
     List<CodigoVerificacao> findAllByEmailAndTipoAndUsadoEmIsNull(String email, String tipo);
 
     Optional<CodigoVerificacao> findFirstByEmailAndTipoOrderByCriadoEmDesc(String email, String tipo);
+
+    void deleteAllByEmailIgnoreCase(String email);
 }

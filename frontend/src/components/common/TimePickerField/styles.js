@@ -26,7 +26,7 @@ export const Overlay = styled(Pressable)`
   background-color: rgba(15, 23, 42, 0.85);
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 16px;
 `;
 
 export const Sheet = styled.View`

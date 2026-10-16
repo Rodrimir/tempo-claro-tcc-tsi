@@ -1,14 +1,18 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { FlatList, Modal, useWindowDimensions } from 'react-native';
+import { FlatList, View, useWindowDimensions } from 'react-native';
+import Dialogo, { BotaoDoDialogo, TextoDoBotao, TextoDoDialogo } from '@/components/common/Dialogo';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
 import { useI18n } from '@/contexts/LanguageContext';
 import { useThemeToggle } from '@/contexts/ThemeToggleContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAlvoDoGuia, useOnboarding } from '@/onboarding/OnboardingContext';
+import { ALVOS } from '@/onboarding/passos';
 import { getDashboard, excluirHabito } from '@/services/api';
-import { reagendarTodas, solicitarPermissao } from '@/services/notificacoes';
+import { reagendarTodas, solicitarPermissao, cancelarTodas } from '@/services/notificacoes';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import LocalHeader from '@/components/layout/LocalHeader';
 import { isDiaProgramado } from '@/utils/ocorrencias';
@@ -37,15 +41,6 @@ import {
   IconWrapper,
   RetryButton,
   RetryButtonText,
-  ExcluirModalOverlay,
-  ExcluirModalContent,
-  ExcluirModalTitle,
-  ExcluirModalText,
-  ExcluirModalActions,
-  ExcluirCancelButton,
-  ExcluirCancelButtonText,
-  ExcluirConfirmButton,
-  ExcluirConfirmButtonText,
 } from './styles';
 
 const CRIAR_SLIDE = { id: '__criar__' };
@@ -73,20 +68,39 @@ const HomeScreen = () => {
 
   const carregandoRef = useRef(false);
   const habitosRef = useRef([]);
+  const { user } = useAuth();
+  const lembretesAtivos = user?.notificacoes_ativas !== false;
+  const lembretesRef = useRef(lembretesAtivos);
+  const { ativo: guiaAtivo, emTour, setTemHabitos } = useOnboarding();
+  const alvoCriar = useAlvoDoGuia(ALVOS.CRIAR);
+
+  useEffect(() => {
+    lembretesRef.current = lembretesAtivos;
+  }, [lembretesAtivos]);
+
+  // Lembretes só com a preferência ligada no Perfil; desligada, nada fica agendado.
+  const agendarLembretes = useCallback((habitos) => {
+    if (!lembretesRef.current) {
+      cancelarTodas().catch(() => {});
+      return;
+    }
+    reagendarTodas(habitos, idioma).catch(() => {});
+  }, [idioma]);
 
   // O pedido de permissão pode terminar depois da primeira carga, que nesse caso não conseguiu
   // agendar nada; quando a permissão é concedida, os lembretes são agendados com os dados já lidos.
+  // Durante o guia de primeiro acesso o pedido espera, para o diálogo do sistema não cobrir o tour.
   useEffect(() => {
+    if (guiaAtivo || !lembretesAtivos) return;
     solicitarPermissao(idioma)
       .then((concedida) => {
-        if (concedida && habitosRef.current.length > 0) {
-          reagendarTodas(habitosRef.current, idioma).catch(() => {});
-        }
+        if (concedida && habitosRef.current.length > 0) agendarLembretes(habitosRef.current);
       })
       .catch(() => {});
-    // Uma vez por montagem: repetir o pedido a cada troca de idioma reabriria o diálogo do sistema.
+    // Uma vez por montagem (e de novo quando o guia termina): repetir o pedido a cada troca de
+    // idioma reabriria o diálogo do sistema.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [guiaAtivo, lembretesAtivos]);
 
   const loadData = useCallback(async (silencioso = false) => {
     if (carregandoRef.current) return;
@@ -108,7 +122,8 @@ const HomeScreen = () => {
         });
         setLocalHabits(data);
         habitosRef.current = data;
-        reagendarTodas(data, idioma).catch(() => {});
+        setTemHabitos(data.length > 0);
+        agendarLembretes(data);
       }
     } catch (_error) {
       addToast(t('home.erroCarregarHabitos'), 'error');
@@ -117,7 +132,7 @@ const HomeScreen = () => {
       carregandoRef.current = false;
       if (!silencioso) setLoading(false);
     }
-  }, [addToast, idioma]);
+  }, [addToast, agendarLembretes, setTemHabitos, t]);
 
   const primeiraCarga = useRef(true);
   useFocusEffect(
@@ -154,6 +169,9 @@ const HomeScreen = () => {
       setActiveIndex(viewableItems[0].index ?? 0);
     }
   }, []);
+
+  const abrirCriacao = () =>
+    router.push({ pathname: '/create', params: { modo: 'criar', ...(emTour ? { guia: '1' } : {}) } });
 
   const handleEditar = (habit) => {
     setMenuAbertoId(null);
@@ -223,14 +241,15 @@ const HomeScreen = () => {
               {t('home.boasVindasTexto', { limite: limiteHabitos, plural: limiteHabitos === 1 ? '' : 's' })}
             </EmptySubtitle>
           </EmptyTextCard>
-          <CreateHabitButton
-            accessibilityRole="button"
-            accessibilityLabel={t('home.novoHabitoTitulo')}
-            onPress={() => router.push({ pathname: '/create', params: { modo: 'criar' } })}
-            style={{ marginTop: 24 }}
-          >
-            <Feather name="play" size={32} color="white" style={{ transform: [{ rotate: '90deg' }] }} />
-          </CreateHabitButton>
+          <View {...alvoCriar} style={{ marginTop: 24 }}>
+            <CreateHabitButton
+              accessibilityRole="button"
+              accessibilityLabel={t('home.novoHabitoTitulo')}
+              onPress={abrirCriacao}
+            >
+              <Feather name="plus" size={32} color="white" />
+            </CreateHabitButton>
+          </View>
         </ErrorStateContainer>
         </HomeVeu>
       </HomeContainer>
@@ -253,7 +272,7 @@ const HomeScreen = () => {
         style={{ flex: 1 }}
         renderItem={({ item }) =>
           item.id === CRIAR_SLIDE.id ? (
-            <CriarHabitoSlide width={width} isDark={isDark} onPress={() => router.push({ pathname: '/create', params: { modo: 'criar' } })} />
+            <CriarHabitoSlide width={width} isDark={isDark} onPress={abrirCriacao} />
           ) : (
             <HabitCardSlide
               habit={item}
@@ -288,27 +307,35 @@ const HomeScreen = () => {
         ) : null}
       </ActionWrapper>
 
-      <Modal
+      <Dialogo
         visible={!!habitoParaExcluir}
-        transparent
-        animationType="fade"
-        onRequestClose={() => !excluindo && setHabitoParaExcluir(null)}
+        onClose={excluindo ? undefined : () => setHabitoParaExcluir(null)}
+        titulo={t('home.excluirPergunta', { titulo: habitoParaExcluir?.titulo ?? '' })}
+        accessibilityLabel={t('comum.fechar')}
+        acoes={
+          <>
+            <BotaoDoDialogo
+              accessibilityRole="button"
+              accessibilityState={{ disabled: excluindo }}
+              onPress={() => setHabitoParaExcluir(null)}
+              disabled={excluindo}
+            >
+              <TextoDoBotao>{t('comum.cancelar')}</TextoDoBotao>
+            </BotaoDoDialogo>
+            <BotaoDoDialogo
+              $tipo="perigo"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: excluindo, busy: excluindo }}
+              onPress={handleConfirmarExcluir}
+              disabled={excluindo}
+            >
+              <TextoDoBotao $tipo="perigo">{excluindo ? t('home.excluindo') : t('comum.excluir')}</TextoDoBotao>
+            </BotaoDoDialogo>
+          </>
+        }
       >
-        <ExcluirModalOverlay>
-          <ExcluirModalContent>
-            <ExcluirModalTitle>{t('home.excluirPergunta', { titulo: habitoParaExcluir?.titulo ?? '' })}</ExcluirModalTitle>
-            <ExcluirModalText>{t('home.excluirDetalhe', { limite: limiteHabitos })}</ExcluirModalText>
-            <ExcluirModalActions>
-              <ExcluirCancelButton accessibilityRole="button" accessibilityState={{ disabled: excluindo }} onPress={() => setHabitoParaExcluir(null)} disabled={excluindo}>
-                <ExcluirCancelButtonText>{t('comum.cancelar')}</ExcluirCancelButtonText>
-              </ExcluirCancelButton>
-              <ExcluirConfirmButton accessibilityRole="button" accessibilityState={{ disabled: excluindo }} onPress={handleConfirmarExcluir} disabled={excluindo}>
-                <ExcluirConfirmButtonText>{excluindo ? t('home.excluindo') : t('comum.excluir')}</ExcluirConfirmButtonText>
-              </ExcluirConfirmButton>
-            </ExcluirModalActions>
-          </ExcluirModalContent>
-        </ExcluirModalOverlay>
-      </Modal>
+        <TextoDoDialogo>{t('home.excluirDetalhe', { limite: limiteHabitos })}</TextoDoDialogo>
+      </Dialogo>
       </HomeVeu>
     </HomeContainer>
   );

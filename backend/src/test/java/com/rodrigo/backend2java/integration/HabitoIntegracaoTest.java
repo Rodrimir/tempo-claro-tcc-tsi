@@ -15,6 +15,7 @@ import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.habito.HabitoRepository;
 import com.rodrigo.backend2java.habito.SubAtividadeRepository;
+import com.rodrigo.backend2java.habito.ConfigPendenteRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,6 +28,9 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired
     private SubAtividadeRepository subAtividadeRepository;
+
+    @Autowired
+    private ConfigPendenteRepository configPendenteRepository;
 
     private HabitoResponseDTO criarHabitoUmaVezAoDia(final String titulo) {
         final var request = HabitoRequestDTO.builder()
@@ -95,6 +99,8 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(2, habitoRepository.findAllByUsuarioIdAndAtivoTrue(idUsuarioTeste).size());
     }
 
+    // Desde 16/10/2026 a edição da configuração de execução só vale no dia seguinte (o título muda
+    // na hora). O teste confere a pendência e depois simula a virada do dia.
     @Test
     void atualizarHabito_persisteNovosValores() {
         final var criado = criarHabitoUmaVezAoDia("Título original");
@@ -112,7 +118,16 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         final var noBanco = habitoRepository.findById(criado.id()).orElseThrow();
         assertEquals("Título editado", noBanco.getTitulo());
-        assertEquals(3000, noBanco.getMetaBase());
+        assertEquals(2000, noBanco.getMetaBase(), "a meta nova só vale amanhã");
+        final var pendente = configPendenteRepository.findById(criado.id()).orElseThrow();
+        assertEquals(3000, pendente.getMetaBase());
+
+        pendente.setVigenteEm(pendente.getVigenteEm().minusDays(1));
+        configPendenteRepository.save(pendente);
+        get("/api/dashboard", Object.class);
+
+        assertEquals(3000, habitoRepository.findById(criado.id()).orElseThrow().getMetaBase());
+        assertTrue(configPendenteRepository.findById(criado.id()).isEmpty());
     }
 
     @Test

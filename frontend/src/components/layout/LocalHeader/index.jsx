@@ -3,6 +3,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
 import { useI18n } from '@/contexts/LanguageContext';
+import { useAlvoDoGuia } from '@/onboarding/OnboardingContext';
+import { ALVOS } from '@/onboarding/passos';
 import {
   HeaderContainer,
   HabitNameRow,
@@ -22,6 +24,9 @@ const LocalHeader = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { currentHabit: activeHabit } = useCurrentHabit();
+  const alvoMoedas = useAlvoDoGuia(ALVOS.MOEDAS);
+  const alvoOfensiva = useAlvoDoGuia(ALVOS.OFENSIVA);
+  const alvoEscudos = useAlvoDoGuia(ALVOS.ESCUDOS);
 
   const moedas = activeHabit ? (activeHabit.moedas_locais ?? 0) : '—';
   const escudos = activeHabit ? (activeHabit.bloqueios_acumulados ?? 0) : '—';
@@ -35,7 +40,7 @@ const LocalHeader = () => {
 
       <IndicatorsRow>
         <SideSlotStart>
-          <CoinsWrapper accessibilityLabel={t('comum.moedasLocais')}>
+          <CoinsWrapper {...alvoMoedas} accessibilityLabel={t('comum.moedasLocais')}>
             <IconRow>
               <FontAwesome5 name="coins" size={18} color={theme.warningColor} />
               <IndicatorValue color={theme.warningColor}>{moedas}</IndicatorValue>
@@ -44,7 +49,7 @@ const LocalHeader = () => {
           </CoinsWrapper>
         </SideSlotStart>
 
-        <FlameWrapper accessibilityLabel={t('comum.ofensivaDiasSeguidos')}>
+        <FlameWrapper {...alvoOfensiva} accessibilityLabel={t('comum.ofensivaDiasSeguidos')}>
           <IconRow>
             <MaterialCommunityIcons name="fire" size={24} color={theme.dangerColor} />
             <IndicatorValue $size={18} color={theme.dangerColor}>{diasSeguidos}</IndicatorValue>
@@ -53,7 +58,7 @@ const LocalHeader = () => {
         </FlameWrapper>
 
         <SideSlotEnd>
-          <ShieldWrapper accessibilityLabel={t('comum.bloqueiosEscudos')}>
+          <ShieldWrapper {...alvoEscudos} accessibilityLabel={t('comum.bloqueiosEscudos')}>
             <IconRow>
               <Feather name="shield" size={20} color={theme.primaryColor} />
               <IndicatorValue color={theme.primaryColor}>{escudos}</IndicatorValue>
