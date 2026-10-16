@@ -1,6 +1,7 @@
 package com.rodrigo.backend2java.verificacao;
 import java.util.List;
 import java.time.Duration;
+import java.lang.management.ManagementFactory;
 import java.net.http.HttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,12 @@ public class ResendEmailService implements EmailService {
 
     private static final Duration TEMPO_LIMITE_CONEXAO = Duration.ofSeconds(10);
     private static final Duration TEMPO_LIMITE_RESPOSTA = Duration.ofSeconds(20);
+
+    // No plano gratuito do Render a API hiberna e acorda com o JVM frio: a primeira conexão HTTPS
+    // ao Resend levou de 10 a 15 s numa medição com 5 a 10% de CPU, e no Render ainda divide a
+    // CPU com o fim da partida do Spring. Uma falha de comunicação nesta janela depois da partida
+    // é tratada como efeito do despertar, e a pessoa recebe uma mensagem própria.
+    private static final Duration JANELA_DO_DESPERTAR = Duration.ofMinutes(5);
 
     private final RestClient restClient;
     private final String remetente;
@@ -75,8 +82,12 @@ public class ResendEmailService implements EmailService {
                     recusaDoResend.getResponseBodyAsString());
             throw new RegraDeNegocioException("email.falhaEnvio");
         } catch (RestClientException falhaNoEnvio) {
-            log.error("Falha de comunicação com o Resend: {}", falhaNoEnvio.getMessage());
-            throw new RegraDeNegocioException("email.falhaEnvio");
+            final var segundosDesdeAPartida = ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
+            log.error("Falha de comunicação com o Resend ({} s depois da partida): {}", segundosDesdeAPartida,
+                    falhaNoEnvio.getMessage());
+            throw new RegraDeNegocioException(segundosDesdeAPartida < JANELA_DO_DESPERTAR.toSeconds()
+                    ? "email.servidorAcordando"
+                    : "email.falhaEnvio");
         }
     }
 

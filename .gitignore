@@ -1,7 +1,7 @@
 # Artefatos de build
 /backend/target/
 /backend/bin/
-
+/tcc
 # Dependências e builds do app
 node_modules/
 /frontend/.expo/
@@ -16,14 +16,8 @@ node_modules/
 .env.local
 *.env
 
-# Artefatos do TCC: os documentos de trabalho são versionados, para terem
-# histórico; a monografia e a planilha não, porque são binários grandes que não
-# diffam. A figura oficial do diagrama é versionada por ser feita à mão e não
-# reproduzível; a do gerador fica de fora, porque sai do .py quando preciso.
-/tcc/TempoClaro_Monografia.docx
-/tcc/*.xlsx
-/tcc/figura-07-casos-de-uso-gerado.png
-/tcc/figura-09-tecnologias.png
+# Relatório de auditoria: material de trabalho local, fora do repositório.
+/RELATORIO_AUDITORIA.md
 
 # Configuração local do Spring (credenciais de SMTP etc.) — o Spring lê
 # ./config/application.properties automaticamente, com precedência sobre o

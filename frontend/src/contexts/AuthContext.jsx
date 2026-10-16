@@ -39,7 +39,9 @@ export function perfilDoServidor(perfil, salvo) {
     preferencia_idioma: perfil.preferencia_idioma ?? salvo?.preferencia_idioma,
     notificacoes_ativas: perfil.notificacoes_ativas ?? salvo?.notificacoes_ativas ?? true,
     som_ativo: perfil.som_ativo ?? salvo?.som_ativo ?? true,
-    onboarding_concluido: perfil.onboarding_concluido ?? salvo?.onboarding_concluido ?? false,
+    // Vem só do servidor: um servidor sem o guia (versão anterior) não manda o campo, e o app não
+    // abre um guia que não teria como concluir.
+    onboarding_concluido: typeof perfil.onboarding_concluido === 'boolean' ? perfil.onboarding_concluido : undefined,
   };
 }
 
