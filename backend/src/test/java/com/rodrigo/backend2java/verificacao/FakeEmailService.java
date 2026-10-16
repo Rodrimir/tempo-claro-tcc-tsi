@@ -3,6 +3,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
 
 @Service
 @Profile("test")

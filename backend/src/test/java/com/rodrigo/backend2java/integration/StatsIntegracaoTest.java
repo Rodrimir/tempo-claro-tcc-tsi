@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.execucao.HistoricoExecucao;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
-import com.rodrigo.backend2java.stats.StatsResponseDTO;
+import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
+import com.rodrigo.backend2java.stats.model.StatsResponseDTO;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +28,9 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
 
     @Autowired
     private HistoricoExecucaoRepository historicoExecucaoRepository;
+
+    @Autowired
+    private com.rodrigo.backend2java.habito.HabitoRepository habitoRepository;
 
     private UUID criarHabito() {
         final var request = HabitoRequestDTO.builder()
@@ -141,6 +144,10 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
                 .frequencia_semanal("0111110")
                 .build();
         final var habitoId = post("/api/habits", request, HabitoResponseDTO.class).getBody().id();
+        // Desde 16/10/2026 a constância conta a partir da criação: o hábito passa a existir há 40 dias.
+        final var habito = habitoRepository.findById(habitoId).orElseThrow();
+        habito.setCriadoEm(habito.getCriadoEm().minusDays(40));
+        habitoRepository.save(habito);
 
         final var resposta = get("/api/stats/monthly?habitoId=" + habitoId, StatsResponseDTO.class).getBody();
 
@@ -154,11 +161,13 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
     }
 
     @Test
-    void rotaAntigaWeekly_continuaRespondendoOMesmoConteudo() {
+    void rotaWeekly_devolveJanelaDeSeteDias() {
         final var habitoId = criarHabito();
 
-        final var resposta = get("/api/stats/weekly?habitoId=" + habitoId, StatsResponseDTO.class);
+        final var resposta = get("/api/stats/weekly?habitoId=" + habitoId, StatsResponseDTO.class).getBody();
 
-        assertEquals(DIAS_JANELA, resposta.getBody().dias().size());
+        assertEquals(7, resposta.dias().size());
+        assertEquals(7, resposta.dias_periodo());
+        assertEquals(LocalDate.now(FUSO_PADRAO), resposta.dias().get(6).data());
     }
 }

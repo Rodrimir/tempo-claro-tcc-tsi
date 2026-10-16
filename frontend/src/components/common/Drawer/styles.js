@@ -1,7 +1,7 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { fonts } from '../../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const Backdrop = styled(Pressable)`
   flex: 1;

@@ -9,8 +9,11 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import org.springframework.stereotype.Service;
-import com.rodrigo.backend2java.usuario.Usuario;
+import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
+import com.rodrigo.backend2java.habito.model.Habito;
+import com.rodrigo.backend2java.habito.model.SubAtividade;
+import com.rodrigo.backend2java.habito.model.FrequenciaSemanal;
 
 @Service
 public class ProximoVencimentoService {

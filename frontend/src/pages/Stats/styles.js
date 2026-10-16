@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
-import { fonts } from '../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const StatsContainer = styled.ScrollView.attrs((props) => ({
   contentContainerStyle: { padding: 24, paddingTop: 24 + (props.$insetTop || 0), paddingBottom: 60 },
@@ -129,39 +129,6 @@ export const BarLabel = styled.Text`
   color: ${(props) => props.theme.textSecondary};
 `;
 
-export const EmptyStateContainer = styled.View`
-  flex: 1;
-  padding: 24px;
-  justify-content: center;
-  align-items: center;
-  background-color: ${(props) => props.theme.bgPrimary};
-`;
-
-export const EmptyIconWrapper = styled.View`
-  background-color: ${(props) => props.theme.bgSurface};
-  width: 80px;
-  height: 80px;
-  border-radius: 40px;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-`;
-
-export const EmptyTitle = styled.Text`
-  font-family: ${fonts.bold};
-  font-size: 18px;
-  margin-bottom: 8px;
-  color: ${(props) => props.theme.textPrimary};
-  text-align: center;
-`;
-
-export const EmptyText = styled.Text`
-  color: ${(props) => props.theme.textSecondary};
-  font-size: 14px;
-  line-height: 21px;
-  text-align: center;
-`;
-
 export const RetryButton = styled(Pressable)`
   margin-top: 20px;
   padding: 16px 32px;
@@ -211,4 +178,117 @@ export const PickerOptionText = styled.Text`
   font-size: 16px;
   font-family: ${(props) => (props.$active ? fonts.bold : fonts.regular)};
   color: ${(props) => (props.$active ? props.theme.primaryColor : props.theme.textPrimary)};
+`;
+
+export const SeletorPeriodo = styled.View`
+  flex-direction: row;
+  align-self: flex-start;
+  background-color: ${(props) => props.theme.bgSurface};
+  border-radius: 999px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.borderColor};
+  padding: 3px;
+  margin-top: 12px;
+`;
+
+export const OpcaoPeriodo = styled(Pressable)`
+  padding: 8px 16px;
+  min-height: 36px;
+  border-radius: 999px;
+  justify-content: center;
+  background-color: ${(props) => (props.$ativo ? props.theme.primaryStrong : 'transparent')};
+`;
+
+export const OpcaoPeriodoTexto = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 13px;
+  color: ${(props) => (props.$ativo ? '#ffffff' : props.theme.textSecondary)};
+`;
+
+export const GraficoArea = styled.View`
+  position: relative;
+  margin-top: 8px;
+`;
+
+export const LinhaDaMeta = styled.View`
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+`;
+
+export const RotuloDaMeta = styled.Text`
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  font-family: ${fonts.semiBold};
+  font-size: 11px;
+  color: ${(props) => props.theme.textSecondary};
+  background-color: ${(props) => props.theme.bgSurface};
+  padding: 0px 4px;
+`;
+
+export const RotuloEixo = styled.Text`
+  position: absolute;
+  left: 0;
+  top: -4px;
+  font-size: 10px;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const BarraRotulo = styled.Text`
+  font-size: 11px;
+  margin-top: 6px;
+  text-align: center;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const Dica = styled.View`
+  background-color: ${(props) => props.theme.bgPrimary};
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+`;
+
+export const DicaTitulo = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 13px;
+  color: ${(props) => props.theme.textPrimary};
+`;
+
+export const DicaTexto = styled.Text`
+  font-size: 13px;
+  margin-top: 2px;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const Legenda = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+`;
+
+export const LegendaItem = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+`;
+
+export const LegendaCor = styled.View`
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+`;
+
+export const LegendaTexto = styled.Text`
+  font-size: 12px;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const ComoLer = styled.Text`
+  font-size: 12px;
+  line-height: 18px;
+  margin-top: 10px;
+  color: ${(props) => props.theme.textSecondary};
 `;

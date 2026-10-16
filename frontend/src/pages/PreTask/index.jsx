@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
-import { getPreTaskPriming } from '../../services/api';
-import { useI18n } from '../../contexts/LanguageContext';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { getPreTaskPriming } from '@/services/api';
+import { useI18n } from '@/contexts/LanguageContext';
 import {
   PreTaskContainer,
   BackButtonWrapper,
@@ -37,7 +37,7 @@ const PreTask = () => {
       .catch(() => {
         setText(t('preTask.fraseFallback'));
       });
-  }, [currentHabit]);
+  }, [currentHabit, router, t]);
 
   if (!currentHabit) {
     return null;
@@ -46,7 +46,7 @@ const PreTask = () => {
   return (
     <PreTaskContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <BackButtonWrapper style={{ top: insets.top + 24 }}>
-        <BackButton onPress={() => router.push('/home')} accessibilityLabel={t('preTask.voltarParaHome')}>
+        <BackButton accessibilityRole="button" onPress={() => router.push('/home')} accessibilityLabel={t('preTask.voltarParaHome')}>
           <Feather name="arrow-left" size={32} color="white" />
         </BackButton>
       </BackButtonWrapper>
@@ -59,7 +59,7 @@ const PreTask = () => {
       </ContentWrapper>
 
       <ActionWrapper>
-        <ReadyButton onPress={() => router.push('/execute')}>
+        <ReadyButton accessibilityRole="button" onPress={() => router.push('/execute')}>
           <ReadyButtonText>{t('preTask.estouPronto')}</ReadyButtonText>
         </ReadyButton>
       </ActionWrapper>

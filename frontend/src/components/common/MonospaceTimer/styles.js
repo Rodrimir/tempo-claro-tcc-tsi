@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
-import { fonts } from '../../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const TimerContainer = styled.View`
   align-items: center;

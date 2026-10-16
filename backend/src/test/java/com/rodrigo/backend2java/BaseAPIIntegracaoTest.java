@@ -12,13 +12,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.rodrigo.backend2java.autenticacao.RegisterRequestDTO;
-import com.rodrigo.backend2java.autenticacao.AuthResponseDTO;
-import com.rodrigo.backend2java.autenticacao.VerifyEmailRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.RegisterRequestDTO;
+import com.rodrigo.backend2java.autenticacao.model.AuthResponseDTO;
+import com.rodrigo.backend2java.autenticacao.model.VerifyEmailRequestDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
-import com.rodrigo.backend2java.usuario.UsuarioResponseDTO;
+import com.rodrigo.backend2java.usuario.model.UsuarioResponseDTO;
 import com.rodrigo.backend2java.verificacao.FakeEmailService;
-import com.rodrigo.backend2java.verificacao.TipoCodigo;
+import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.http.HttpMethod.DELETE;

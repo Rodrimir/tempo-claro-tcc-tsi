@@ -3,6 +3,7 @@ import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.rodrigo.backend2java.verificacao.model.CodigoVerificacao;
 
 public interface CodigoVerificacaoRepository extends JpaRepository<CodigoVerificacao, UUID> {
 
@@ -11,4 +12,6 @@ public interface CodigoVerificacaoRepository extends JpaRepository<CodigoVerific
     List<CodigoVerificacao> findAllByEmailAndTipoAndUsadoEmIsNull(String email, String tipo);
 
     Optional<CodigoVerificacao> findFirstByEmailAndTipoOrderByCriadoEmDesc(String email, String tipo);
+
+    void deleteAllByEmailIgnoreCase(String email);
 }

@@ -10,13 +10,20 @@ node_modules/
 /.vscode
 /.idea
 /.claude
+/auditoria
 # Variáveis de ambiente — jwt.secret e as credenciais do banco vêm daqui em prod
 .env
 .env.local
 *.env
 
-# Material do TCC que não vai para o repositório
-/docs/tcc
+# Artefatos do TCC: os documentos de trabalho são versionados, para terem
+# histórico; a monografia e a planilha não, porque são binários grandes que não
+# diffam. A figura oficial do diagrama é versionada por ser feita à mão e não
+# reproduzível; a do gerador fica de fora, porque sai do .py quando preciso.
+/tcc/TempoClaro_Monografia.docx
+/tcc/*.xlsx
+/tcc/figura-07-casos-de-uso-gerado.png
+/tcc/figura-09-tecnologias.png
 
 # Configuração local do Spring (credenciais de SMTP etc.) — o Spring lê
 # ./config/application.properties automaticamente, com precedência sobre o

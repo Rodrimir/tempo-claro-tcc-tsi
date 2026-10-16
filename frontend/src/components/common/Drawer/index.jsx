@@ -3,7 +3,7 @@ import { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
 import { Backdrop, Panel, PanelHeader, PanelTitle, CloseButton, PanelBody } from './styles';
 
 function Drawer({ visible, onClose, titulo, children }) {
@@ -13,11 +13,11 @@ function Drawer({ visible, onClose, titulo, children }) {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <Backdrop onPress={onClose} accessibilityLabel={t('comum.fechar')} />
+      <Backdrop accessibilityRole="button" onPress={onClose} accessibilityLabel={t('comum.fechar')} />
       <Panel entering={SlideInRight.duration(220)} exiting={SlideOutRight.duration(180)} style={{ paddingTop: insets.top }}>
         <PanelHeader>
           <PanelTitle>{titulo}</PanelTitle>
-          <CloseButton onPress={onClose} accessibilityLabel={t('comum.fechar')}>
+          <CloseButton accessibilityRole="button" onPress={onClose} accessibilityLabel={t('comum.fechar')}>
             <Feather name="x" size={20} color={theme.textPrimary} />
           </CloseButton>
         </PanelHeader>

@@ -4,11 +4,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { resendVerificationCode } from '../../services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { resendVerificationCode } from '@/services/api';
+import { getApiErrorMessage } from '@/utils/erros';
 import {
   Container,
   BackButton,
@@ -36,13 +37,14 @@ const VerifyEmail = () => {
   const { addToast } = useToast();
   const { t } = useI18n();
   const { tocar } = useSfx();
-  const { email } = useLocalSearchParams();
+  const { email, origem } = useLocalSearchParams();
 
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [reenviando, setReenviando] = useState(false);
-  const [cooldown, setCooldown] = useState(COOLDOWN_INICIAL);
+  // Vindo do login, nenhum código novo acabou de ser enviado: o reenvio fica liberado de imediato.
+  const [cooldown, setCooldown] = useState(origem === 'login' ? 0 : COOLDOWN_INICIAL);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -62,7 +64,7 @@ const VerifyEmail = () => {
       router.replace('/home');
     } catch (err) {
       tocar('erro');
-      setErro(err.response?.data?.message || t('verificarEmail.erroPadrao'));
+      setErro(getApiErrorMessage(err, t('verificarEmail.erroPadrao')));
       setOcupado(false);
     }
   };
@@ -74,7 +76,7 @@ const VerifyEmail = () => {
       addToast(t('verificarEmail.codigoReenviado'), 'success');
       setCooldown(COOLDOWN_INICIAL);
     } catch (err) {
-      addToast(err.response?.data?.message || t('verificarEmail.erroPadrao'), 'error');
+      addToast(getApiErrorMessage(err, t('verificarEmail.erroPadrao')), 'error');
     } finally {
       setReenviando(false);
     }
@@ -88,6 +90,7 @@ const VerifyEmail = () => {
     >
       <Container $insetTop={insets.top}>
         <BackButton
+          accessibilityRole="button"
           style={{ top: insets.top + 16 }}
           onPress={() => {
             tocar('voltar');
@@ -116,6 +119,8 @@ const VerifyEmail = () => {
           </FormGroup>
 
           <PrimaryButton
+            accessibilityRole="button"
+            accessibilityState={{ disabled: ocupado }}
             onPress={() => {
               tocar('continuar');
               confirmar();
@@ -131,6 +136,8 @@ const VerifyEmail = () => {
 
           <ResendRow>
             <ResendLink
+              accessibilityRole="button"
+              accessibilityState={{ disabled: cooldown > 0 || reenviando }}
               onPress={() => {
                 tocar('tap');
                 reenviar();

@@ -2,10 +2,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Feather } from '@expo/vector-icons';
-import { PasswordInput } from '../../components/common/PasswordInput';
+import { PasswordInput } from '@/components/common/PasswordInput';
 import { useTheme } from 'styled-components/native';
 import {
   useSharedValue,
@@ -16,15 +16,16 @@ import {
   Easing,
 } from 'react-native-reanimated';
 
-import { useAuth } from '../../contexts/AuthContext';
-import { useThemeToggle } from '../../contexts/ThemeToggleContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useSfx } from '../../contexts/SoundContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeToggle } from '@/contexts/ThemeToggleContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { getApiErrorMessage } from '@/utils/erros';
 import { criarLoginSchema, criarRegisterSchema, TAMANHO_MINIMO_SENHA, RE_MAIUSCULA, RE_ESPECIAL } from './validation';
 
-import luaFlutuando from '../../../assets/lua_flutuando.png';
-import solFlutuando from '../../../assets/sol_flutuando.webp';
-import { useI18n } from '../../contexts/LanguageContext';
+import luaFlutuando from '@/assets/lua_flutuando.png';
+import solFlutuando from '@/assets/sol_flutuando.webp';
+import { useI18n } from '@/contexts/LanguageContext';
 
 import {
   LoginContainer,
@@ -63,6 +64,10 @@ import {
   ForgotPasswordText,
 } from './styles';
 
+// @note - 1.1 (Cadastro) Componente Login: um único formulário react-hook-form atende as abas
+// "Entrar" e "Criar Conta". A aba ativa (isLoginTab) decide o schema de validação (registerSchema
+// quando é cadastro) e quais campos existem: nome e confirmarSenha só existem nesta aba. Ver
+// README §8 > Cadastro > item 1.
 const Login = () => {
   const { t, idioma, setIdioma, idiomas } = useI18n();
 
@@ -82,15 +87,14 @@ const Login = () => {
   const {
     control,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(isLoginTab ? loginSchema : registerSchema),
     defaultValues: { nome: '', email: '', senha: '', confirmarSenha: '' },
   });
 
-  const senhaDigitada = watch('senha');
-  const confirmacaoDigitada = watch('confirmarSenha');
+  const senhaDigitada = useWatch({ control, name: 'senha' });
+  const confirmacaoDigitada = useWatch({ control, name: 'confirmarSenha' });
   const tamanhoOk = (senhaDigitada || '').length >= TAMANHO_MINIMO_SENHA;
   const maiusculaOk = RE_MAIUSCULA.test(senhaDigitada || '');
   const especialOk = RE_ESPECIAL.test(senhaDigitada || '');
@@ -105,11 +109,14 @@ const Login = () => {
       ),
       -1
     );
-  }, []);
+  }, [flutuar]);
   const estiloFlutuar = useAnimatedStyle(() => ({
     transform: [{ translateY: flutuar.value }],
   }));
 
+  // @audit-info - 1.1 (Cadastro) o botão físico de voltar do Android é interceptado para toda a
+  // tela (retorna true = evento consumido): não existe caminho para sair desta tela pelo botão de
+  // voltar do aparelho, inclusive na aba de cadastro.
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
     return () => subscription.remove();
@@ -121,24 +128,34 @@ const Login = () => {
         await login(data);
         router.replace('/home');
       } else {
+        // @note - 1.2 (Cadastro) ramo cadastro (isLoginTab === false): chama registerConta (ver
+        // README §8 > Cadastro > item 3), mostra toast de sucesso e navega para a verificação de
+        // e-mail.
         await registerConta({ ...data, idioma });
         addToast(t('login.cadastroRecebido'), 'success');
+        // @note - 15.1 (Cadastro) handoff: router.replace para /verify-email com o e-mail como
+        // parâmetro. O cadastro termina aqui; a confirmação do código é outra funcionalidade.
         router.replace({ pathname: '/verify-email', params: { email: data.email } });
       }
     } catch (err) {
+      // @note - 1.3 (Cadastro) ramo catch: qualquer falha do cadastro toca som de erro e mostra
+      // toast com a mensagem traduzida (ver README §8 > Cadastro > item 14); a tela permanece na
+      // aba de cadastro para nova tentativa, sem perder os valores já digitados. O ramo abaixo
+      // (isLoginTab && status 403) é específico do login, não do cadastro.
       if (isLoginTab && err.response?.status === 403) {
-        addToast(err.response?.data?.message || t('login.erroAutenticar'), 'error');
-        router.replace({ pathname: '/verify-email', params: { email: data.email } });
+        addToast(getApiErrorMessage(err, t('login.erroAutenticar')), 'error');
+        router.replace({ pathname: '/verify-email', params: { email: data.email, origem: 'login' } });
         return;
       }
       tocar('erro');
-      addToast(err.response?.data?.message || err.message || t('login.erroAutenticar'), 'error');
+      addToast(getApiErrorMessage(err, err.message || t('login.erroAutenticar')), 'error');
     }
   };
 
   return (
     <LoginContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <MenuBtn
+        accessibilityRole="button"
         style={{ top: insets.top + 24 }}
         onPress={() => {
           tocar('open');
@@ -169,6 +186,8 @@ const Login = () => {
 
           <TabContainer>
             <TabButton
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isLoginTab }}
               $active={isLoginTab}
               onPress={() => {
                 tocar('alternar');
@@ -178,6 +197,8 @@ const Login = () => {
               <TabButtonText $active={isLoginTab}>{t('login.tabEntrar')}</TabButtonText>
             </TabButton>
             <TabButton
+              accessibilityRole="tab"
+              accessibilityState={{ selected: !isLoginTab }}
               $active={!isLoginTab}
               onPress={() => {
                 tocar('alternar');
@@ -228,7 +249,18 @@ const Login = () => {
                 control={control}
                 name="senha"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <PasswordInput placeholder="••••••••" value={value} onChangeText={onChange} onBlur={onBlur} />
+                  // @note - 1.1 (Cadastro) mesmo campo "senha" atende login e cadastro;
+                  // textContentType/autoComplete mudam conforme a aba: "password" ao entrar
+                  // (senha existente), "newPassword"/"new-password" ao criar conta (senha nova,
+                  // habilita a sugestão de senha forte do sistema). Ver PasswordInput/index.jsx.
+                  <PasswordInput
+                    placeholder="••••••••"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    textContentType={isLoginTab ? 'password' : 'newPassword'}
+                    autoComplete={isLoginTab ? 'password' : 'new-password'}
+                  />
                 )}
               />
               {errors.senha && <ErrorText>{errors.senha.message}</ErrorText>}
@@ -264,6 +296,7 @@ const Login = () => {
               )}
               {isLoginTab && (
                 <ForgotPasswordLink
+                  accessibilityRole="button"
                   onPress={() => {
                     tocar('tap');
                     router.push('/forgot-password');
@@ -281,7 +314,16 @@ const Login = () => {
                   control={control}
                   name="confirmarSenha"
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <PasswordInput placeholder="••••••••" value={value} onChangeText={onChange} onBlur={onBlur} />
+                    // @note - 1.1 (Cadastro) confirmarSenha só existe na aba de cadastro, então é
+                    // sempre "senha nova" para o gerenciador de senhas nativo.
+                    <PasswordInput
+                      placeholder="••••••••"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      textContentType="newPassword"
+                      autoComplete="new-password"
+                    />
                   )}
                 />
                 {errors.confirmarSenha && <ErrorText>{errors.confirmarSenha.message}</ErrorText>}
@@ -299,6 +341,8 @@ const Login = () => {
             )}
 
             <SubmitButton
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSubmitting }}
               disabled={isSubmitting}
               onPress={() => {
                 tocar('continuar');
@@ -330,6 +374,8 @@ const Login = () => {
               <ThemeSegmentedControl>
                 {Object.entries(idiomas).map(([codigo, info]) => (
                   <LanguageChip
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: idioma === codigo }}
                     key={codigo}
                     $active={idioma === codigo}
                     accessibilityLabel={info.nome}
@@ -351,6 +397,8 @@ const Login = () => {
               </SettingsRowLabel>
               <ThemeSegmentedControl>
                 <ThemeOptionButton
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: tema === 'claro' }}
                   $active={tema === 'claro'}
                   accessibilityLabel={t('perfil.temaClaroLabel')}
                   onPress={() => {
@@ -361,6 +409,8 @@ const Login = () => {
                   <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
                 </ThemeOptionButton>
                 <ThemeOptionButton
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: tema === 'escuro' }}
                   $active={tema === 'escuro'}
                   accessibilityLabel={t('perfil.temaEscuroLabel')}
                   onPress={() => {
@@ -373,6 +423,7 @@ const Login = () => {
               </ThemeSegmentedControl>
             </SettingsRow>
             <SettingsCloseButton
+              accessibilityRole="button"
               onPress={() => {
                 tocar('close');
                 setShowSettings(false);

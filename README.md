@@ -3,43 +3,38 @@
 > Rastreador de hábitos gamificado — Trabalho de Conclusão de Curso
 > Tecnologia em Sistemas para Internet · IFSul Campus Pelotas · 2026/1
 
-**Apesar do nome, este não é um aplicativo de meteorologia.** "Tempo Claro" é uma metáfora: o
-usuário cultiva hábitos diários e, ao mantê-los, "abre o tempo" da própria rotina. O sistema
-permite manter até 5 hábitos ativos, executar cada um com cronômetro ou contador, ganhar moedas
-por execução e construir uma ofensiva (sequência de dias consecutivos). Moedas compram escudos,
-que protegem a ofensiva em um dia de falha.
-
-
 ---
 
 ## Índice
 
-| § | Seção | Conteúdo |
-|---|---|---|
-| [1](#1-informações-acadêmicas) | Informações Acadêmicas | Autoria, curso, instituição |
-| [2](#2-arquitetura-e-infraestrutura) | Arquitetura e Infraestrutura | Camadas, stack e hospedagem |
-| [3](#3-mapa-de-diretórios) | Mapa de Diretórios | Cada pasta e cada arquivo do repositório |
-| [4](#4-banco-de-dados) | Banco de Dados | Cada tabela, cada campo e por onde passa no código |
-| [5](#5-execução-local) | Execução Local | Pré-requisitos e comandos para subir o projeto |
-| [6](#6-api--contratos-completos) | API — Contratos | Requisição e resposta de cada endpoint |
-| [7](#7-frontend--estrutura-e-componentes) | Frontend | Páginas, contexts, hooks e utilitários |
-| [8](#8-fluxos-ponta-a-ponta) | Fluxos Ponta a Ponta | Como front e back se conectam, passo a passo |
-| [9](#9-padrão-de-rastreabilidade--audit-ok) | Rastreabilidade | A convenção `@audit-ok` |
-| [10](#10-testando-a-api-com-o-postman) | Postman | Guia da coleção de testes manuais |
-| [11](#11-limitações-conhecidas) | Limitações Conhecidas | O que ainda não está implementado |
+| §                                           | Seção                        | Conteúdo                                           |
+| ------------------------------------------- | ---------------------------- | -------------------------------------------------- |
+| [1](#1-informações-acadêmicas)              | Informações Acadêmicas       | Autoria, curso, instituição                        |
+| [2](#2-arquitetura-e-infraestrutura)        | Arquitetura e Infraestrutura | Camadas, stack e hospedagem                        |
+| [3](#3-mapa-de-diretórios)                  | Mapa de Diretórios           | Cada pasta e cada arquivo do repositório           |
+| [4](#4-banco-de-dados)                      | Banco de Dados               | Cada tabela, cada campo e por onde passa no código |
+| [5](#5-execução-local)                      | Execução Local               | Pré-requisitos e comandos para subir o projeto     |
+| [6](#6-api--contratos-completos)            | API — Contratos              | Requisição e resposta de cada endpoint             |
+| [7](#7-frontend--estrutura-e-componentes)   | Frontend                     | Páginas, contexts, hooks e utilitários             |
+| [8](#8-fluxos-ponta-a-ponta)                | Fluxos Ponta a Ponta         | Como front e back se conectam, passo a passo. Hoje: Cadastro |
+| [9](#9-padrão-de-rastreabilidade--audit-ok) | Rastreabilidade              | A convenção `@audit-ok`                            |
+| [10](#10-testando-a-api-com-o-postman)      | Postman                      | Guia da coleção de testes manuais                  |
+| [11](#11-limitações-conhecidas)             | Limitações Conhecidas        | Os 20 defeitos registrados e as pendências de operação                  |
+| [12](#12-sumário-de-bookmarks-do-fluxo-de-funcionalidades) | Sumário de Bookmarks | Índice de `@audit-issue`/`@audit-info`/`@audit-ok` por funcionalidade |
+| [13](#13-artefatos-do-tcc)                  | Artefatos do TCC             | O que é cada documento da pasta `tcc/` e qual é o atual |
 
 ---
 
 ## 1. Informações Acadêmicas
 
-| Campo | Valor |
-|---|---|
+| Campo           | Valor                                                        |
+| --------------- | ------------------------------------------------------------ |
 | **Instituição** | Instituto Federal Sul-rio-grandense (IFSul) — Campus Pelotas |
-| **Curso** | Tecnologia em Sistemas para Internet (TSI) |
-| **Semestre** | 2026/1 |
-| **Autor** | Rodrigo Miranda da Silva |
-| **GitHub** | [`Rodrimir`](https://github.com/Rodrimir) |
-| **Repositório** | `tempo-claro-tcc-tsi` |
+| **Curso**       | Tecnologia em Sistemas para Internet (TSI)                   |
+| **Semestre**    | 2026/1                                                       |
+| **Autor**       | Rodrigo Miranda da Silva                                     |
+| **GitHub**      | [`Rodrimir`](https://github.com/Rodrimir)                    |
+| **Repositório** | `tempo-claro-tcc-tsi`                                        |
 
 Projeto individual: todo o código de backend, frontend e infraestrutura foi escrito por um único
 desenvolvedor.
@@ -48,68 +43,58 @@ desenvolvedor.
 
 ## 2. Arquitetura e Infraestrutura
 
-O sistema tem duas camadas de apresentação e duas de infraestrutura compartilhada, cada uma
-hospedada separadamente:
+O Tempo Claro é um aplicativo Android nativo que conversa com uma API REST. As duas metades são
+independentes: o aplicativo não conhece o banco de dados e a API não conhece a interface. Essa
+separação é a tradução, em arquitetura, do requisito não funcional RNF08.
 
-| Camada | Stack | Hospedagem | URL |
-|---|---|---|---|
-| **Frontend web** | React 19 + Vite 8 + styled-components 6 + Capacitor 8 (Android) | Vercel | — |
-| **App Android nativo** (`frontend/`, ex-`mobile/`) | React Native 0.86 + Expo SDK 57 + expo-router + styled-components/native | Local (build gerado, ainda não distribuído) | — |
-| **Backend** | Java 17 + **Spring Boot 4.1.0** + Maven + Docker | Render | `https://tempo-claro-tcc-tsi.onrender.com/api` |
-| **Banco** | PostgreSQL 16 | Neon (AWS `sa-east-1`) | — |
+### Camadas
 
-**Por que existiam duas pastas de frontend.** `frontend-web/` era o app web original (React +
-Vite), empacotado em Android via Capacitor — um WebView, não um app nativo (ver §11.5). `frontend/`
-é a mesma camada de apresentação **reescrita do zero em React Native + Expo**, consumindo a mesma
-API REST sem nenhuma alteração no backend. A migração (`PLANO_MIGRACAO_EXPO.md`) portou as dez
-telas, os componentes comuns e o cronômetro com paridade de comportamento, e `frontend-web/` foi
-removido do repositório após a migração terminar. Detalhes de diretórios, matriz de substituição e
-limitações preservadas de propósito em `frontend/README.md`.
+| Camada | O que é | Onde |
+| --- | --- | --- |
+| Apresentação | Expo SDK 57 com React Native. Navegação pelo Expo Router, que deriva as rotas da árvore de arquivos. Estilos em `styled-components`. | `frontend/app`, `frontend/src/pages` |
+| Estado do cliente | Sete contextos React, um por preocupação: sessão, hábito corrente, resultado da execução, idioma, som, tema e avisos. Token em `expo-secure-store`, perfil em `AsyncStorage`. | `frontend/src/contexts` |
+| Transporte | Cliente Axios único, com interceptor que anexa o token e trata expiração de sessão. | `frontend/src/services/api.js` |
+| Controle | Cinco controladores Spring que recebem a requisição, validam o corpo e devolvem o DTO de resposta. Nenhuma regra de negócio aqui. | `backend/.../*Controller.java` |
+| Regra de negócio | Serviços por domínio. Todo cálculo de meta, ofensiva, moedas, nível e estatística acontece aqui, nunca no banco nem no cliente. | `backend/.../*Service.java` |
+| Persistência | Spring Data JPA sobre PostgreSQL. O banco guarda fatos e estado e garante integridade referencial; não tem gatilho, visão nem função armazenada. | `backend/.../*Repository.java` |
 
-### Decisões de arquitetura
+### Pilha de tecnologias
 
-**Persistência por JPA/Hibernate, no estilo do projeto de referência da disciplina
-(`tds_app_exemplo`).** O backend nasceu em `JdbcTemplate` puro (SQL em constante `String` +
-`RowMapper` manual) e foi migrado para Spring Data JPA em setembro de 2026
-em setembro de 2026. Hoje: 8 entidades anotadas (`@Entity`) e 8 repositórios como interface `JpaRepository` —
-zero `RowMapper`, zero SQL em constante. Onde o Spring Data não consegue derivar a consulta pelo
-nome do método, o SQL nativo fica **direto na anotação do método** (`@Query(nativeQuery = true)`),
-nunca numa variável — é o mesmo padrão que o `ProdutoRepository` do projeto de referência usa.
+| Onde | Tecnologia | Papel |
+| --- | --- | --- |
+| Backend | Java 21, Spring Boot 3 | Aplicação e injeção de dependência |
+| Backend | Spring Security + JWT (HS512) | Autenticação sem estado; validade do token configurável em `jwt.expiration` |
+| Backend | Spring Data JPA, Hibernate | Mapeamento objeto-relacional |
+| Backend | Lombok | Redução de código repetitivo nos DTOs e entidades |
+| Backend | Maven, via `./mvnw` | Compilação e testes |
+| Banco | PostgreSQL 16 | Dez tabelas, nove relacionamentos em cascata, sete índices |
+| Frontend | React Native, Expo SDK 57 | Aplicação Android |
+| Frontend | Expo Router | Navegação baseada em arquivos |
+| Frontend | styled-components | Estilo com tema claro e escuro |
+| Frontend | Axios | Camada HTTP |
+| Externo | Resend, API HTTP | Envio do código de verificação e de recuperação de senha |
 
-**`ddl-auto=validate`, não `update`.** Esta é a decisão mais importante da migração, e é a única
-divergência deliberada do projeto de referência (que usa `update`). O `schema.sql` continua sendo
-a fonte da verdade do banco (`spring.sql.init.mode=always`, ver abaixo); o Hibernate só **confere**
-se as entidades batem com as tabelas reais e recusa subir se divergirem. A razão é que o banco
-tem coisa que o Hibernate não sabe gerar sozinho: os `CHECK` de negócio, as migrações idempotentes, e
-5 índices (um deles parcial). Com `update` os dois — o script e o Hibernate — brigariam pela mesma
-estrutura a cada boot. Bônus: erro de mapeamento vira **erro de inicialização**, não bug silencioso
-em produção — foi assim que a migração pegou, por exemplo, que `hab_frequencia_semanal` é `CHAR(7)`
-no Postgres e não `VARCHAR` (a entidade correspondente usa `@JdbcTypeCode(SqlTypes.CHAR)` por causa
-disso).
+### Hospedagem
 
-**Associações `@ManyToOne` sempre `LAZY`, mesmo o projeto de referência usando `EAGER`.** É a
-divergência que evita piorar o N+1 que já existia (ver §11.4). Nenhum service navega essas
-associações — elas existem só para o modelo ficar no formato esperado pelo JPA; toda a lógica
-continua lendo por `UUID`, como sempre foi.
+| Serviço | Papel | Como se reconhece no repositório |
+| --- | --- | --- |
+| Render | Hospeda o backend em contêiner | `application-prod.properties` lê `${PORT:8084}`, que é o padrão do Render |
+| Neon | PostgreSQL gerenciado | O mesmo arquivo aponta a URL do Neon |
+| EAS Build | Gera o APK do aplicativo | `frontend/eas.json` |
 
-**Schema aplicado no boot, sem ferramenta de migração.** Não há Flyway nem Liquibase. A propriedade
-`spring.sql.init.mode=always` faz o Spring executar `schema.sql` a **cada inicialização** — inclusive
-o seed de `biblioteca_textos`, que mora na Seção 11 do próprio `schema.sql` (não existe mais um
-`data.sql` separado). Isso só é seguro porque todo o DDL usa `CREATE TABLE IF NOT EXISTS` e o seed
-usa `ON CONFLICT DO NOTHING` — ou seja, a execução é idempotente.
+O envio de e-mail passa pela API HTTP do Resend, e não por SMTP, por uma razão de infraestrutura: o
+plano gratuito do Render bloqueia as portas 25, 465 e 587, de modo que SMTP direto nunca entrega em
+produção. A porta 443 não é bloqueada. O detalhamento da publicação está em
+[`docs/DEPLOY_PRODUCAO.md`](docs/DEPLOY_PRODUCAO.md).
 
-**Autenticação stateless por JWT, emitido e validado pelo OAuth2 Resource Server nativo do Spring
-Security.** Não há sessão no servidor (`SessionCreationPolicy.STATELESS`). Cada requisição
-autenticada carrega um token `Bearer` HS512 cujo *subject* é o e-mail do usuário — o formato do
-token não mudou com a migração, só quem o gera (`TokenService`/`JwtEncoder`) e quem o valida
-(`JwtDecoder` + `CustomJwtAuthenticationConverter`, que busca o `Usuario` no banco e monta a
-autenticação). Como a API é REST pura e agnóstica de cliente, o mesmo backend serve o navegador e
-o APK Android sem nenhuma diferença.
-
-**Mobile por WebView.** O Capacitor empacota o build do Vite dentro de um `WebView` numa
-`BridgeActivity` do Android. Não é um aplicativo nativo: a interface é HTML renderizada. O
-`capacitor.plugins.json` está vazio (`[]`), então nenhum recurso nativo é utilizado — a única
-permissão declarada no manifesto é `INTERNET`.
+O mesmo plano suspende a instância depois de uns quinze minutos sem tráfego, o que tem três efeitos
+tratados no código. A primeira requisição depois da pausa demora até um minuto: o aplicativo chama
+a API assim que abre, espera até 90 segundos por resposta e avisa a pessoa quando a espera passa de
+seis segundos. Enquanto a instância dorme, a rotina horária de fechamento não roda: por isso toda
+requisição que usa os contadores do dia apura antes os dias vencidos daquele hábito
+(`ApuracaoService`), com trava na linha de `status_habitos`, e a rotina continua existindo para os
+hábitos de quem não abriu o aplicativo. E uma demora no reinício não encerra mais a sessão salva no
+aparelho, que só é descartada quando a API responde 401 ou 403.
 
 ---
 
@@ -117,294 +102,104 @@ permissão declarada no manifesto é `INTERNET`.
 
 ```
 tempo-claro-tcc-tsi/
-├── README.md                        Este documento — especificação técnica completa
-├── docs/
-│   ├── TempoClaro_Monografia.txt    A especificação final: em qualquer divergência, ela decide
-│   ├── ATUALIZACOES_MONOGRAFIA.md   O que precisa ser corrigido na monografia, e por quê
-│   └── schema-consolidado.sql       Retrato do banco, sem as migrações — para consulta e para a Figura 9
-├── .gitignore                       Artefatos de build, node_modules e arquivos .env
-├── .vscode/settings.json            Configura a extensão Inline Bookmarks (exibe os @audit-ok)
-├── backend/                         API REST em Spring Boot
-├── frontend/                        Aplicativo React Native + Expo
-├── PLANO_MIGRACAO_EXPO.md           Plano da migração do WebView para o app nativo
-└── PLANO_CORRECOES_EXPO.md          Correções pendentes do app nativo
+├── backend/                      API Spring Boot
+│   └── src/
+│       ├── main/java/.../backend2java/
+│       │   ├── autenticacao/     Cadastro, login, emissão de token      (10 classes)
+│       │   ├── verificacao/      Código de 6 dígitos e envio de e-mail   (6 classes)
+│       │   ├── usuario/          Entidade do usuário e perfil            (6 classes)
+│       │   ├── habito/           Criação, edição, exclusão, painel e apuração (15 classes)
+│       │   ├── execucao/         Execução, desistência, escudo e moedas (10 classes)
+│       │   ├── calibracao/       Questionário e cálculo da sugestão     (10 classes)
+│       │   ├── biblioteca/       Frases motivacionais por categoria      (2 classes)
+│       │   ├── stats/            Ofensiva, recordes e constância         (4 classes)
+│       │   └── infra/            Segurança, exceções e utilitários      (13 classes)
+│       ├── main/resources/
+│       │   ├── schema.sql        As dez tabelas, índices e restrições
+│       │   ├── calibracao/       Catálogo de perguntas do questionário
+│       │   └── Postman/          Coleção de testes manuais, 29 requisições
+│       └── test/java/            171 provas automatizadas
+├── frontend/                     Aplicativo Expo
+│   ├── app/                      18 rotas do Expo Router, arquivos finos
+│   └── src/
+│       ├── pages/                14 telas, cada uma com index, estilos e domínio
+│       ├── components/           10 componentes compartilhados
+│       ├── contexts/             7 contextos de estado global
+│       ├── hooks/                Ganchos reutilizáveis
+│       ├── i18n/                 Catálogos pt-BR e en-US
+│       ├── model/                Enumerações de estado
+│       ├── services/             Cliente HTTP
+│       ├── styles/               Temas claro e escuro
+│       └── utils/                Armazenamento, formatação e erros
+├── tcc/                          Documentos do trabalho, ver §13
+├── docs/                         Material de apoio, fora do versionamento
+├── README.md                     Este arquivo
+├── RELATORIO_AUDITORIA.md        Auditoria de código de 27/09/2026
+└── revisao.md                    Metodologia de documentação e análise
 ```
-
-> **A monografia é a fonte da verdade do produto.** Este README descreve o sistema como ele está
-> implementado; quando os dois discordam, quem decide é a monografia. As divergências encontradas na
-> última auditoria — e o que cada uma exige do texto dela — estão em
-> [`docs/ATUALIZACOES_MONOGRAFIA.md`](docs/ATUALIZACOES_MONOGRAFIA.md).
-
-### 3.1. `backend/`
-
-#### Infraestrutura e build
-
-| Arquivo | O que configura |
-|---|---|
-| `pom.xml` | Spring Boot **4.1.0**, Java **17**, `groupId` `com.rodrigo`, `artifactId` `tempo-claro`. Dependências: `spring-boot-starter-webmvc`, `-validation`, `-data-jpa`, `-security`, `-security-oauth2-resource-server`, `spring-boot-restclient`, `springdoc-openapi-starter-webmvc-ui`, Lombok, driver PostgreSQL. Sem `spring-boot-starter-data-rest` de propósito — expõe endpoint automático a partir de repository, o que violaria o contrato da API. |
-| `mvnw` · `mvnw.cmd` · `.mvn/wrapper/` | Maven Wrapper 3.3, resolve `apache-maven-3.9.16` sozinho — não precisa de Maven instalado na máquina. |
-| `Dockerfile` | Build multi-stage: compila em `maven:3.9-amazoncorretto-17` com `mvn package -DskipTests` e executa em `amazoncorretto:17-alpine`. `-DskipTests` continua necessário porque os testes de integração abrem conexão real com Postgres, indisponível no estágio de build isolado. Define `SPRING_PROFILES_ACTIVE=prod` e expõe a porta 8080. |
-| `compose.yaml` | Três serviços: `db` (postgres:16-alpine, porta **5433**→5432, healthcheck `pg_isready`, monta `db-init/` para criar `backend_db_teste`), `app` (build local, porta **8082**, perfil `docker`) e `pgadmin` (porta **8093**). |
-| `.run/*.run.xml` | Duas run configurations do IntelliJ versionadas — ver Opção C, abaixo. |
-
-#### Código-fonte — `src/main/java/com/rodrigo/backend2java/`
-
-Organizado **por feature** (um pacote por domínio, entidade + DTOs + repository + service +
-controller juntos), no formato do projeto de referência da disciplina — não mais por camada
-técnica.
-
-```
-├── BackEndIiApplication.java        Classe main. @SpringBootApplication + @EnableScheduling
-│                                    (é o @EnableScheduling que liga o FechamentoDiarioJob)
-│
-├── autenticacao/
-│   ├── AuthController.java          POST /api/auth/login · POST /api/auth/register
-│   ├── AuthService.java             autenticar (via AuthenticationManager) · cadastrar
-│   ├── AutenticacaoService.java     implements UserDetailsService — usado pelo AuthenticationManager
-│   ├── AutenticacaoRepository.java  Repository<Usuario,UUID> puro, só findByEmail
-│   ├── LoginRequestDTO.java · RegisterRequestDTO.java · AuthResponseDTO.java
-│
-├── usuario/
-│   ├── Usuario.java                 @Entity (tabela usuarios), implements UserDetails
-│   ├── UsuarioRepository.java       JpaRepository — findByEmail/existsByEmail derivados;
-│   │                                atualizarPerfil é @Query nativa (carimba usu_atualizado_em)
-│   ├── UsuarioService.java · ProfileController.java · ProfileUpdateDTO.java · UsuarioResponseDTO.java
-│
-├── habito/
-│   ├── Habito.java                  @Entity (tabela habitos)
-│   ├── AcessoHabitoService.java     confere se o hábito é do usuário do token (RF22/RNF08)
-│   ├── SubAtividade.java            @Entity (tabela sub_atividades)
-│   ├── HabitoRepository.java · SubAtividadeRepository.java
-│   ├── HabitoService.java · HabitoController.java · FechamentoDiarioJob.java
-│   ├── ProximoVencimentoService.java
-│   ├── HabitoRequestDTO.java · HabitoResponseDTO.java · DashboardResponseDTO.java
-│
-├── execucao/
-│   ├── StatusHabito.java            @Entity (tabela status_habitos, PK = FK de habitos)
-│   ├── HistoricoExecucao.java       @Entity (tabela historico_execucoes)
-│   ├── StatusHabitoRepository.java  resetarDiario é @Query nativa — idempotência (ver §11.4)
-│   ├── HistoricoExecucaoRepository.java  as 2 agregações de 7 dias são @Query nativa + interface projection
-│   ├── GamificacaoService.java · ExecutionRequestDTO.java · ExecutionResponseDTO.java · PrimingResponseDTO.java
-│
-├── stats/
-│   └── StatsController.java · StatsService.java · StatsResponseDTO.java · DiaStatsDTO.java
-│
-├── biblioteca/  · calibracao/  · push/
-│   └── Entidades/repositórios sem uso em regra de negócio (ver §4 e o cabeçalho do schema.sql)
-│
-└── infra/
-    ├── doc/SpringDocConfiguration.java     Swagger — bearerAuth + Info, sem @Operation em endpoint
-    │                                       nenhum (introspecção automática, como o projeto de referência)
-    ├── security/SecurityConfig.java        OAuth2 Resource Server, CORS liberado, CSRF off, STATELESS
-    ├── jwt/{JwtConfig,TokenService,CustomJwtAuthenticationConverter}.java
-    │                                       JwtEncoder/JwtDecoder nativos do Spring Security. HS512
-    ├── exception/{GlobalExceptionHandler,MessageResponseDTO}.java
-    ├── log/RequestLoggingFilter.java       Imprime no console cada requisição (ver §11 — Segurança)
-    └── util/ZonaUsuario.java
-```
-
-#### Recursos — `src/main/resources/`
-
-| Arquivo | Conteúdo |
-|---|---|
-| `schema.sql` | DDL das 8 tabelas (`CREATE TABLE IF NOT EXISTS`) + as migrações idempotentes (Seção 9) + o seed de `biblioteca_textos` (Seção 11, `ON CONFLICT DO NOTHING`) — não existe mais `data.sql` separado, nem view. Executado a cada boot; é a fonte da verdade que o `ddl-auto=validate` confere. |
-| `application.properties` | Perfil padrão (execução local direta): Postgres em `localhost:5433`, porta 8082, `spring.jpa.hibernate.ddl-auto=validate`. |
-| `application-docker.properties` | Perfil `docker`: Postgres em `db:5432` (rede do compose), porta 8082. |
-| `application-prod.properties` | Perfil `prod`: Postgres da Neon com `sslmode=require`, porta `${PORT:8080}`. |
-| `Postman/Tempo Claro.json` | Coleção Postman com 9 pastas cobrindo todos os endpoints (ver §10). |
-
-### 3.2. `frontend-web/` (legado, removido)
-
-#### Configuração e build
-
-| Arquivo | O que configura |
-|---|---|
-| `package.json` | Scripts `dev`, `build`, `lint`, `preview`. Sem script de teste. |
-| `vite.config.js` | Mínimo: apenas o plugin React. Sem aliases e sem proxy. |
-| `eslint.config.js` | Flat config do ESLint 9. Ignora `dist`, `android` e `.idea`. |
-| `jsconfig.json` | Alias `src/*` **apenas para o editor** — não é replicado no Vite, por isso todos os imports do código são relativos. |
-| `index.html` | Template do Vite. Título "Tempo Claro (React PWA)", `<div id="root">`. |
-| `capacitor.config.json` | `appId: com.rodrigo.tempoclaro`, `appName: Tempo Claro`, `webDir: dist`. |
-| `.gitignore` | `node_modules`, `dist`, e os diretórios de build do Android. |
-
-#### Código-fonte — `src/`
-
-```
-├── main.jsx                         Ponto de entrada. Detecta prefers-color-scheme e monta a árvore
-│                                    de providers: Auth > CurrentHabit > ThemeToggle > Toast > App
-├── App.jsx                          Injeta o tema no ThemeProvider e renderiza GlobalStyle + AppRoutes
-│
-├── routes/index.jsx                 BrowserRouter com todas as rotas. Define o ProtectedRoute
-├── layouts/MainLayout/              Casca das rotas com barra inferior: <Outlet/> + <BottomNav/>
-│
-├── components/common/
-│   ├── CircularProgress/            Anel SVG de progresso — hábitos do tipo QUANTIDADE
-│   ├── GiveUpModal/                 Modal de desistência. Envia FAIL_BLOQUEIO ou FAIL_TIMEOUT
-│   ├── LoadingScreen/               Tela de carregamento com o sol girando
-│   ├── MonospaceTimer/              Display MM:SS do cronômetro + badge de bônus
-│   └── Toast/styles.js              Só estilos; o componente vive dentro do ToastContext
-│
-├── components/layout/
-│   ├── BottomNav/                   Barra inferior: 4 abas + botão Play central que inicia a execução
-│   └── LocalHeader/                 Cabeçalho com moedas, ofensiva e escudos do hábito em foco
-│
-├── contexts/
-│   ├── AuthContext.jsx              Autenticação, dados do usuário, login/register/logout
-│   ├── CurrentHabitContext.jsx      Hábito selecionado no carrossel — compartilhado entre telas
-│   ├── ThemeToggleContext.jsx       Alternância claro/escuro
-│   └── ToastContext.jsx             Notificações temporárias + renderização dos toasts
-│
-├── hooks/useTimer.js                Cronômetro regressivo com persistência e compensação de background
-│
-├── pages/                           Uma pasta por tela, no padrão index.jsx + styles.js
-│   ├── Login/                       Abas Entrar/Criar Conta + modal de configurações
-│   ├── Home/                        Carrossel horizontal de hábitos com avatar reativo
-│   ├── PreTask/                     Texto motivacional antes da execução
-│   ├── Execution/                   Cronômetro ou contador ativo
-│   ├── Success/                     Recompensa, com 50 partículas animadas
-│   ├── Fail/                        Falha ou proteção por escudo (única tela em SCSS)
-│   ├── Stats/                       Métricas do hábito em foco (gráfico Recharts)
-│   ├── Store/                       Compra de escudos e inventário
-│   ├── Profile/                     Dados do usuário, preferências e logout
-│   └── CreateHabit/                 Assistente de criação em 3 passos
-│
-├── services/
-│   ├── api.js                       Instância axios + interceptores + as 11 funções de endpoint
-│   └── authService.js               Validação local dos formulários de login e cadastro
-│
-├── styles/
-│   ├── theme.js                     lightTheme e darkTheme — 12 chaves cada
-│   └── GlobalStyles.js              Reset, fonte Lexend e as 10 CSS custom properties
-│
-├── utils/storage.js                 Persistência criptografada (AES) no localStorage
-│
-└── assets/                          sol_flutuando.webp · lua_flutuando.png · gotinha/
-```
-
-#### `frontend-web/android/` — o wrapper Capacitor
-
-Projeto Gradle Android gerado por `npx cap add android`. Os arquivos que importam:
-
-| Arquivo | Conteúdo |
-|---|---|
-| `app/src/main/AndroidManifest.xml` | Uma única `MainActivity` com `launchMode="singleTask"`. **Única permissão: `INTERNET`.** |
-| `app/src/main/java/com/rodrigo/tempoclaro/MainActivity.java` | Cinco linhas: `extends BridgeActivity` com corpo vazio. Nenhum código nativo. |
-| `app/src/main/assets/capacitor.plugins.json` | `[]` — **nenhum plugin nativo registrado**. |
-| `variables.gradle` | `minSdk 24`, `compileSdk`/`targetSdk 36`. |
-| `app/build.gradle` | `applicationId com.rodrigo.tempoclaro`, `versionCode 1`, `versionName "1.0"`. |
-
-O restante da pasta são recursos gerados automaticamente (ícones e splash em todas as densidades)
-e diretórios de build ignorados pelo Git.
 
 ---
 
 ## 4. Banco de Dados
 
-PostgreSQL 16, oito tabelas com prefixo por tabela (`usu_`, `hab_`, `sub_`, `sta_`, `his_`,
-`bib_`, `cab_`, `cal_`, `dis_`). O schema é aplicado por
-[`backend/src/main/resources/schema.sql`](backend/src/main/resources/schema.sql) a cada
-inicialização.
+Dez tabelas em PostgreSQL. O banco guarda fatos e estado e garante integridade referencial; não há
+gatilho, visão nem função armazenada, de modo que toda regra de negócio fica na camada de serviço,
+onde pode ser testada sem banco. O esquema está em `backend/src/main/resources/schema.sql` e roda
+na subida da aplicação.
 
-Esse arquivo é **incremental**: além do DDL, carrega a Seção 9 de migrações idempotentes, que leva
-um banco de uma versão anterior até a atual. É o que o servidor precisa, e é ruído para quem só
-quer ler a estrutura. Para isso existe
-[`docs/schema-consolidado.sql`](docs/schema-consolidado.sql) — o mesmo banco **sem** as migrações,
-que é o retrato a usar na documentação e no modelo de dados da monografia. Não é uma segunda cópia
-mantida à mão: a equivalência entre os dois é verificada aplicando cada um num banco vazio e
-comparando os `pg_dump` (o comando está no cabeçalho do arquivo).
+### Inventário
 
-> **O schema é a fonte da verdade, e esta seção não a duplica.** Uma versão anterior deste
-> documento descrevia coluna por coluna, e envelheceu: descrevia cinco tabelas sem prefixo que já
-> não existiam. Havia ainda duas outras cópias do arquivo (em `docs/` e na raiz), que também já
-> tinham divergido entre si — as duas foram removidas. Aqui ficam só o modelo e as decisões; os
-> tipos, defaults e `CHECK` estão comentados no próprio `schema.sql`.
+| Tabela | Finalidade | Depende de |
+| --- | --- | --- |
+| `usuarios` | Conta: nome, e-mail, senha com hash, e as preferências de idioma, fuso e tema | — |
+| `codigos_verificacao` | Códigos de seis dígitos da confirmação de e-mail e da recuperação de senha, com hash e prazo | — |
+| `biblioteca_textos` | Frases motivacionais por categoria de hábito e por idioma | — |
+| `habitos` | O hábito: título, categoria, tipo de medida, meta, progressão e dias da semana cobrados | `usuarios` |
+| `sub_atividades` | Ocorrências diárias do hábito, com ordem, parcela da meta e horário | `habitos` |
+| `status_habitos` | Estado corrente: moedas, ofensiva, escudos e nível do avatar. Separada de `habitos` porque muda a cada execução | `habitos` |
+| `historico_execucoes` | Registro imutável de cada execução, desistência ou apuração automática, com o token de unicidade | `habitos`, `sub_atividades` |
+| `calibracoes` | Sessão do questionário, com a meta sugerida e se foi aceita | `usuarios`, `habitos` |
+| `calibracao_respostas` | Cada resposta dada dentro de uma sessão de calibração | `calibracoes` |
+| `dispositivos_push` | Token do aparelho para notificação, previsto como trabalho futuro | `usuarios` |
 
-### 4.0. Visão geral do modelo
+Chave primária do tipo UUID em todas, para que um identificador vazado não revele a quantidade de
+registros nem permita adivinhar o vizinho. Nove relacionamentos com remoção em cascata e sete
+índices sobre as colunas das consultas de maior frequência.
 
-```
-        usuarios ─────────────┬─────────────────┐
-           │ 1                │ 1               │ 1
-           │ N                │ N               │ N
-        habitos            calibracoes     dispositivos_push
-           │ 1                │ 1
-           ├── 1 status_habitos   (PK = hab_id)
-           ├── N sub_atividades   (as ocorrências do dia)
-           ├── N historico_execucoes
-           └── N calibracao_respostas (via calibracoes)
+### Detalhamento por tabela
 
-        biblioteca_textos — tabela de consulta, sem FK (categoria + idioma)
-```
+O detalhamento campo a campo, com a coluna "Tocada por", só existe para as tabelas que algum fluxo
+já mapeado em [§8](#8-fluxos-ponta-a-ponta) percorre. As demais aparecem apenas no inventário
+acima, até que o fluxo correspondente seja documentado.
 
-- **`usuarios` 1:N `habitos`** — no máximo **2 hábitos ativos** por usuário (RF03), regra aplicada
-  em `HabitoService.LIMITE_HABITOS_ATIVOS`, não no banco.
-- **`habitos` 1:1 `status_habitos`** — a chave primária de `status_habitos` **é** `sta_habito_id`.
-  A linha nasce junto com o hábito, na mesma transação. É onde vive a economia isolada: moedas,
-  escudos, ofensiva, nível do avatar e os contadores do dia.
-- **`habitos` 1:N `sub_atividades`** — uma linha por ocorrência diária. **A contagem dessas linhas
-  É a frequência diária do hábito** — não existe coluna duplicando esse número, e a soma dos
-  `sub_alvo` sempre fecha com `hab_meta_base`.
-- **`habitos` 1:N `historico_execucoes`** — registro append-only de cada execução, com
-  `his_execution_token UNIQUE` (idempotência, RF21/RNF09) e `his_sub_atividade_id` apontando para a
-  ocorrência que foi coberta (base do rateio de moedas, RF12).
-- **`calibracoes`** pertence ao **usuário**, não ao hábito: o questionário (RF20) acontece antes de
-  o hábito existir. `cab_habito_id` só é preenchido se a sugestão virar hábito.
-- **`biblioteca_textos`** é consultada pelo par (`categoria`, `idioma`) e é a única sem FK.
+### `usuarios`
 
-Todos os relacionamentos usam `ON DELETE CASCADE`, exceto `his_sub_atividade_id`, que é
-`ON DELETE SET NULL` — reconfigurar um hábito apaga e recria as ocorrências, e o histórico precisa
-sobreviver a isso.
+| Campo                   | Tipo         | Restrição                              | Tocada por |
+| ------------------------ | ------------ | ---------------------------------------- | ---------- |
+| `usu_id`                 | UUID (PK)    | `DEFAULT gen_random_uuid()`              | Cadastro (9.2) |
+| `usu_nome`               | VARCHAR(150) | `NOT NULL`                                | Cadastro (9.2) |
+| `usu_email`              | VARCHAR(255) | `UNIQUE NOT NULL`, `CHECK (LIKE '%@%')`   | Cadastro (9.1, 9.2) |
+| `usu_senha_hash`         | VARCHAR(255) | `NOT NULL`                                | Cadastro (9.2) |
+| `usu_fuso_horario`       | VARCHAR(64)  | `NOT NULL DEFAULT 'America/Sao_Paulo'`    | Cadastro (9.2, valor fixo, não escolhido pelo usuário) |
+| `usu_preferencia_idioma` | VARCHAR(10)  | `NOT NULL DEFAULT 'pt-BR'`                | Cadastro (9.2) |
+| `usu_tema`               | VARCHAR(10)  | `NOT NULL`, `CHECK IN (...)`              | Cadastro (9.2, recebe o default da coluna) |
+| `usu_criado_em`          | TIMESTAMPTZ  | `NOT NULL DEFAULT CURRENT_TIMESTAMP`      | Cadastro (9.2) |
+| `usu_atualizado_em`      | TIMESTAMPTZ  | `NOT NULL DEFAULT CURRENT_TIMESTAMP`      | Cadastro (9.2, via `@PrePersist`) |
+| `usu_email_verificado`   | BOOLEAN      | `NOT NULL DEFAULT FALSE`                  | Cadastro (9.2, nasce `false`) |
 
-### 4.1. Decisões do modelo
+### `codigos_verificacao`
 
-**O banco não tem view, trigger nem função.** A §4.5 da monografia é explícita: o banco guarda
-fatos, estado e integridade; toda regra vive na camada de serviço. A versão anterior tinha uma view
-`vw_habito_hoje` que derivava o status do dia e a frequência diária — as duas derivações voltaram
-para `HabitoService.montar`. O `DROP VIEW` está na seção de migrações do `schema.sql`.
+| Campo             | Tipo         | Restrição                                                          | Tocada por |
+| ------------------ | ------------ | --------------------------------------------------------------------- | ---------- |
+| `cod_id`           | UUID (PK)    | `DEFAULT gen_random_uuid()`                                            | Cadastro (10.1) |
+| `cod_email`        | VARCHAR(255) | `NOT NULL`                                                              | Cadastro (10.1) |
+| `cod_codigo_hash`  | VARCHAR(255) | `NOT NULL`                                                              | Cadastro (10.1) |
+| `cod_tipo`         | VARCHAR(30)  | `NOT NULL`, `CHECK IN ('VERIFICACAO_EMAIL', 'RECUPERACAO_SENHA')`       | Cadastro (10.1, grava `VERIFICACAO_EMAIL`) |
+| `cod_expira_em`    | TIMESTAMPTZ  | `NOT NULL`                                                              | Cadastro (10.1, 15 minutos após a geração) |
+| `cod_tentativas`   | SMALLINT     | `NOT NULL DEFAULT 0`                                                    | Cadastro (10.1, nasce em 0) |
+| `cod_criado_em`    | TIMESTAMPTZ  | `NOT NULL DEFAULT CURRENT_TIMESTAMP`                                    | Cadastro (10.1) |
 
-**Migrações idempotentes em vez de ferramenta de migração.** Não há Flyway nem Liquibase:
-`spring.sql.init.mode=always` roda o `schema.sql` a cada boot, e todo comando é idempotente
-(`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). Como
-`CREATE TABLE IF NOT EXISTS` **não altera** tabela existente, a Seção 9 do script concentra os
-`ALTER`/`DROP` que levam um banco antigo ao formato atual. É por isso que `ddl-auto=validate`
-funciona: o Hibernate só confere se as entidades batem com as tabelas reais e recusa subir se não.
-
-**Fuso horário.** Todo instante é `TIMESTAMPTZ` e trafega em UTC. As duas exceções são `DATE` e
-representam a data **local do dono**: `his_data_local` (gravada com `ZonaUsuario.resolver`, nunca
-com o relógio da JVM — que é UTC no Render) e `sta_ultimo_reset` (o último dia já apurado pelo
-fechamento). Nunca compare essas colunas com `CURRENT_DATE` do servidor.
-
-### 4.2. As regras de gamificação, em um lugar só
-
-Durante o dia, a execução **acumula e não credita**:
-
-| Evento (`tipo`) | Efeito |
-|---|---|
-| ausente / em branco / `COMPLETE_*` | `sta_valor_acumulado_hoje += valor`, `sta_execucoes_hoje += 1`, grava `his_sub_atividade_id` |
-| `FAIL_BLOQUEIO` | consome 1 escudo e marca `sta_bloqueio_usado_hoje` — o dia fica protegido |
-| `FAIL_TIMEOUT` | registra o parcial no histórico (RF10); não acumula realizado |
-| Compra de escudo | `-1500` moedas, `+1` em `sta_bloqueios_acumulados` |
-
-No fechamento do dia (`FechamentoService`, disparado pelo job da virada):
-
-```
-percentualDia = sta_valor_acumulado_hoje / hab_meta_base
-pote          = percentualDia >= 1.20 ? 150 : 100
-cota_i        = pote / N                      (N = nº de ocorrências)
-credito_i     = cota_i * min(1, realizado_i / sub_alvo_i)
-moedas        = round(Σ credito_i)
-```
-
-| Situação do dia | Moedas | Ofensiva |
-|---|---|---|
-| Meta batida em todas as ocorrências | **100** | `+1` |
-| Meta batida com ≥120% do total | **150** | `+1` |
-| Meta batida pulando 1 de 3 ocorrências | **67** | `+1` (RF12) |
-| 60% da meta | **60** | zerada |
-| Abaixo da meta, com escudo disponível | proporcional | preservada, escudo consumido |
-| Dia fora de `hab_frequencia_semanal` | 0 | intocada — não era dia de fazer |
-
-`sta_nivel_avatar = min(5, 1 + dias_seguidos / 10)` — RF14: a cada dez dias consecutivos.
-
+`cod_usado_em` não é gravado pelo cadastro: só recebe valor quando o código é confirmado, o que pertence à funcionalidade de Verificação de E-mail.
 
 ---
 
@@ -412,1529 +207,901 @@ moedas        = round(Σ credito_i)
 
 ### Pré-requisitos
 
-| Ferramenta | Versão | Necessária para |
-|---|---|---|
-| **JDK** | 17 | Compilar o backend (o `pom.xml` fixa `<java.version>17</java.version>`) |
-| **Node.js** | 20+ | Rodar o frontend |
-| **Docker** + Docker Compose | recente | Subir o PostgreSQL — e, se preferir, o backend inteiro |
-| **Android Studio** | opcional | Gerar o APK |
+| Ferramenta | Versão | Para quê |
+| --- | --- | --- |
+| JDK | 21 | Compilar e rodar o backend |
+| PostgreSQL | 16 ou superior | Banco local |
+| Node.js | 20 ou superior | Ferramentas do Expo |
+| Android Studio ou um aparelho com Expo Go | — | Executar o aplicativo |
 
-> **O backend precisa de um PostgreSQL.** Versões anteriores deste projeto usavam H2 em memória.
-> **Isso não vale mais**: sem um Postgres acessível, a aplicação não sobe (nem o `H2` continua na
-> classpath). A forma mais simples de obter um é o `compose.yaml`. O Maven Wrapper (`mvnw`) resolve
-> o Maven sozinho — não é preciso instalá-lo.
+### Backend
 
-### Opção A — Banco no Docker, backend na IDE
+O Spring lê `backend/config/application.properties` automaticamente, com precedência sobre o
+arquivo do classpath. É nesse arquivo local, que não é versionado, que ficam a senha do banco, o
+segredo do JWT e a chave do Resend.
 
-Melhor para desenvolver, porque permite *hot reload* e depuração.
-
-```bash
+```sh
+createdb backend_db                      # uma vez
 cd backend
-docker compose up -d db      # sobe só o Postgres, na porta 5433
-./mvnw spring-boot:run       # backend em http://localhost:8082
+./mvnw spring-boot:run                   # sobe em http://localhost:8084
 ```
 
-Usa o perfil padrão (`application.properties`), que aponta para `localhost:5433`.
-
-### Opção B — Stack completa no Docker
-
-```bash
-cd backend
-docker compose up            # Postgres + backend + pgAdmin
-```
-
-| Serviço | Endereço | Credenciais |
-|---|---|---|
-| API | `http://localhost:8082/api` | — |
-| PostgreSQL | `localhost:5433` | `postgres` / `123`, base `backend_db` |
-| pgAdmin | `http://localhost:8093` | `admin@admin.com` / `admin` |
-
-O serviço `app` usa o perfil `docker`, que aponta para `db:5432` (nome do serviço na rede interna
-do Compose). O `depends_on` com `condition: service_healthy` garante que o backend só inicia depois
-que o `pg_isready` do Postgres responder.
-
-### Opção C — IntelliJ IDEA
-
-```bash
-cd backend
-docker compose up -d db      # sobe só o Postgres, na porta 5433
-```
-
-No IntelliJ: **File → Open** apontando para `backend/pom.xml` (não para a pasta `backend/`) — o
-IDE reconhece o projeto Maven e baixa as dependências sozinho.
-
-**Antes de rodar**, ligue **Settings → Build, Execution, Deployment → Compiler → Annotation
-Processors → Enable annotation processing.** Sem isso o Lombok não gera nenhum getter/setter, e o
-projeto aparece cheio de erro vermelho que não existe de verdade.
-
-Duas configurações de run já vêm versionadas em `backend/.run/`:
-
-| Run configuration | Perfil | Uso |
-|---|---|---|
-| `TempoClaro` | nenhum (`application.properties`) | Postgres em `localhost:5433` — Opção A |
-| `TempoClaro-docker` | `docker` | Postgres em `db:5432` — só funciona se o backend também estiver na rede do Compose |
-
-Na prática, use sempre `TempoClaro` com o Postgres subido pela Opção A acima.
+O `schema.sql` roda na subida da aplicação e cria as dez tabelas se ainda não existirem.
 
 ### Frontend
 
-```bash
+```sh
 cd frontend
 npm install
-npx expo start                # abre o Metro bundler / Expo dev client
+npx expo start                           # abre o menu do Metro
 ```
 
-> **Atenção:** a `baseURL` do axios está fixa na API de **produção** (Render). Rodar `npx expo
-> start` não aponta automaticamente para o backend local — é preciso editar
-> `frontend/src/services/api.js`. Ver [§11.4](#114-qualidade-e-infraestrutura).
+O endereço da API vem de `EXPO_PUBLIC_API_URL`, em `frontend/.env`, e `frontend/src/services/api.js`
+usa o endereço do Render quando a variável não existe. Para testar contra a máquina local, apontar a
+variável para o IP da máquina na rede, porque `localhost`, dentro do aparelho, aponta para o próprio
+aparelho. O APK de release só aceita HTTPS (o tráfego não criptografado fica liberado apenas no
+build de desenvolvimento).
 
-### Gerar o build Android (EAS)
+### Rodando os testes do backend
 
-```bash
+A suíte precisa de um PostgreSQL próprio na porta 5433, com a base `backend_db_teste`. O
+`compose.yaml` sobe isso em Docker, mas um cluster temporário local também serve e dispensa o
+Docker:
+
+```sh
+export PGDATA=/tmp/pgdata-tempo-claro
+initdb -D $PGDATA -U postgres --auth=trust -E UTF8
+pg_ctl -D $PGDATA -l /tmp/pg.log \
+  -o "-p 5433 -c unix_socket_directories='' -c listen_addresses=localhost" start
+psql -h 127.0.0.1 -p 5433 -U postgres -c "CREATE DATABASE backend_db_teste;"
+
+cd backend && ./mvnw test                # 238 testes
+
+pg_ctl -D $PGDATA stop -m fast           # ao terminar
+```
+
+Dois detalhes que custam tempo se passarem despercebidos. O `unix_socket_directories=''` é
+obrigatório quando o caminho do `PGDATA` é longo, porque o PostgreSQL recusa criar o soquete Unix
+acima de 107 bytes e isso derruba a subida mesmo com TCP configurado. E o serviço de e-mail é
+substituído, nos testes, por uma implementação falsa que expõe o último código emitido; sem ela não
+há como cadastrar pela API, porque `AuthService.cadastrar` é transacional e desfaz o cadastro
+quando o envio do e-mail falha.
+
+Os relatórios saem em `backend/target/surefire-reports/`. Dos 238, 144 são os da campanha de
+06/10/2026; 27 vieram com a correção dos defeitos, em `CorrecaoDefeitosIntegracaoTest` e
+`UsuarioServiceUsuarioAusenteTest`; e 67 cobrem as regras de 16/10/2026, no pacote `regras`
+(fuso adiado, dia retroativo, edição adiada, liberação da tarefa, exclusão de conta, mensagens em
+inglês, preferências e guia). As regras que dependem da hora do dia ficam desligadas no perfil de
+teste (`app.regras.horario-do-dia=false`) e são ligadas, com relógio fixo, só nas classes que as
+testam; em produção valem sempre.
+
+### Testes do app
+
+```sh
 cd frontend
-eas login                     # conta EAS/Expo do projeto
-eas build -p android --profile preview       # APK interno, para teste em aparelho
-eas build -p android --profile production    # AAB assinado, para a Play Store
+npm test                 # 37 testes de unidade (jest-expo)
+npm run i18n:check       # mesmas chaves em pt e en, nenhum texto fixo no JSX
+npx expo lint            # sem erros nem avisos
 ```
 
-Os três profiles ficam em `frontend/eas.json`: `development` (dev client), `preview` (APK interno)
-e `production` (App Bundle `.aab`, credenciais de assinatura geridas pela EAS).
+O roteiro de ponta a ponta da API, com 117 casos, fica em `docs/campanha-v1.1/e2e_api.py` (pasta
+local, fora do git), com as instruções de uso no cabeçalho.
+
+### Gerando o APK
+
+O APK é gerado localmente, a partir do `android/` que o Expo deriva do `app.json` (a pasta não é
+versionada):
+
+```sh
+cd frontend
+npx expo prebuild --platform android --clean --no-install
+cd android && ./gradlew assembleRelease --no-daemon
+# saída: android/app/build/outputs/apk/release/app-release.apk
+```
+
+O build só inclui as arquiteturas de aparelho real (`arm64-v8a` e `armeabi-v7a`) e assina o APK com
+a chave de release do projeto quando o Gradle encontra as propriedades `TEMPO_CLARO_KEYSTORE`,
+`TEMPO_CLARO_KEYSTORE_PASSWORD`, `TEMPO_CLARO_KEY_ALIAS` e `TEMPO_CLARO_KEY_PASSWORD` em
+`~/.gradle/gradle.properties`. Sem elas, cai na chave de debug. Quem injeta essa configuração a cada
+prebuild é `frontend/plugins/withAssinaturaRelease.js`. O keystore e as senhas ficam fora do
+repositório e precisam de cópia de segurança: sem eles, uma versão nova não instala por cima da
+anterior.
+
+O endereço embutido é o de `EXPO_PUBLIC_API_URL` no momento do build. A configuração do EAS em
+`frontend/eas.json` continua disponível, mas o projeto ainda não está ligado a uma conta do Expo.
 
 ---
 
 ## 6. API — Contratos Completos
 
-Todos os endpoints ficam sob o prefixo **`/api`**.
-
-| Verbo | Caminho | Auth | Request | Resposta | Service |
-|---|---|---|---|---|---|
-| `POST` | `/auth/register` | pública | `RegisterRequestDTO` | `AuthResponseDTO` — **201** | `AuthService.cadastrar` |
-| `POST` | `/auth/login` | pública | `LoginRequestDTO` | `AuthResponseDTO` — 200 | `AuthService.autenticar` |
-| `GET` | `/dashboard` | Bearer | — | `DashboardResponseDTO` (`habits` + `limite_habitos_ativos`) | `HabitoService.listarDashboard` |
-| `POST` | `/habits` | Bearer | `HabitoRequestDTO` | `HabitoResponseDTO` — **201** | `HabitoService.criarHabito` |
-| `PUT` | `/habits/{id}` | Bearer | `HabitoRequestDTO` | `{"success": true}` | `HabitoService.atualizarHabito` |
-| `DELETE` | `/habits/{id}` | Bearer | — | `{"success": true}` (soft delete: `hab_ativo = false`) | `HabitoService.deletarHabito` |
-| `GET` | `/habits/{id}/priming` | Bearer | — | `PrimingResponseDTO` | `GamificacaoService.obterPriming` |
-| `POST` | `/habits/{id}/executions` | Bearer | `ExecutionRequestDTO` | `ExecutionResponseDTO` | `GamificacaoService.processarExecucao` |
-| `POST` | `/habits/{id}/shield` | Bearer | — | `{"success": true, "message": "..."}` | `GamificacaoService.comprarEscudo` |
-| `GET` | `/me` | Bearer | — | `UsuarioResponseDTO` | `UsuarioService.buscarPerfil` |
-| `PUT` | `/profile` | Bearer | `ProfileUpdateDTO` | `{"success": true}` | `UsuarioService.atualizarPerfil` |
-| `GET` | `/stats/monthly?habitoId={uuid}` | Bearer | — | `StatsResponseDTO` | `StatsService.obterEstatisticas` (alias: `/stats/weekly`) |
-| `GET` | `/calibration/questions?categoria={cat}` | Bearer | — | `QuestionarioResponseDTO` | `CalibracaoService.obterQuestionario` |
-| `POST` | `/calibration` | Bearer | `CalibracaoRequestDTO` | `CalibracaoResponseDTO` | `CalibracaoService.calibrar` |
-
-### Autenticação das requisições
-
-Toda rota exceto `/api/auth/**` exige o cabeçalho:
-
-```
-Authorization: Bearer <token>
-```
-
-O token é um JWT **HS512** (não HS256 — checado no header do token real) cujo *subject* é o
-e-mail do usuário, com validade de 24 horas. Emitido e validado pelo OAuth2 Resource Server nativo
-do Spring Security (`JwtEncoder`/`JwtDecoder`) desde a migração para JPA — o formato do token não
-mudou, só quem o gera e valida.
-
-Requisição sem o cabeçalho, com token inválido ou com token expirado recebe **401** com o header
-`WWW-Authenticate`. Antes da migração (versão em `JdbcTemplate`) esses três casos devolviam
-**403**, porque a cadeia de segurança não registrava um `AuthenticationEntryPoint` — e como os
-interceptores do `frontend-web/` e do `frontend/` só tratam 401, um token expirado não deslogava
-ninguém, só travava a tela. Isso foi corrigido, não é regressão.
-
-### Códigos de erro
-
-A §5.1 da monografia define a convenção: **400** validação, **401** credenciais inválidas, **403**
-token ausente ou expirado, **404** não encontrado, **422** violação de regra de negócio. O
-`GlobalExceptionHandler` a implementa com três exceções de domínio, sempre respondendo
-`{"success": false, "message": "..."}`:
-
-| Exceção | HTTP | Quando ocorre |
-|---|---|---|
-| `ValidacaoException` | **400** | Entrada malformada que a Bean Validation não pega sozinha: fuso inexistente, tema fora da lista, `tipo` de execução desconhecido, horário ausente numa ocorrência |
-| `MethodArgumentNotValidException` | **400** | Falha de validação Jakarta (`@NotBlank`, `@Min`…), com as mensagens reais de cada campo |
-| `DataIntegrityViolationException` | **400** | Violação de `CHECK` do banco (`ck_hab_teto`, `ck_hab_freq`…), traduzida para mensagem legível |
-| `HttpMessageNotReadableException` | **400** | Corpo malformado ou campo desconhecido no JSON (`FAIL_ON_UNKNOWN_PROPERTIES` está ligado) |
-| `BadCredentialsException` | **401** | Credenciais inválidas no login — e-mail inexistente e senha errada devolvem a mesma mensagem, para não revelar se o e-mail existe |
-| Sem token / token expirado | **403** | `AuthenticationEntryPoint` do `SecurityConfig`, antes do `GlobalExceptionHandler` |
-| `RecursoNaoEncontradoException` | **404** | Hábito ou usuário inexistente — **e também hábito de outro dono**: 404 em vez de 403 não confirma a existência do UUID para quem está sondando |
-| `RegraDeNegocioException` | **422** | "Limite de 2 hábitos ativos atingido" (RF03), "Saldo insuficiente" (RF15), "Execução duplicada" (RF21), "Nenhum escudo disponível…", "E-mail já está em uso", "Senha atual incorreta" |
-| `Exception` | **500** | Qualquer erro não previsto, com mensagem genérica |
-
-> **Por que "senha atual incorreta" é 422 e não 401.** A sessão continua válida — o
-> que falhou foi a regra "só troca a senha quem souber a atual". Como o aplicativo
-> trata 401 e 403 como token expirado, devolver 401 aqui derrubaria a sessão inteira
-> por causa de um erro de digitação.
-
-> **Propriedade do recurso.** Todo endpoint por `{id}` resolve o hábito por `AcessoHabitoService`,
-> que confere o dono contra o e-mail do token. Antes disso, `PUT`/`DELETE /habits/{id}`,
-> `/priming`, `/executions` e `/shield` recebiam o UUID cru pelo path sem olhar o
-> `SecurityContext` — qualquer usuário autenticado que conhecesse o UUID de um hábito alheio podia
-> executá-lo, comprar escudo, editá-lo ou arquivá-lo, contra RF22 e RNF08.
-
-
-### 6.1. Autenticação
-
-#### POST /auth/register — Cadastro de novo usuário
-
-**Request:**
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "nome": "Rodrigo Miranda",
-  "email": "rodrigo@ifsul.edu.br",
-  "password": "SenhaSegura123!"
-}
-```
-
-**Response 201 Created:**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyb2RyaWdvQGlmc3VsLmVkdS5iciIsImlhdCI6...",
-  "user": {
-    "name": "Rodrigo Miranda",
-    "email": "rodrigo@ifsul.edu.br"
-  }
-}
-```
-
-**Response 401 Unauthorized (e-mail já cadastrado):**
-```json
-{ "success": false, "message": "E-mail já está em uso" }
-```
-
----
-
-#### POST /auth/login — Login
-
-**Request:**
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "rodrigo@ifsul.edu.br",
-  "password": "SenhaSegura123!"
-}
-```
-
-**Response 200 OK:**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
-  "user": {
-    "name": "Rodrigo Miranda",
-    "email": "rodrigo@ifsul.edu.br"
-  }
-}
-```
-
-**Response 401 Unauthorized (credenciais inválidas):**
-```json
-{ "success": false, "message": "Erro credenciais invalidas!" }
-```
-
----
-
-### 6.2. Hábitos
-
-#### GET /dashboard — Lista todos os hábitos ativos do usuário
-
-**Request:**
-```http
-GET /api/dashboard
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**Response 200 OK:**
-```json
-{
-  "habits": [
-    {
-      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "titulo": "Beber Água",
-      "categoria": "AGUA",
-      "tipo_medida": "QUANTIDADE",
-      "modalidade": "DIARIA",
-      "horario_agendado": null,
-      "meta_base": 250,
-      "meta_frequencia_diaria": 1,
-      "ativo": true,
-      "moedas_locais": 1200,
-      "bloqueios_acumulados": 1,
-      "dias_seguidos": 7,
-      "execucoes_hoje": 0,
-      "proximo_vencimento": "2026-06-22T23:59:00Z",
-      "bloqueio_usado_hoje": false,
-      "status": "PENDING",
-      "meta_maxima": 500,
-      "incremento": 50,
-      "dias_incremento": 10,
-      "frequencia_semanal": "1111100",
-      "alvo_ocorrencia_atual": 250,
-      "horario_ocorrencia_atual": "08:00:00",
-      "gatilho_ancora": "Depois do café da manhã",
-      "ocorrencias": [
-        { "horario_inicio": "08:00:00", "horario_fim": null, "alvo": 250 }
-      ],
-      "nivel_avatar": 8
-    }
-  ],
-  "limite_habitos_ativos": 2
-}
-```
-
-`horario_agendado` chega sempre `null` — foi substituído por `horario_ocorrencia_atual`
-(ver §8.3, Fluxo 4). `meta_maxima`/`incremento`/`dias_incremento`/`ocorrencias` refletem a
-progressão automática de meta e as sub-atividades por ocorrência do dia.
-
-**Campos do status que determinam o comportamento no frontend:**
-
-| Campo | Tipo | Uso no frontend |
-|---|---|---|
-| `status` | string | "COMPLETED" quando `execucoes_hoje >= meta_frequencia_diaria` |
-| `proximo_vencimento` | OffsetDateTime | Calcula `diffMin` para expressão do avatar (real desde a virada do dia) |
-| `dias_seguidos` | int | Exibido na tela Stats |
-| `nivel_avatar` | int | `1 + dias_seguidos`, com teto de serviço em 50 (recalculado no fechamento diário) |
-| `moedas_locais` | int | Exibido na Loja |
-| `bloqueios_acumulados` | int | Exibido no GiveUpModal e na Loja |
-| `gatilho_ancora` | string \| null | Exibido no cartão da Home e na pré-tarefa, quando preenchido |
-
----
-
-#### POST /habits — Criar novo hábito
-
-**Request:**
-```http
-POST /api/habits
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-Content-Type: application/json
-
-{
-  "titulo": "Gotinha",
-  "categoria": "AGUA",
-  "tipo_medida": "QUANTIDADE",
-  "modalidade": "DIARIA",
-  "meta_base": 250,
-  "incremento": 50,
-  "dias_incremento": 10,
-  "meta_maxima": 500,
-  "frequencia_semanal": "1111100",
-  "meta_frequencia_diaria": 1,
-  "gatilho_ancora": "Depois do café da manhã",
-  "horario_agendado": "08:00:00",
-  "ocorrencias": null
-}
-```
-
-`frequencia_semanal` é uma máscara de 7 dígitos `0`/`1` (posição 1 = domingo), não um array de
-índices. Quando `meta_frequencia_diaria > 1`, `ocorrencias` recebe um array de
-`{ horario_inicio, horario_fim }` (um por ocorrência) e `horario_agendado` vai `null` — os dois
-nunca são enviados juntos.
-
-**Response 201 Created:** objeto `HabitoResponseDTO` completo (mesmo formato do dashboard).
-
-**Response 400 Bad Request (limite atingido):**
-```json
-{ "success": false, "message": "Limite de 2 hábitos ativos atingido" }
-```
-
----
-
-#### PUT /habits/{id} — Atualizar hábito
-
-Aceita o **mesmo `HabitoRequestDTO`** de `POST /habits` e substitui todos os campos editáveis —
-não é um PATCH parcial. As sub-atividades são apagadas e recriadas a partir da meta e frequência
-enviadas.
-
-**Request:**
-```http
-PUT /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-Content-Type: application/json
-
-{
-  "titulo": "Gotinha Atualizada",
-  "categoria": "AGUA",
-  "tipo_medida": "QUANTIDADE",
-  "modalidade": "DIARIA",
-  "meta_base": 300,
-  "meta_frequencia_diaria": 1,
-  "frequencia_semanal": "1111111",
-  "horario_agendado": "08:00:00"
-}
-```
-
-**Response 200 OK:**
-```json
-{ "success": true }
-```
-
----
-
-#### DELETE /habits/{id} — Arquivar hábito (soft delete)
-
-**Request:**
-```http
-DELETE /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**Response 200 OK:**
-```json
-{ "success": true }
-```
-
----
-
-### 6.3. Gamificação
-
-#### GET /habits/{id}/priming — Texto motivacional pré-tarefa
-
-**Request:**
-```http
-GET /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/priming
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**Response 200 OK:**
-```json
-{
-  "texto": "Seu corpo é 70% água. Este copo é o intervalo entre o cansaço e a clareza."
-}
-```
-
----
-
-#### POST /habits/{id}/executions — Registrar execução de hábito
-
-**Request (conclusão — `tipo` ausente ou em branco):**
-```http
-POST /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/executions
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-Content-Type: application/json
-
-{
-  "execution_token": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "valor_realizado": 1500
-}
-```
-
-O cliente **não decide** se a conclusão é padrão ou extra — isso violaria RF22/RNF08 (cálculo
-exclusivo do servidor). O servidor compara `valor_realizado` com o alvo da ocorrência sendo
-concluída: `>= alvo * 1.2` marca `bonus`. Um `tipo: "COMPLETE_EXTRA"` enviado pelo cliente é
-ignorado.
-
-**Nenhuma moeda é creditada aqui.** RF11 credita "pela meta cumprida", que é um evento do **dia**;
-a execução só acumula o realizado. Quem credita é o fechamento (Fluxo 14). A resposta devolve uma
-**previsão** — quanto o dia renderá se fechar como está agora — para a tela de sucesso mostrar um
-número sem reproduzir a fórmula no cliente.
-
-**Request (desistência com escudo):**
-```json
-{ "execution_token": "...", "tipo": "FAIL_BLOQUEIO", "valor_realizado": 720 }
-```
-
-**Request (desistência assumida):**
-```json
-{ "execution_token": "...", "tipo": "FAIL_TIMEOUT", "valor_realizado": 0 }
-```
-
-**Valores aceitos em `tipo`:**
-
-| Valor | Efeito | `his_tipo_sucesso` |
-|---|---|---|
-| ausente / em branco | acumula o realizado e avança a ocorrência do dia | `COMPLETE_PADRAO` ou `COMPLETE_EXTRA` |
-| `FAIL_BLOQUEIO` | consome 1 escudo e marca o dia como protegido | `PROTEGIDO_ESCUDO` |
-| `FAIL_TIMEOUT` | registra o parcial sem acumular realizado (RF10) | `DESISTENCIA` |
-
-`FAIL_BLOQUEIO` exige `sta_bloqueios_acumulados > 0` e `sta_bloqueio_usado_hoje = false`; senão
-**422**. Token repetido devolve **422** (RF21). `tipo` desconhecido devolve **400**.
-
-**Response 200 OK:**
-```json
-{
-  "moedas_previstas_hoje": 100,
-  "moedas_totais": 1300,
-  "valor_acumulado_hoje": 1500,
-  "meta_base": 1500,
-  "dias_seguidos": 8,
-  "novo_nivel": 1,
-  "texto_feedback": "Hidratação em dia. Seu corpo sente a diferença.",
-  "bonus": false
-}
-```
-
-`moedas_totais` é o saldo **confirmado** (só muda no fechamento e na compra de escudo);
-`moedas_previstas_hoje` é o que ainda está por vir. `novo_nivel` é o nível do avatar (RF14: sobe a
-cada dez dias), não a ofensiva crua. `texto_feedback` vem de `biblioteca_textos`, no idioma do
-usuário (RNF13).
-
----
-
-#### POST /habits/{id}/shield — Comprar escudo protetor
-
-**Request:**
-```http
-POST /api/habits/3fa85f64-5717-4562-b3fc-2c963f66afa6/shield
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**Response 200 OK:**
-```json
-{ "success": true, "message": "Escudo comprado!" }
-```
-
-**Response 400 Bad Request (saldo insuficiente):**
-```json
-{ "success": false, "message": "Saldo insuficiente" }
-```
-
----
-
-### 6.4. Calibração assistida (RF20 / RNF04)
-
-O "Medir Dificuldade" do Passo 2 do assistente. Duas rotas: uma devolve o questionário, a outra
-recebe as respostas e devolve a sugestão. Nenhuma cria hábito — quem cria é `POST /habits`,
-levando o `calibracao_id` junto.
-
-#### GET /calibration/questions?categoria=EXERCICIO — O questionário da categoria
-
-```json
-{
-  "categoria": "EXERCICIO",
-  "tipo_medida": "TEMPO",
-  "unidade": "min",
-  "versao_catalogo": 1,
-  "perguntas": [
-    {
-      "codigo": "TEMPO_DISPONIVEL",
-      "tipo": "ESCOLHA_UNICA",
-      "enunciado": "Quanto tempo dá pra reservar, de verdade?",
-      "maximo": null,
-      "opcoes": [
-        { "valor": "ATE_5", "rotulo": "Até 5 minutos", "detalhe": null },
-        { "valor": "ATE_10", "rotulo": "Uns 10 minutos", "detalhe": null }
-      ]
-    },
-    { "codigo": "DIAS_SEMANA", "tipo": "DIAS_SEMANA", "enunciado": "Em quais dias você pode?", "opcoes": [] }
-  ]
-}
-```
-
-**O app não conhece nenhuma pergunta por nome** — só sabe desenhar cinco `tipo`s:
-`ESCOLHA_UNICA` (botões empilhados), `DIAS_SEMANA` (7 botões → máscara), `VEZES_AO_DIA` (chips),
-`HORARIOS` (um seletor de hora por ocorrência) e `RITMO` (3 cartões com `detalhe` explicando o
-efeito). É isso que permite trocar perguntas, rótulos, pesos e faixas de meta editando só
-[`backend/src/main/resources/calibracao/catalogo-v1.json`](backend/src/main/resources/calibracao/catalogo-v1.json),
-sem publicar versão nova do aplicativo.
-
-#### POST /calibration — Calcular a sugestão
-
-**Request:**
-```json
-{
-  "categoria": "EXERCICIO",
-  "respostas": [
-    { "pergunta_codigo": "EXPERIENCIA_PREVIA", "valor": "PAREI" },
-    { "pergunta_codigo": "DESEJO", "valor": "GOSTO" },
-    { "pergunta_codigo": "TEMPO_DISPONIVEL", "valor": "ATE_10" },
-    { "pergunta_codigo": "DIAS_SEMANA", "valor": "0111110" },
-    { "pergunta_codigo": "VEZES_AO_DIA", "valor": "2" },
-    { "pergunta_codigo": "HORARIOS", "valor": "07:00,19:00" },
-    { "pergunta_codigo": "RITMO", "valor": "EQUILIBRADO" }
-  ]
-}
-```
-
-O formato de `valor` depende do tipo: o `valor` da opção em `ESCOLHA_UNICA`/`RITMO`, a máscara de
-7 posições (domingo a sábado) em `DIAS_SEMANA`, o número em `VEZES_AO_DIA`, e os horários separados
-por vírgula em `HORARIOS`.
-
-**Response 200 OK:**
-```json
-{
-  "calibracao_id": "9c1e...",
-  "pontuacao": 7,
-  "sugestao": {
-    "categoria": "EXERCICIO", "tipo_medida": "TEMPO", "unidade": "min",
-    "meta_base": 10, "meta_maxima": 40,
-    "incremento": 2, "dias_incremento": 10,
-    "meta_frequencia_diaria": 2, "frequencia_semanal": "0111110",
-    "ocorrencias": [
-      { "horario_inicio": "07:00", "alvo": 5 },
-      { "horario_inicio": "19:00", "alvo": 5 }
-    ]
-  },
-  "explicacao": "Vamos começar com 10 min por dia, divididos em 2 momentos, 5 dias por semana, subindo 2 min a cada 10 dias. Você pode ajustar tudo isso no próximo passo."
-}
-```
-
-`sugestao` traz exatamente os campos que o Passo 3 preencheria à mão — aceitar é só pré-preencher
-aquele formulário, que continua editável.
-
-**Como a meta é calculada:**
-
-```
-pontuacao   = Σ pesos das respostas          (DIAS_SEMANA pesa nº de dias ÷ 2)
-meta        = faixa(pontuacao) da categoria
-meta        = min(meta, teto declarado na resposta)   ← a trava que importa
-meta        = max(meta, vezes_ao_dia)                 ← precisa ser repartível
-meta_maxima = meta * teto_multiplicador
-```
-
-**A trava do teto vale mais que a pontuação.** Uma resposta pode declarar um `teto_resposta`: quem
-disse que só tem 10 minutos por dia não recebe sugestão de 30, por mais pontos que tenha somado nas
-outras perguntas. É a 3ª lei de Clear — tornar fácil — virando regra de cálculo, e é o que evita
-que a calibração vire mais uma fonte de meta inatingível para quem já tem dificuldade de começar.
-
-`POST /habits` aceita um `calibracao_id` opcional: quando presente, marca `cab_aceita = true` e
-liga a calibração ao hábito que nasceu dela.
-
----
-
-### 6.5. Perfil e Estatísticas
-
-
-#### PUT /profile — Atualizar dados do perfil
-
-**Request (apenas nome e fuso):**
-```http
-PUT /api/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-Content-Type: application/json
-
-{
-  "nome": "Rodrigo Atualizado",
-  "fuso_horario": "America/Sao_Paulo"
-}
-```
-
-**Request (incluindo troca de senha):**
-```json
-{
-  "nome": "Rodrigo",
-  "fuso_horario": "America/Sao_Paulo",
-  "senha_atual": "SenhaAntiga123!",
-  "nova_senha": "SenhaNova456!"
-}
-```
-
-**Response 200 OK:**
-```json
-{ "success": true }
-```
-
-> **As chaves são `snake_case`, e isso importa.** O `ProfileUpdateDTO` declara os componentes como
-> `fuso_horario`, `senha_atual` e `nova_senha`. Enviar `fusoHorario`/`senhaAtual`/`novaSenha` faz o
-> Jackson simplesmente **ignorar** os campos: a requisição retorna `200 OK`, mas nada é alterado.
-> Ver a explicação do contrato de nomes em [§8.2](#82-o-contrato-de-nomes-snake_case).
-
----
-
-#### GET /stats/monthly — Estatísticas do mês
-
-`habitoId` é obrigatório. `GET /stats/weekly` continua atendendo como alias da mesma resposta, para
-o app publicado não quebrar de um lado só — a janela passou de 7 para **30 dias**.
-
-**Request:**
-```http
-GET /api/stats/monthly?habitoId=3fa85f64-5717-4562-b3fc-2c963f66afa6
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**Response 200 OK:**
-```json
-{
-  "dias": [
-    { "data": "2026-05-18", "nome": "Seg", "valor_realizado": 0, "execucoes": 0, "meta_cumprida": false, "parcial": false },
-    { "data": "2026-05-19", "nome": "Ter", "valor_realizado": 2500, "execucoes": 2, "meta_cumprida": true, "parcial": false },
-    { "data": "2026-05-20", "nome": "Qua", "valor_realizado": 120, "execucoes": 0, "meta_cumprida": false, "parcial": true }
-  ],
-  "recordes": [
-    { "data": "2026-05-19", "valor": 2500 },
-    { "data": "2026-06-02", "valor": 2300 },
-    { "data": "2026-05-27", "valor": 1800 }
-  ],
-  "dias_com_meta_cumprida": 12,
-  "constancia_percentual": 57,
-  "dias_periodo": 30,
-  "dias_cobrados": 21
-}
-```
-
-Os 30 dias vêm sempre presentes, do mais antigo ao mais recente — dia sem execução chega com
-`valor_realizado: 0`, sem buraco no array. A janela é calculada no **fuso do usuário** (RNF13).
-
-`meta_cumprida` compara o **total do dia** com `hab_meta_base` (RF07/RF13) — bater a meta somando
-duas ocorrências conta, o que não acontecia quando a regra era contagem de execuções.
-
-`parcial: true` marca um dia cujo valor veio de desistência, escudo manual ou escudo automático,
-não de conclusão; nunca coexiste com `meta_cumprida: true`, e o app usa isso para colorir a barra
-de forma diferente.
-
-`recordes` traz os **três maiores dias do período, com data** (F18), sem exigir meta cumprida: um
-dia a 90% da meta é um recorde legítimo se for o maior do mês. Dias parciais ficam de fora.
-
-`constancia_percentual` divide por **`dias_cobrados`**, não pelos 30 dias da janela. Um hábito de
-segunda a sexta só é cobrado em cerca de 21 dos 30 — contar os fins de semana no denominador o
-travaria em ~71% mesmo sem uma falha sequer, e a tela contradiria a ofensiva, que o fechamento não
-interrompe nos dias de folga. Cada dia carrega `dia_programado` para o gráfico distinguir folga de
-falha.
+Vinte rotas e um job agendado. Todas as rotas vivem sob `/api`. Seis são públicas, declaradas uma a
+uma em `SecurityConfig`; as demais exigem o token no cabeçalho `Authorization: Bearer <token>`.
+
+### Visão geral
+
+| ID | Método e caminho | Autenticação | O que faz |
+| --- | --- | --- | --- |
+| EP01 | `POST /api/auth/register` | pública | Cadastro de conta |
+| EP02 | `POST /api/auth/login` | pública | Autenticação e emissão do token |
+| EP03 | `POST /api/auth/verify-email` | pública | Confirmação do código de seis dígitos |
+| EP04 | `POST /api/auth/resend-code` | pública | Reenvio do código de verificação |
+| EP05 | `POST /api/auth/forgot-password` | pública | Pedido de código de recuperação |
+| EP06 | `POST /api/auth/reset-password` | pública | Redefinição da senha com o código |
+| EP07 | `GET /api/me` | token | Dados do usuário autenticado |
+| EP08 | `PUT /api/profile` | token | Atualização de perfil e troca de senha |
+| EP09 | `GET /api/dashboard` | token | Hábitos ativos com o status do dia |
+| EP10 | `POST /api/habits` | token | Criação de hábito |
+| EP11 | `PUT /api/habits/{id}` | token | Edição de hábito |
+| EP12 | `DELETE /api/habits/{id}` | token | Exclusão do hábito |
+| EP13 | `GET /api/habits/{id}/priming` | token | Frase motivacional da categoria |
+| EP14 | `POST /api/habits/{id}/executions` | token | Registro de execução, desistência ou escudo |
+| EP15 | `POST /api/habits/{id}/shield` | token | Compra de escudo |
+| EP16 | `GET /api/stats/monthly` | token | Estatísticas dos últimos trinta dias |
+| EP17 | `GET /api/stats/weekly` | token | Estatísticas dos últimos sete dias |
+| EP18 | `GET /api/calibration/questions` | token | Perguntas da categoria, no idioma do usuário |
+| EP19 | `POST /api/calibration` | token | Cálculo da sugestão de meta |
+| EP20 | `FechamentoDiarioJob` | job | Apuração horária dos dias encerrados, não é rota HTTP |
+
+### Respostas comuns a todas as rotas protegidas
+
+| Status | Quando ocorre |
+| --- | --- |
+| 403 | Token ausente, expirado ou com assinatura alterada. A convenção HTTP pediria 401; a divergência é deliberada e está registrada como DEF-20 |
+| 404 | Recurso inexistente, ou de outro usuário. A API não distingue os dois casos, de propósito, para não confirmar a existência de um identificador a quem está sondando |
+| 500 | Falha não prevista |
+
+### `POST /api/auth/register`
+
+Autenticação: nenhuma, a rota é `permitAll` (ver item 6.1 do fluxo em [§8](#8-fluxos-ponta-a-ponta)).
+
+**Corpo da requisição**
+
+| Campo                | Tipo   | Obrigatório | Observação |
+| --------------------- | ------ | ------------- | ---------- |
+| `nome`                | string | sim           | até 150 caracteres (`@Size`, item 5, e `.max()` no cliente, item 2) |
+| `email`                | string | sim           | precisa conter `@`, até 255 caracteres; a checagem de duplicidade é sensível a maiúsculas/minúsculas de propósito (ver item 9.1) |
+| `password`             | string | sim           | entre 8 e 25 caracteres, ao menos 1 letra maiúscula e 1 caractere especial (item 8) |
+| `preferencia_idioma`   | string | não           | aceita `"pt-BR"` ou `"en-US"`; qualquer outro valor, ou a ausência do campo, vira `"pt-BR"` |
+
+**Respostas**
+
+| Status | Quando ocorre                                                                                                | Corpo |
+| ------ | --------------------------------------------------------------------------------------------------------------- | ----- |
+| 201    | Cadastro aceito                                                                                                   | `{ success: true, message: "Cadastro recebido! ..." }` |
+| 400    | Campo obrigatório ausente/vazio/fora do tamanho, e-mail fora do formato, senha fora dos critérios, corpo malformado, ou uma corrida de e-mail duplicado que escapou da checagem prévia | `{ success: false, message: "..." }` |
+| 422    | E-mail já cadastrado, ou o envio do e-mail de verificação falhou (Resend fora do ar, domínio não verificado, limite diário excedido) | `{ success: false, message: "..." }` |
+| 500    | Falha não prevista (ex.: banco indisponível)                                                                       | `{ success: false, message: "Erro interno no servidor." }` |
+
+O sucesso não devolve token: a sessão só se abre depois que o e-mail é confirmado, na funcionalidade de Verificação de E-mail. Mapeamento completo em [§8 → Cadastro](#8-fluxos-ponta-a-ponta).
+
+### `POST /api/auth/login`
+
+Pública. Corpo: `email` e `password`, ambos obrigatórios.
+
+| Status | Quando ocorre | Corpo |
+| --- | --- | --- |
+| 200 | Credenciais corretas e e-mail já confirmado | `{ token, usuario: { ... } }` |
+| 401 | Senha incorreta ou e-mail inexistente | `{ success: false, message: "..." }` |
+| 403 | E-mail ainda não confirmado. `Usuario.isEnabled()` devolve `emailVerificado`, e o Spring Security recusa login de conta desabilitada | `{ success: false, message: "..." }` |
+
+### `POST /api/auth/verify-email`
+
+Pública. Corpo: `email` e `codigo`. Confirma a conta e já devolve o token, abrindo a sessão sem
+exigir um login em seguida.
+
+| Status | Quando ocorre |
+| --- | --- |
+| 200 | Código correto e dentro do prazo. Devolve token e usuário |
+| 400 | Código ausente ou malformado |
+| 422 | Código incorreto ou expirado |
+
+### `POST /api/auth/resend-code`
+
+Pública. Corpo: `email`. Gera um código novo e invalida o anterior. Responde 200 mesmo para e-mail
+inexistente, para não revelar quais endereços estão cadastrados.
+
+### `POST /api/auth/forgot-password`
+
+Pública. Corpo: `email`. Mesma política: 200 sempre, independentemente de o e-mail existir.
+
+### `POST /api/auth/reset-password`
+
+Pública. Corpo: `email`, `codigo` e `nova_senha`. A nova senha passa pelo mesmo `SenhaValidator` do
+cadastro. Devolve token em caso de sucesso, de modo que a redefinição já abre sessão.
+
+| Status | Quando ocorre |
+| --- | --- |
+| 200 | Código válido e senha dentro dos critérios |
+| 400 | Senha fora dos critérios de força |
+| 422 | Código incorreto ou expirado |
+
+### `GET /api/me`
+
+Token. Sem corpo. Devolve nome, e-mail, idioma, tema e fuso horário do usuário do token, e de
+nenhum outro, mais as preferências `notificacoes_ativas` e `som_ativo`, o indicador
+`onboarding_concluido` e, quando há troca de fuso agendada, `fuso_pendente` e `fuso_vigente_em`.
+`fuso_horario` é sempre o fuso em vigor.
+
+### `DELETE /api/me`
+
+Token. Corpo `{"confirmacao": "excluir!"}` (ou `"delete!"`). Qualquer outra palavra responde 400.
+Apaga a conta e, pelo `ON DELETE CASCADE`, hábitos, sub-atividades, status, histórico, calibrações
+e dispositivos; os códigos de verificação do e-mail saem junto. O token antigo passa a responder 403.
+
+### `POST /api/me/onboarding/preferencias` e `POST /api/me/onboarding/concluir`
+
+Token. A primeira recebe `preferencia_idioma` e `fuso_horario` (passos 1 e 2 do guia de primeiro
+acesso): o idioma vale na hora, e o fuso também se a conta ainda não tem hábito ativo; com hábito,
+segue a troca adiada do perfil. A segunda grava `usu_onboarding_concluido_em`; repetir não muda a
+data. As duas devolvem o mesmo corpo do `GET /api/me`.
+
+### `GET /api/health`
+
+Pública. Responde 200 com `{"status":"ok"}` sem tocar no banco. Serve de health check do Render e
+de alvo do ping de keep-alive.
+
+### `PUT /api/profile`
+
+Token. Todos os campos são opcionais, e só os enviados são alterados.
+
+| Campo | Tipo | Observação |
+| --- | --- | --- |
+| `nome` | string | — |
+| `fuso_horario` | string | Um dos fusos do Brasil ou da América do Norte (`FusosSuportados`). Só vale a partir da meia-noite seguinte no fuso em vigor; escolher o fuso em vigor cancela a troca pendente |
+| `tema` | string | Restrito pela checagem da coluna `usu_tema` |
+| `preferencia_idioma` | string | `"pt-BR"` ou `"en-US"`; valor fora da lista é recusado aqui, diferente do cadastro, onde cai no padrão |
+| `senha_atual` | string | Exigido quando `nova_senha` vem preenchido |
+| `nova_senha` | string | Passa pelo `SenhaValidator` |
+| `notificacoes_ativas` | boolean | Lembretes ligados ou desligados |
+| `som_ativo` | boolean | Sons dos efeitos ligados ou desligados |
+
+| Status | Quando ocorre |
+| --- | --- |
+| 200 | Alterações gravadas |
+| 400 | Valor inválido, ou `nova_senha` sem `senha_atual` |
+| 422 | `senha_atual` incorreta |
+
+Não há campo de e-mail: o DTO não o aceita, de modo que a troca de endereço não é oferecida nem
+possível. Nome em branco responde 400.
+
+### `GET /api/dashboard`
+
+Token. Devolve os hábitos ativos do usuário com o status calculado para o dia, o saldo de moedas, a
+ofensiva e o limite de hábitos ativos. Hábitos excluídos não aparecem. Cada ocorrência traz
+`dispensada` (o hábito foi criado depois do horário dela: conta como feita hoje, sem moeda), e o
+hábito traz `alteracao_pendente` quando há uma edição esperando o dia seguinte.
+
+### `POST /api/habits`
+
+Token. É o contrato mais extenso da API.
+
+| Campo | Tipo | Obrigatório | Observação |
+| --- | --- | --- | --- |
+| `titulo` | string | sim | até 60 caracteres |
+| `categoria` | string | sim | `AGUA`, `ESTUDO` ou `EXERCICIO` |
+| `tipo_medida` | string | sim | `TEMPO` ou `QUANTIDADE`, determinado pela categoria |
+| `meta_base` | inteiro | sim | mínimo 1 |
+| `meta_frequencia_diaria` | inteiro | não | vezes ao dia, com mínimo e máximo |
+| `ocorrencias` | lista | não | horários das sub-atividades; só é usada quando o tamanho da lista bate com `meta_frequencia_diaria`, ver DEF-10 |
+| `frequencia_semanal` | string | não | dias cobrados, validado por padrão de texto |
+| `meta_maxima`, `incremento`, `dias_incremento` | inteiro | não | progressão automática da meta |
+| `gatilho_ancora` | string | não | até 120 caracteres; campo opcional no formulário de criação e edição |
+| `calibracao_id` | UUID | não | vincula uma sessão de calibração; falha em silêncio se não existir, ver DEF-15 |
+
+| Status | Quando ocorre |
+| --- | --- |
+| 201 | Hábito criado |
+| 400 | Campo inválido, ou lista de ocorrências incoerente |
+| 422 | Já existem dois hábitos ativos |
+
+### `PUT /api/habits/{id}`
+
+Token. Mesmo corpo da criação. Título e gatilho-âncora mudam na hora. O resto da configuração (meta,
+progressão, teto, dias da semana, vezes ao dia e horários) é validado agora e guardado em
+`habitos_config_pendente`; vale a partir do dia seguinte no fuso do usuário, quando a apuração fecha
+o dia antigo com a configuração antiga e então recria as sub-atividades, preservando o histórico.
+Uma nova edição substitui a pendente, e voltar à configuração em vigor a cancela.
+
+### `DELETE /api/habits/{id}`
+
+Token. Marca o hábito como inativo e grava o instante da exclusão. Nenhuma linha é removida do
+banco: o histórico de execuções permanece, por integridade referencial e porque as estatísticas
+dependem dele. Não há caminho, pela interface, para trazer o hábito de volta. A vaga no limite de
+dois ativos é liberada.
+
+### `GET /api/habits/{id}/priming`
+
+Token. Devolve uma frase da `biblioteca_textos`, na categoria do hábito e no idioma do perfil.
+
+### `POST /api/habits/{id}/executions`
+
+Token. Registra o desfecho de uma ocorrência.
+
+| Campo | Tipo | Obrigatório | Observação |
+| --- | --- | --- | --- |
+| `execution_token` | UUID | sim | garante unicidade: reenviar o mesmo token é recusado |
+| `tipo` | string | não | conclusão, desistência ou uso de escudo |
+| `valor_realizado` | inteiro | sim | não pode ser negativo; sem teto superior |
+
+| Status | Quando ocorre |
+| --- | --- |
+| 200 | Execução registrada. A resposta traz o valor acumulado, as moedas creditadas e se houve bônus |
+| 400 | Tipo inválido ou valor negativo |
+| 422 | Token já usado, ou hábito sem ocorrência pendente |
+
+### `POST /api/habits/{id}/shield`
+
+Token. Debita 400 moedas do saldo do hábito e credita um escudo. Responde 422 quando o saldo é
+insuficiente.
+
+### `GET /api/stats/monthly` e `GET /api/stats/weekly`
+
+Token. Parâmetro `habitoId`. Desempenho diário, os três maiores recordes e a constância, numa janela
+de trinta dias na rota mensal e de sete dias na semanal. A constância conta só os dias cobrados pela
+frequência semanal, no numerador e no denominador, e por isso nunca passa de 100%. Desde
+16/10/2026 a contagem começa no dia da criação do hábito, e o dia todo dispensado fica de fora;
+cada dia traz `antes_da_criacao` e `dispensado`. Hábito excluído responde 404.
+
+### `GET /api/calibration/questions`
+
+Token. Parâmetro `categoria` na consulta. Devolve as perguntas do catálogo no idioma do perfil.
+
+### `POST /api/calibration`
+
+Token. Corpo: `categoria` e a lista `respostas`. Devolve a meta sugerida e o identificador da
+sessão, que pode ser passado depois em `calibracao_id` na criação do hábito.
+
+### `FechamentoDiarioJob`
+
+Não é rota. Roda de hora em hora e apura os dias já encerrados no fuso de cada usuário: decide se a
+meta foi cumprida, aplica ou zera a ofensiva, consome escudo quando há, e aplica a progressão
+automática da meta, avaliada a cada dia fechado. A mesma apuração (`ApuracaoService`) roda sob
+demanda antes do painel, da execução e da compra de escudo, para que a virada do dia não dependa
+de a API estar acordada na hora do job.
 
 ---
 
 ## 7. Frontend — Estrutura e Componentes
 
-React 19 com Vite 8. Todo o estilo é feito com **styled-components**; o padrão de cada componente
-é uma pasta contendo `index.jsx` (comportamento) e `styles.js` (aparência).
+Quatorze telas, dezoito rotas, dez componentes compartilhados e sete contextos. A pasta `app`
+contém só as rotas, que são arquivos finos cuja única função é apontar para a página em
+`src/pages`; essa separação é imposição do Expo Router, que deriva a navegação da árvore de
+arquivos, e tem o efeito desejável de manter a lógica de tela fora da definição de rota.
 
-### 7.1. Rotas
+### Telas
 
-Definidas em `src/routes/index.jsx`. O componente `ProtectedRoute` exibe `LoadingScreen` enquanto
-`AuthContext.loading` for `true` e redireciona para `/login` se o usuário não estiver autenticado.
+| Tela | Rota | O que faz |
+| --- | --- | --- |
+| `Login` | `login.jsx` | Duas abas no mesmo formulário: entrar e criar conta |
+| `VerifyEmail` | `verify-email.jsx` | Campo do código de seis dígitos, com reenvio |
+| `ForgotPassword` | `forgot-password.jsx` | Dois passos: pedido do código e definição da nova senha |
+| `Calibration` | `calibration.jsx` | Questionário, uma pergunta por vez, com indicador de progresso |
+| `CreateHabit` | `(tabs)/create.jsx` | Assistente de quatro passos: molde, modo de configuração, meta e revisão |
+| `Home` | `(tabs)/home.jsx` | Carrossel com um hábito em foco, progresso do dia e ações do hábito |
+| `Stats` | `(tabs)/stats.jsx` | Ofensiva, desempenho de trinta dias, recordes e constância |
+| `Store` | `(tabs)/store.jsx` | Custo do escudo, saldo por hábito e inventário |
+| `Profile` | `(tabs)/profile.jsx` | Nome, idioma, tema e fuso horário |
+| `ChangePassword` | `change-password.jsx` | Troca de senha, com confirmação |
+| `PreTask` | `pretask.jsx` | Frase motivacional antes de iniciar |
+| `Execution` | `execute.jsx` | Cronômetro ou contador, conforme o tipo de medida |
+| `Success` | `success.jsx` | Resultado positivo, com recompensa visual |
+| `Fail` | `fail.jsx` | Resultado negativo, em linguagem não punitiva |
 
-| Rota | Tela | Barra inferior | Observação |
-|---|---|---|---|
-| `/login` | `Login` | não | **Única rota pública** |
-| `/` | — | — | Redireciona para `/home` |
-| `/home` | `Home` | sim | Dashboard com o carrossel |
-| `/stats` | `Stats` | sim | — |
-| `/store` | `Store` | sim | Loja de escudos |
-| `/profile` | `Profile` | sim | Perfil e preferências |
-| `/create` | `CreateHabit` | sim | Assistente de criação |
-| `/pretask` | `PreTask` | **não** | Início do fluxo de execução |
-| `/execute` | `Execution` | **não** | Cronômetro ativo |
-| `/success` | `Success` | **não** | Resultado positivo |
-| `/fail` | `Fail` | **não** | Resultado negativo |
-| `*` | — | — | Redireciona para `/` |
+As demais rotas são `index.jsx`, que decide entre acesso e tela inicial; `+not-found.jsx`; e os
+`_layout.jsx` que montam a navegação.
 
-As quatro telas do fluxo de execução ficam **fora** do `MainLayout` de propósito: sem barra de
-navegação, o usuário não abandona uma sessão cronometrada por acidente.
+### Contextos
 
-### 7.2. As dez páginas
+| Contexto | Responsabilidade |
+| --- | --- |
+| `AuthContext` | Sessão: token, perfil, entrada, saída e revalidação na reabertura do aplicativo |
+| `CurrentHabitContext` | Qual hábito está em foco entre as telas de execução |
+| `ExecutionResultContext` | Carrega o resultado da execução até as telas de sucesso e falha |
+| `LanguageContext` | Idioma corrente e troca em tempo de execução |
+| `ThemeToggleContext` | Tema claro e escuro |
+| `SoundContext` | Efeitos sonoros, preferência guardada só no aparelho |
+| `ToastContext` | Avisos curtos, inclusive o de sessão expirada |
 
-| Página | Chama da API | Contexts que consome | Navega para |
-|---|---|---|---|
-| **Login** | `login()`, `register()` (via `AuthContext`) | `useAuth`, `useThemeToggle`, `useToast` | `/home` ao autenticar |
-| **Home** | `getDashboard()`, `archiveHabit(id)` (menu do cartão) | `useCurrentHabit` (**escreve**), `useThemeToggle` | `/create` pelo slide vazio ou pelo menu "Editar" |
-| **PreTask** | `getPreTaskPriming(id)` | `useCurrentHabit` | `/execute` ou `/home` |
-| **Execution** | `submitExecution(id, payload)` | `useCurrentHabit`, `useToast` | `/success` ou `/fail` |
-| **Success** | — (lê `location.state`) | — | `/home` |
-| **Fail** | — (lê `location.state`) | — | `/home` |
-| **Stats** | `getWeeklyStats()` | `useCurrentHabit` | não navega |
-| **Store** | `getDashboard()`, `buyShield(id)` | `useToast` | não navega |
-| **Profile** | `updateProfile(data)` | `useAuth`, `useThemeToggle`, `useToast` | não navega — o `logout()` faz o `ProtectedRoute` redirecionar |
-| **CreateHabit** | `createHabit(data)` ou `updateHabit(id, data)` no modo de edição | `useToast` | `/home` após criar/salvar |
+### Camadas de apoio
 
-**Home** é a única página que *escreve* em `CurrentHabitContext`: conforme o usuário desliza o
-carrossel, ela publica o hábito central. Todas as outras telas apenas leem esse valor — inclusive
-`BottomNav`, `LocalHeader`, `PreTask`, `Execution` e `Stats`. Uma consequência prática: **se o
-usuário abrir `/stats` sem passar pela Home, o context está vazio** e a tela mostra um estado
-vazio pedindo para voltar à tela inicial.
+| Pasta | Conteúdo |
+| --- | --- |
+| `src/services` | Cliente Axios único. O interceptor anexa o token e, ao receber 401 ou 403 fora das rotas de login e cadastro, avisa o usuário, aguarda dois segundos, limpa as credenciais e redireciona |
+| `src/i18n` | Catálogos `pt.js` e `en.js`. O de inglês tem seis chaves a mais, ver DEF-01 |
+| `src/model` | Enumerações de estado de hábito e de ocorrência |
+| `src/utils` | Armazenamento seguro do token, formatação de data e tradução de erro da API para texto de usuário |
+| `src/hooks` | Ganchos reutilizáveis de temporização e de ciclo de vida |
+| `src/styles` | Definição dos dois temas |
 
-### 7.3. Contexts (estado global)
+As três entradas detalhadas a seguir são as percorridas pelo fluxo de Cadastro, em
+[§8](#8-fluxos-ponta-a-ponta).
 
-| Context | Guarda | Expõe |
-|---|---|---|
-| `AuthContext` | `isAuthenticated`, `loading`, `user` | `login`, `register`, `logout`, `updateLocalUser` |
-| `CurrentHabitContext` | `currentHabit` | `setCurrentHabit` |
-| `ThemeToggleContext` | `isDark`, `tema` (`'claro'`\|`'escuro'`\|`'sistema'`) | `setTema(novoTema)` |
-| `ToastContext` | fila de `toasts` | `addToast(message, type, duration)` |
+### Tela de autenticação (`src/pages/Login`)
 
-Ao montar, o `AuthProvider` executa `verifyAuth()`: se existe token salvo, chama `getDashboard()`
-para confirmar que ainda é válido. Se a chamada falhar, limpa token e perfil. É isso que faz uma
-sessão expirada cair no login em vez de mostrar uma tela quebrada.
+Um único componente (`Login/index.jsx`) atende as duas abas "Entrar" e "Criar Conta": a aba ativa troca o schema de validação (`validation.js`) e os campos visíveis do mesmo formulário `react-hook-form`. Passo a passo da aba de cadastro em [§8 → Cadastro, itens 1 e 2](#8-fluxos-ponta-a-ponta).
 
-**`CurrentHabitContext` não persiste.** Um *refresh* do navegador zera o hábito selecionado — por
-isso `PreTask` e `Execution` verificam `currentHabit` e voltam para a Home se estiver nulo.
+### Contexto de autenticação (`src/contexts/AuthContext.jsx`)
 
-**`ThemeToggleContext` persiste em dois lugares.** `tema` é lido de forma síncrona do
-`localStorage` no primeiro render (sem flash) e sincronizado com `usuarios.usu_tema` no login e em
-`GET /me`. Com `tema === 'sistema'` (padrão), um listener de `prefers-color-scheme` mantém `isDark`
-em dia enquanto o app está aberto; com `'claro'`/`'escuro'` explícitos, a escolha do usuário vence
-o sistema operacional.
+Expõe `register`, `login`, `confirmarEmail`, `redefinirSenha` e `logout` para o restante do app. Só `register` não chama `persistSession`: o cadastro nunca autentica sozinho (ver [§8 → Cadastro, item 3](#8-fluxos-ponta-a-ponta)).
 
-### 7.4. `hooks/useTimer.js`
+### Camada HTTP (`src/services/api.js`)
 
-Assinatura: `useTimer(initialSeconds, habitId, executionToken, isTimer)`. Retorna 11 propriedades:
-
-| Propriedade | Descrição |
-|---|---|
-| `timeLeft` | Segundos restantes |
-| `overachieveTime` | Segundos acumulados **além** da meta |
-| `isOverachieving` | `true` depois que `timeLeft` chega a zero |
-| `elapsed` | `(initialSeconds - timeLeft) + overachieveTime` |
-| `isRunning` / `isPaused` | Estado do cronômetro |
-| `start` / `pause` / `resume` / `stop` | Controles |
-| `clearTimerState` | Apaga o estado salvo no `localStorage` |
-
-**Compensação de tempo em segundo plano.** O hook registra um listener de `visibilitychange`.
-Quando a aba é ocultada, `pause()` grava no `localStorage` o estado atual e o instante
-(`Date.now()`). Ao voltar, `resume()` calcula quantos segundos se passaram no relógio real e
-desconta — sem isso, minimizar o app "congelaria" o cronômetro e o usuário ganharia tempo de graça.
-
-Há uma **tolerância de 1 hora** (`isWithinTolerance`): retomar uma sessão abandonada há mais tempo
-que isso descarta o estado em vez de restaurá-lo.
-
-### 7.5. `utils/storage.js` — persistência criptografada
-
-Tudo é cifrado com AES (CryptoJS) antes de ir para o `localStorage`.
-
-| Chave | Conteúdo | Funções |
-|---|---|---|
-| `tempoClaro_token` | O JWT | `setAuthToken` · `getAuthToken` · `clearAuthToken` |
-| `tempoClaro_user` | `{ name, email }` do login | `setUserProfile` · `getUserProfile` · `clearUserProfile` |
-| `tempoClaro_exec_{habitId}` | Estado do cronômetro em pausa | `saveExecutionState` · `loadExecutionState` · `clearExecutionState` |
-
-`tempoClaro_user` existe porque **não há endpoint `GET /profile`**. O nome do usuário chega uma
-única vez, dentro do `AuthResponseDTO` no login, e precisa ser guardado para a tela de Perfil
-poder exibi-lo.
-
-### 7.6. `services/api.js`
-
-Instância axios com dois interceptores:
-
-- **Requisição** — injeta `Authorization: Bearer <token>` lendo do storage.
-- **Resposta** — ao receber **401** em qualquer rota que não seja de autenticação, limpa o token e
-  força `window.location.href = '/login'`.
-
-`baseURL` é `import.meta.env.DEV ? 'http://localhost:8080/api' : '<URL do Render>'` — em
-`npm run dev` o app fala com o backend local automaticamente; o bundle de produção mantém a URL do
-Render embutida.
-
-As 12 funções exportadas mapeiam um endpoint cada:
-
-| Função | Endpoint | Usada em |
-|---|---|---|
-| `login(data)` | `POST /auth/login` | `AuthContext` |
-| `register(data)` | `POST /auth/register` | `AuthContext` |
-| `getDashboard()` | `GET /dashboard` | `Home`, `Store`, `AuthContext` |
-| `createHabit(data)` | `POST /habits` | `CreateHabit` |
-| `updateHabit(id, data)` | `PUT /habits/{id}` | `CreateHabit` (modo de edição) |
-| `archiveHabit(id)` | `DELETE /habits/{id}` | `Home` (menu do cartão) |
-| `getPreTaskPriming(id)` | `GET /habits/{id}/priming` | `PreTask` |
-| `submitExecution(id, payload)` | `POST /habits/{id}/executions` | `Execution` |
-| `buyShield(id)` | `POST /habits/{id}/shield` | `Store` |
-| `getMe()` | `GET /me` | `Profile` |
-| `updateProfile(data)` | `PUT /profile` | `Profile` |
-| `getWeeklyStats(habitoId)` | `GET /stats/weekly?habitoId={uuid}` | `Stats` |
-
-### 7.7. Tema e estilos
-
-`styles/theme.js` exporta `lightTheme` e `darkTheme`, com as mesmas 19 chaves:
-
-| Chave | Claro | Escuro |
-|---|---|---|
-| `isDark` | `false` | `true` |
-| `primaryColor` | `#4f46e5` | `#818cf8` |
-| `primaryLight` | `#e0e7ff` | `#1e1b4b` |
-| `primaryStrong` | `#4f46e5` | `#4338ca` |
-| `bgPrimary` | `#f8fafc` | `#020617` |
-| `bgSurface` | `#ffffff` | `#0f172a` |
-| `textPrimary` | `#0f172a` | `#f8fafc` |
-| `textSecondary` | `#64748b` | `#94a3b8` |
-| `successColor` | `#047857` | `#34d399` |
-| `successStrong` | `#047857` | `#065f46` |
-| `warningColor` | `#b45309` | `#fbbf24` |
-| `warningStrong` | `#b45309` | `#92400e` |
-| `dangerColor` | `#b91c1c` | `#f87171` |
-| `dangerStrong` | `#b91c1c` | `#991b1b` |
-| `dangerLight` | `#fef2f2` | `#2d1416` |
-| `bonusStrong` | `#0369a1` | `#075985` |
-| `borderColor` | `#e2e8f0` | `#1e293b` |
-| `radiusMd` | `12px` | `12px` |
-| `radiusFull` | `9999px` | `9999px` |
-
-Os tokens `*Strong` existem para preenchimento sólido com texto branco por cima (botões, telas de
-sucesso/falha, badges) — as cores "do dia a dia" (`successColor` etc.) ficam pastel de propósito no
-tema escuro, pensadas para texto/ícone sobre fundo escuro, e falhariam o contraste mínimo de 4,5:1
-nesse outro papel. `isDark` substitui uma comparação de string frágil que existia antes
-(`theme.bgPrimary === '#0f172a'`, que nunca era verdadeira).
-
-`styles/GlobalStyles.js` aplica o reset, importa a fonte **Lexend** e reexporta essas chaves (exceto
-`radiusMd`/`radiusFull` e o booleano `isDark`) como CSS custom properties (`--primary-color`,
-`--primary-strong`, `--danger-light` etc.) — é assim que os `styles.js` acessam o tema sem receber
-`props`.
-
-O `#root` é limitado a `max-width: 480px`, o que dá ao aplicativo o formato de tela de celular
-mesmo quando aberto no navegador desktop.
+Instância única do axios com `baseURL` fixa e dois interceptors: um de requisição (injeta o token salvo, quando existe) e um de resposta (trata 401/403 globalmente, exceto para `/auth/login` e `/auth/register`).
 
 ---
 
 ## 8. Fluxos Ponta a Ponta
 
-### 8.1. A cadeia que toda requisição percorre
+> **Escopo desta seção.** O mapeamento ponta a ponta é feito uma funcionalidade por vez, pelo
+> método descrito em [`revisao.md`](revisao.md): percorrer o caminho inteiro, do toque na tela à
+> linha no banco, e deixar no código-fonte as anotações `@note`, `@audit-ok`, `@audit-issue`,
+> `@audit-info`, `@todo` e `@remind` que sustentam o texto. Hoje existem 53 anotações, em dezesseis
+> arquivos, todas do caminho de cadastro. Por isso esta seção e a [§12](#12-sumário-de-bookmarks-do-fluxo-de-funcionalidades)
+> cobrem só o Cadastro. Aguardam mapeamento: Autenticação, Verificação de e-mail, Recuperação de
+> senha, Criação de hábito, Calibração, Execução da tarefa, Gamificação, Estatísticas e Perfil. As
+> demais seções deste documento não dependem desse método e já cobrem o sistema inteiro.
 
-Antes dos fluxos específicos, vale entender o caminho comum. **Toda** chamada autenticada do
-frontend atravessa exatamente estas camadas:
 
-```
-┌─ FRONTEND ────────────────────────────────────────────────────────────┐
-│                                                                        │
-│  Página (ex.: Home)                                                    │
-│      │  chama getDashboard()                                           │
-│      ▼                                                                 │
-│  services/api.js                                                       │
-│      │  interceptor de REQUISIÇÃO:                                     │
-│      │  lê tempoClaro_token do localStorage (descriptografa AES)       │
-│      │  e injeta  Authorization: Bearer <jwt>                          │
-└──────┼─────────────────────────────────────────────────────────────────┘
-       │  HTTPS
-┌──────▼─ BACKEND ───────────────────────────────────────────────────────┐
-│                                                                        │
-│  RequestLoggingFilter        registra a requisição no console          │
-│      ▼                                                                 │
-│  OAuth2 Resource Server      valida assinatura/expiração do JWT        │
-│      │                       (JwtDecoder) e converte em Authentication │
-│      │                       (CustomJwtAuthenticationConverter, que    │
-│      │                       busca o Usuario pelo e-mail do subject)   │
-│      ▼                                                                 │
-│  SecurityConfig              /api/auth/**, Swagger são públicos;       │
-│      │                       o resto exige autenticação                │
-│      ▼                                                                 │
-│  Controller                  lê o e-mail do SecurityContextHolder      │
-│      ▼                       (nunca do corpo da requisição)            │
-│  Service                     regra de negócio                          │
-│      ▼                                                                 │
-│  Repository                  Spring Data JPA — método derivado ou      │
-│      ▼                       @Query nativa na anotação                 │
-│  PostgreSQL                                                            │
-│      │                                                                 │
-│      ▼  Hibernate monta a @Entity                                      │
-│  Service                     converte entidade → DTO de response       │
-└──────┼─────────────────────────────────────────────────────────────────┘
-       │  JSON (chaves em snake_case)
-┌──────▼─ FRONTEND ──────────────────────────────────────────────────────┐
-│  services/api.js             interceptor de RESPOSTA:                  │
-│      │                       se 401 → limpa token e vai para /login    │
-│      ▼                                                                 │
-│  Página                      atualiza o estado React → re-render       │
-└────────────────────────────────────────────────────────────────────────┘
-```
+Convenção de caminhos: nesta seção, caminhos sem prefixo são relativos a `frontend/`; caminhos de
+pacote Java sem prefixo são relativos a `backend/src/main/java/com/rodrigo/backend2java/`.
 
-Dois pontos que merecem destaque:
+### Cadastro
 
-**A identidade nunca vem do corpo da requisição.** Nenhum endpoint aceita `usuario_id` como
-parâmetro. O controller obtém o e-mail de
-`SecurityContextHolder.getContext().getAuthentication().getName()` — como `Usuario implements
-UserDetails`, isso resolve para `usuario.getUsername()` (o e-mail), preenchido pelo
-`CustomJwtAuthenticationConverter` a partir do *subject* do token assinado. Um cliente não
-consegue se passar por outro usuário alterando o JSON.
+Criação de uma conta nova pela aba "Criar Conta" da tela de login, do preenchimento do
+formulário até a entrega do e-mail de verificação. A confirmação do código de 6 dígitos que esse
+fluxo dispara pertence à funcionalidade de Verificação de E-mail, fora deste mapeamento.
 
-**O `CustomJwtAuthenticationConverter` consulta o banco a cada requisição.** Depois que o
-`JwtDecoder` valida a assinatura e a expiração, o converter busca o `Usuario` pelo e-mail
-(`AutenticacaoRepository.findByEmail`) para montar a `Authentication`. Isso garante que um token
-de uma conta removida pare de funcionar imediatamente — ao custo de uma consulta extra por
-requisição (a mesma que já existia antes da migração, só que hoje feita por Spring Data em vez de
-`JdbcTemplate`).
+#### 1. [Frontend / Tela] `src/pages/Login/index.jsx`
 
-### 8.2. O contrato de nomes: `snake_case`
+`@note` 1.1. Componente `Login`: um único formulário `react-hook-form` atende as abas "Entrar" e
+"Criar Conta". A aba ativa (`isLoginTab`) decide o schema de validação (`registerSchema` quando é
+cadastro) e quais campos existem: `nome` e `confirmarSenha` só são renderizados nesta aba.
 
-Os *records* de DTO de resposta declaram os componentes em `snake_case` — algo incomum em Java,
-onde a convenção é `camelCase`:
+`@note` 1.2. Função `onSubmit`, ramo cadastro (`isLoginTab === false`): chama `registerConta`
+(item 3), exibe um toast de sucesso e navega para a verificação de e-mail (item 15).
 
-```java
-public record HabitoResponseDTO(
-        UUID id,
-        String tipo_medida,          // e não tipoMedida
-        Integer meta_base,           // e não metaBase
-        Integer meta_frequencia_diaria,
-        ...
-```
+`@note` 1.3. Função `onSubmit`, ramo `catch`: qualquer falha do cadastro toca um som de erro e
+mostra um toast com a mensagem traduzida (item 14); a tela permanece na aba de cadastro para nova
+tentativa, sem perder os valores já digitados.
 
-Isso é deliberado: como o Jackson serializa usando o nome do componente, os campos chegam ao
-JavaScript já no formato que o frontend espera, sem precisar de `@JsonProperty` em cada campo nem
-de conversão no cliente. O mesmo vale para os DTOs de **requisição**.
+`@audit-info` o botão físico de voltar do Android é interceptado para todo o componente
+(`BackHandler.addEventListener('hardwareBackPress', () => true)`), inclusive na aba de cadastro:
+não existe caminho para sair desta tela pelo botão de voltar do aparelho.
 
-**O preço dessa escolha** é que a correspondência entre os dois lados passa a ser uma convenção
-verbal, não verificada por nenhum compilador. Foi exatamente aí que o `PUT /profile` falhou: a tela
-de Perfil enviava `fusoHorario`, `senhaAtual` e `novaSenha`, enquanto o `ProfileUpdateDTO` declara
-`fuso_horario`, `senha_atual` e `nova_senha`. O Jackson ignorou os campos desconhecidos, o endpoint
-respondeu `200 OK`, e **a alteração silenciosamente não acontecia**. Ao criar um endpoint novo,
-confira as duas pontas.
+#### 2. [Frontend / Validação] `src/pages/Login/validation.js`
 
-### 8.3. Os quatorze fluxos
+`@note` 2.1. Função `criarRegisterSchema`: declara as regras de `nome`, `email`, `senha` e
+`confirmarSenha` usadas pelo `yupResolver` antes de qualquer chamada de rede. Ramificações
+cobertas: nome vazio ou maior que 150 caracteres; e-mail vazio ou fora do formato `algo@algo`;
+senha vazia, curta (menos de 8 caracteres), longa (mais de 25), sem letra maiúscula ou sem
+caractere especial; confirmação vazia ou diferente da senha digitada. Como a validação não usa
+`abortEarly`, mais de um campo pode mostrar erro ao mesmo tempo.
 
-Cada passo numerado abaixo corresponde a um marcador `// @audit-ok [Nome (N)]` no código-fonte —
-ver [§9](#9-padrão-de-rastreabilidade--audit-ok).
+`@audit-issue` [outcome: fixed] `nome` tinha só `.required()`, sem limite máximo de tamanho: nada
+neste arquivo impedia um nome maior que o `usu_nome VARCHAR(150)` do banco (ver item 9.2), o que
+estourava como `DataIntegrityViolationException` (item 13.4) em vez de um erro de formulário.
+Corrigido com `TAMANHO_MAXIMO_NOME = 150` e `.max(...)` no schema, espelhando o `@Size`
+adicionado em `RegisterRequestDTO.java` (item 5).
 
-#### FLUXO 1 — Login (`POST /auth/login`)
+#### 3. [Frontend / Estado Global] `src/contexts/AuthContext.jsx`
 
-```
-Login.jsx (1)
-  → handleSubmit (2)
-    → useLogin.executeAuth(isLoginTab=true, formData) (3)
-      → authService.validateLogin(data) — valida email e senha não vazios (4)
-      → AuthContext.login(data) (5)
-        → monta payload: { email, password: data.senha } (6)
-        → api.js: POST /auth/login (7)
-          → [Backend] SecurityConfig — /api/auth/login é público, passa direto (8)
-          → [Backend] AuthController.login() (9)
-          → [Backend] AuthService.autenticar() (10)
-            → AuthenticationManager.authenticate() → AutenticacaoService.loadUserByUsername()
-              + BCrypt.matches(password, senhaHash), via DaoAuthenticationProvider (11-12)
-            → TokenService.geraToken(usuario) (13)
-          → Response: { token, user: { name, email, fuso_horario, tema } } (14)
-        → storage.setAuthToken(token) — AES encrypt → localStorage (15)
-        → setIsAuthenticated(true) (16)
-  → navigate('/home') (17)
-```
+`@note` 3.1. Função `register`: traduz os campos do formulário (`nome`, `email`, `senha`,
+`idioma`) para o payload que a API espera (`password`, `preferencia_idioma`) e delega a chamada
+HTTP ao item 4. Diferente de `login`, `confirmarEmail` e `redefinirSenha`, não chama
+`persistSession`: o cadastro isolado nunca grava token nem autentica o usuário.
 
-**Payload enviado para a API:**
-```json
-{ "email": "rodrigo@ifsul.edu.br", "password": "SenhaSegura123!" }
-```
+#### 4. [Frontend / HTTP] `src/services/api.js`
 
-**Resposta recebida:**
-```json
-{ "token": "eyJhbGci...", "user": { "name": "Rodrigo Miranda", "email": "rodrigo@ifsul.edu.br" } }
-```
+`@note` 4.1. Função `register`: `POST /auth/register` com o payload montado no item 3.1.
 
-**localStorage após login:**
-```
-tempoClaro_token → "U2FsdGVkX1+abc123..." (AES ciphertext do JWT)
-```
+`@note` 4.2. Interceptor de resposta: em qualquer 401/403 de rotas que não sejam `/auth/login` ou
+`/auth/register`, dispara o tratamento de sessão expirada. Como a rota de cadastro é `permitAll`
+no backend (item 6.1), esse interceptor nunca chega a agir sobre uma resposta de registro.
 
----
+#### 5. [Backend / Rota] `autenticacao/AuthController.java`
 
-#### FLUXO 2 — Cadastro (`POST /auth/register`)
+`@note` 5.1. Método `register`: valida `RegisterRequestDTO` (`@Valid`) e devolve HTTP 201 com
+`MessageResponseDTO`. Qualquer violação de `@NotBlank`/`@Email`/`@Size` do DTO nunca chega ao
+corpo do método: é interceptada antes pelo `MethodArgumentNotValidException` (item 13.1).
 
-```
-Login.jsx — aba "Criar Conta" (1)
-  → handleSubmit (2)
-    → useLogin.executeAuth(isLoginTab=false, formData) (3)
-      → authService.validateRegister(data) (4)
-        → valida nome, email, senha não vazios
-        → valida senha === confirmarSenha
-      → AuthContext.register(data) (5)
-        → monta payload: { nome, email, password: data.senha } (6)
-        → api.js: POST /auth/register (7)
-          → [Backend] SecurityConfig — /api/auth/register é público, passa direto (8)
-          → [Backend] AuthController.register() (9)
-          → [Backend] AuthService.cadastrar() (10)
-            → UsuarioRepository.existsByEmail() — verifica duplicidade (11)
-            → BCrypt.encode(password) — hash da senha (12)
-            → UsuarioRepository.save(novoUsuario) (13)
-            → TokenService.geraToken(novoUsuario) (14)
-          → Response: { token, user } (15)
-        → storage.setAuthToken(token) (16)
-        → setIsAuthenticated(true) (17)
-  → navigate('/home') (18)
-```
+`@audit-issue` [outcome: fixed] `RegisterRequestDTO` não tinha `@Size` em nenhum campo: `nome`
+podia estourar `usu_nome VARCHAR(150)` (item 9.2) direto no banco. Adicionado `@Size(max = 150)`
+em `nome` e `@Size(max = 255)` em `email`, espelhando o schema.sql.
 
----
+`@audit-info` [outcome: fixed elsewhere] `password` de propósito não ganhou `@Size` aqui: as
+outras regras de força de senha (mínimo, maiúscula, caractere especial) já não vivem como
+anotação de bean validation neste DTO, e sim em `SenhaValidator.motivoInvalida` (item 8.1),
+reaplicado também por `redefinirSenha` (recuperação de senha). O teto de tamanho entrou lá, pelo
+mesmo motivo — ver item 8.
 
-#### FLUXO 3 — Verificação de Token na Inicialização
+#### 6. [Backend / Segurança] `infra/security/SecurityConfig.java`
 
-```
-main.jsx — monta AuthProvider (1)
-  → AuthContext.useEffect() → verifyAuth() (2)
-    → storage.getAuthToken() — AES decrypt do localStorage (3)
-    → Se sem token: setIsAuthenticated(false) → setLoading(false) (4)
-    → Se com token: api.getDashboard() para validar (5)
-      → api.js — interceptor adiciona Authorization: Bearer token (6)
-      → [Backend] OAuth2 Resource Server (7)
-        → extrai o JWT do header Authorization
-        → JwtDecoder valida assinatura e expiração (8)
-        → CustomJwtAuthenticationConverter: AutenticacaoRepository.findByEmail() (9)
-        → SecurityContextHolder.setAuthentication() (10)
-      → [Backend] HabitoController.getDashboard() — retorna 200 (11)
-    → setIsAuthenticated(true) (12)
-    → Se 401: interceptor de response → clearAuthToken() → redirect /login (13)
-```
+`@note` 6.1. `filterChain`: `POST /api/auth/register` está em `permitAll()`, a rota não exige
+token.
 
----
+`@note` 6.2. `passwordEncoder`: bean `BCryptPasswordEncoder`, usado no item 7.1(c) para gerar o
+hash gravado no banco e no item 10.1 para o hash do código de verificação.
 
-#### FLUXO 4 — Home / Dashboard (`GET /dashboard`)
+#### 7. [Backend / Regra de Negócio] `autenticacao/AuthService.java`
 
-```
-HomeScreen monta (1)
-  → useEffect → loadData() (2)
-    → api.getDashboard() (3)
-      → interceptor adiciona Bearer token (4)
-      → GET /api/dashboard (5)
-        → [Backend] OAuth2 Resource Server valida o token (6)
-        → [Backend] HabitoController.getDashboard() → email do SecurityContext (7)
-        → [Backend] HabitoService.listarDashboard(email) (8)
-          → HabitoRepository.findAllByUsuarioIdAndAtivoTrue() (9)
-          → para cada hábito: StatusHabitoRepository.findById() (10)
-          → mapeia para HabitoResponseDTO[] (11)
-        → Response: DashboardResponseDTO { habits, limite_habitos_ativos } (12)
-    → sort: COMPLETED vai para o final, ordena por proximo_vencimento (13)
-    → setLocalHabits(data) (14)
-  → 0 hábitos: tela de boas-vindas dedicada, distinta do slide de criação (14a)
-  → carrossel renderiza HabitSlide por hábito, com o gatilho abaixo do título quando preenchido (15)
-  → getAvatarExpression(habit) — calcula diffMin para expressão do avatar (16)
-  → handleScroll → setActiveIndex → setCurrentHabit(localHabits[i]) (17)
-  → menu "⋮" no cartão: Editar (leva a /create com o hábito no location.state) ou
-    Arquivar (DELETE /habits/{id}, com confirmação explicando que o histórico é
-    preservado e a vaga é liberada) (18)
-```
+`@note` 7.1. Método `cadastrar`, quatro passos em sequência:
+  - (a) confere duplicidade de e-mail;
+  - (b) revalida a força da senha no servidor;
+  - (c) monta e salva a entidade `Usuario`;
+  - (d) gera e dispara o código de verificação de e-mail.
 
-**Expressões do avatar por `diffMin`:**
+Ramificação (a): e-mail já cadastrado → lança `RegraDeNegocioException` (item 13.2), nenhuma
+escrita acontece. Ramificação (b): senha fora dos critérios do servidor → lança
+`ValidacaoException` (item 13.3); este passo só é redundante com o item 2.1 quando o cliente é o
+app oficial — é a única barreira para qualquer outro consumidor da API (ver §10, coleção Postman).
 
-| Condição | Expressão | Avatar |
-|---|---|---|
-| `status === 'COMPLETED'` | feliz | imagem gotinha feliz / emoji ✨ |
-| `diffMin > 120` | normal | imagem gotinha normal / emoji 🌱 |
-| `0 < diffMin <= 120` | preocupado | emoji 😰 |
-| `-60 <= diffMin <= 0` | desesperado | emoji 😱 |
-| `diffMin < -60` | falha | emoji ☠️ |
+`@audit-issue` [outcome: fixed] `cadastrar` não era `@Transactional`. Salvar o usuário (c) e
+gerar/enviar o código (d) eram operações separadas: se (d) falhasse antes de disparar o código, o
+usuário já ficava persistido e órfão — existia em `usuarios`, nunca recebia código, e o e-mail
+ficava bloqueado para uma nova tentativa de cadastro pela checagem do item 9.1. Corrigido com
+`@Transactional` no método, cobrindo (a) a (d) numa única transação. Como
+`ResendEmailService.enviarCodigo` (item 11.1) também deixou de ser `@Async` e agora propaga
+`RegraDeNegocioException` quando o envio falha, essa exceção participa da mesma transação: uma
+falha real no envio desfaz o `save` do usuário e a geração do código também, então não existe
+mais o cenário de usuário órfão.
 
----
+#### 8. [Backend / Validação] `infra/util/SenhaValidator.java`
 
-#### FLUXO 5 — Pré-Tarefa / Priming (`GET /habits/{id}/priming`)
+`@note` 8.1. Método `motivoInvalida`: as mesmas regras do item 2.1 (tamanho mínimo e máximo,
+maiúscula, caractere especial), reaplicadas no servidor. Também é chamado por `redefinirSenha`
+(recuperação de senha, fora deste mapeamento), então o teto de tamanho vale para os dois fluxos.
 
-```
-BottomNav — botão Play pressionado (1)
-  → handlePlay() (2)
-    → se !activeHabit: addToast('Nenhum hábito selecionado', 'error') (3)
-    → se isCompleted: addToast('Tarefa já concluída!', 'success') (4)
-    → senão: navigate('/pretask') (5)
-PreTask monta (6)
-  → useEffect — se !currentHabit: navigate('/home') (7)
-  → exibe o NOME do hábito em destaque e, se preenchido, o gatilho (com âncora ⚓)
-    acima da frase motivacional (7a)
-  → api.getPreTaskPriming(currentHabit.id) (8)
-    → GET /api/habits/{id}/priming com Bearer token (9)
-      → [Backend] HabitoController.getPriming(id) (10)
-      → [Backend] GamificacaoService.obterPriming(id) (11)
-        → HabitoRepository.findById() (12)
-        → BibliotecaTextoRepository.findByCategoriaAndIdioma(categoria, "pt-BR") (13)
-        → texto vem do seed de data.sql; o fallback fixo só é usado se a
-          categoria não existir na biblioteca (14)
-      → Response: { texto: "..." } (15)
-  → setText(`"${res.data.texto}"`) (16)
-  → botão ESTOU PRONTO → navigate('/execute') (17)
-```
+`@audit-info` [outcome: fixed] não havia limite máximo de tamanho aqui nem no DTO do item 5. O
+hash gerado no item 6.2 usa BCrypt, que ignora silenciosamente qualquer byte de senha além do
+72º: uma senha muito longa passava por toda a validação, mas tinha sua cauda descartada na hora
+de autenticar depois. Corrigido com `TAMANHO_MAXIMO = 25` (escolha do autor, bem abaixo do corte
+do BCrypt), e não no DTO — para ficar no mesmo lugar das outras regras de força de senha.
 
----
+#### 9. [Backend / Persistência] `usuario/model/Usuario.java` + `usuario/UsuarioRepository.java`
 
-#### FLUXO 6 — Execução com Timer (`POST /habits/{id}/executions`)
+`@note` 9.1. Método `existsByEmail`: checagem de duplicidade usada no item 7.1(a). É sensível a
+maiúsculas/minúsculas — nada normaliza o e-mail para caixa baixa antes de comparar ou salvar, então
+duas variações de maiúscula do mesmo endereço são tratadas como contas diferentes. Levantado como
+possível inconsistência e confirmado pelo autor como comportamento intencional: e-mail é
+case-sensitive de propósito, sem normalização.
 
-```
-ExecutionScreen monta (1)
-  → useEffect: executionToken = crypto.randomUUID() (2)
-  → metaOcorrenciaAtual = habit.alvo_ocorrencia_atual ?? habit.meta_base (2a)
-  → hábito TEMPO: useTimer(metaOcorrenciaAtual, habitId, executionToken, isTimer=true) (3)
-    → setInterval 1s → decrementa timeLeft (4)
-    → document.visibilitychange oculto: pause() (5)
-      → clearInterval (6)
-      → storage.saveExecutionState(habitId, token, {timeLeft, isOverachieving, overachieveTime}, Date.now()) (7)
-    → document.visibilitychange visível: resume() (8)
-      → storage.loadExecutionState(habitId) (9)
-      → isWithinTolerance(startedAt) — máx 1 hora de pausa (10)
-      → compensa timeDiff, ajusta timeLeft (11)
-  → hábito QUANTIDADE: contador com passo max(1, round(metaOcorrenciaAtual / 10));
-    toque no número central abre entrada manual (3b)
-  → timeLeft === 0 (ou quantidade >= meta): setIsOverachieving(true) + vibrate (12)
-  → botão CONCLUIR visível quando isOverachieving (13)
-  → handleComplete() (14)
-    → pause() — salva estado final (15)
-    → NÃO decide mais padrão/extra no cliente — envia só execution_token e
-      valor_realizado; o servidor recalcula sozinho contra o alvo da
-      ocorrência (RF22/RNF08) (16)
-    → api.submitExecution(id, payload) (17)
-      → POST /api/habits/{id}/executions com Bearer token (18)
-        → [Backend] HabitoController.executeHabit() (19)
-        → [Backend] GamificacaoService.processarExecucao() (20)
-          → HistoricoExecucaoRepository.existsByExecutionToken() — idempotência (21)
-          → recalcula bônus: valor_realizado >= alvo_da_ocorrência * 1.2 (22)
-          → atualiza execucoesHoje; diasSeguidos só sobe quando a ÚLTIMA
-            ocorrência do dia é concluída (23)
-          → proximo_vencimento passa a apontar para a próxima ocorrência
-            pendente do dia, não para o fim do dia (23a)
-          → StatusHabitoRepository.update(status) (24)
-          → HistoricoExecucaoRepository.save(historico) (25)
-        → Response: { moedas_previstas_hoje, moedas_totais, valor_acumulado_hoje, meta_base, dias_seguidos, novo_nivel, texto_feedback, bonus } (26)
-    → storage.clearExecutionState(habitId) (27)
-    → navigate('/success', { state: { bonus: res.data.bonus, feedback: res.data } }) (28)
-```
+`@note` 9.2. Método `save` (via `JpaRepository`, chamado no item 7.1c): grava a linha do novo
+usuário.
+
+`@audit-ok` - Tabela: usuarios | Campos: usu_id, usu_nome, usu_email, usu_senha_hash,
+usu_fuso_horario, usu_preferencia_idioma, usu_tema, usu_criado_em, usu_atualizado_em,
+usu_email_verificado | Avaliação: os campos gravados batem com as colunas do schema.sql.
+`usu_fuso_horario` e `usu_tema` recebem defaults fixos que o cadastro não deixa o usuário escolher,
+e `usu_email_verificado` nasce `false`, coerente com o disparo do código no item 10.1. A restrição
+`UNIQUE` de `usu_email` é o único freio contra uma corrida entre dois cadastros simultâneos com o
+mesmo e-mail: quando ela dispara, cai em `DataIntegrityViolationException` (item 13.4), não em
+`RegraDeNegocioException`, então a mensagem "E-mail já está em uso" do item 7.1(a) não aparece
+nesse caso — aparece o texto genérico de restrição de banco.
+
+`@audit-issue` [outcome: fixed] a coluna `usu_atualizado_em` existia no schema.sql mas não tinha
+campo correspondente na entidade `Usuario`: só `atualizarPerfil` (query nativa, edição de perfil)
+a escrevia, então em toda escrita via JPA — cadastro (7.1c), verificação de e-mail e redefinição
+de senha — ela ficava congelada no `DEFAULT CURRENT_TIMESTAMP` da criação, indistinguível de
+`usu_criado_em`. Corrigido com o campo `atualizadoEm` mapeado e os callbacks
+`@PrePersist`/`@PreUpdate` (`marcarAtualizacao`), que mantêm a coluna correta em qualquer escrita
+JPA sem cada serviço ter de setá-la à mão.
+
+#### 10. [Backend / Verificação] `verificacao/CodigoVerificacaoService.java` + `CodigoVerificacaoRepository.java`
+
+`@note` 10.1. Método `gerarCodigo` (chamado no item 7.1d): invalida qualquer código pendente do
+mesmo tipo para aquele e-mail, sorteia um código de 6 dígitos (ou usa o valor fixo de
+`app.verificacao.codigo-fixo`, quando configurado) e grava o hash com expiração de 15 minutos.
+Ramificação: se já existe um código do mesmo tipo emitido há menos de 60 segundos, lança
+`RegraDeNegocioException` (throttle); na prática, inatingível a partir de um cadastro novo, porque
+um e-mail que ainda não existe em `usuarios` nunca teve código de verificação emitido antes.
+
+`@audit-issue` [outcome: fixed] `application-prod.properties` tinha
+`app.verificacao.codigo-fixo=${CODIGO_VERIFICACAO_FIXO:123456}` — ou seja, em produção, **todo**
+código emitido (cadastro e recuperação de senha) virava o valor fixo `123456` sempre que a
+variável `CODIGO_VERIFICACAO_FIXO` não estivesse setada no Render. Era um contorno para o SMTP não
+entregar em produção (ver item 11), mas na prática qualquer pessoa que soubesse o e-mail de um
+usuário podia assumir a conta pelo fluxo de "esqueci minha senha" sem nunca ter acesso à caixa de
+entrada dele. Corrigido ao remover essa linha (o default do código Java já é vazio, o que faz o
+sorteio aleatório valer) — mas só surte efeito se `CODIGO_VERIFICACAO_FIXO` também for apagada do
+painel de variáveis de ambiente do Render, já que uma variável de ambiente real sempre tem
+prioridade sobre o default do arquivo `.properties`.
+
+`@audit-ok` - Tabela: codigos_verificacao | Campos: cod_id, cod_email, cod_codigo_hash, cod_tipo,
+cod_expira_em, cod_tentativas, cod_criado_em | Avaliação: consistente com o schema.sql; o código em
+si nunca é persistido em texto puro, só o hash, pelo mesmo `PasswordEncoder` das senhas, e
+`cod_tipo` grava o nome do enum `TipoCodigo`, que bate com o `CHECK` da coluna.
+
+#### 11. [Backend / Integração Externa] `verificacao/EmailService.java` (interface) + `verificacao/ResendEmailService.java`
+
+`@note` 11.1. Método `enviarCodigo` (chamado no item 7.1d, implementação ativa fora do profile de
+teste): síncrono — o retorno HTTP do cadastro (item 12) só acontece depois que a chamada ao
+Resend retorna. Uma falha na chamada (rede, credencial, domínio não verificado, limite excedido)
+lança `RegraDeNegocioException`, que participa da mesma transação do item 7.1 (ver o
+`@audit-issue` de lá).
+
+`@audit-issue` [outcome: fixed] a implementação original (`SmtpEmailService`, removida) usava
+`JavaMailSender`/SMTP direto (Gmail). O plano gratuito do Render bloqueia saída nas portas SMTP
+25/465/587 desde 26/09/2025: a conexão nunca se estabelecia em produção, então nenhum código de
+verificação ou recuperação chegava a um usuário real — e a falha era invisível (`@Async`, sem
+tratamento de erro próprio). Isso motivou o contorno do código fixo (item 10.1), que virou seu
+próprio problema de segurança. Corrigido substituindo por `ResendEmailService`, que fala com a
+API HTTP do Resend (`POST https://api.resend.com/emails`, porta 443, que o Render não bloqueia)
+via `RestClient`. Requer `app.resend.api-key` e `app.resend.from` configurados (variáveis
+`RESEND_API_KEY`/`RESEND_FROM_EMAIL`); `app.resend.from` precisa ser um endereço de um domínio
+verificado na conta do Resend — o domínio de teste `onboarding@resend.dev` só entrega para o
+e-mail do dono da conta, não para usuários reais.
+
+`@audit-issue` [outcome: fixed] a falha de envio era invisível de dois jeitos: nem o usuário nem
+o chamador da API ficavam sabendo, porque `enviarCodigo` era `@Async` e não devolvia nada. Uma
+falha do Resend (chave inválida, domínio não verificado, limite diário excedido) só aparecia no
+log do servidor (`SimpleAsyncUncaughtExceptionHandler` padrão do Spring), enquanto o cadastro já
+tinha respondido 201. Corrigido tornando `enviarCodigo` síncrono e lançando
+`RegraDeNegocioException` (HTTP 422, item 13.2) quando o envio falha — o usuário agora recebe um
+erro real em vez de sucesso falso, e a falha desfaz a transação do item 7 (usuário + código não
+ficam persistidos se o e-mail não saiu). Custo aceito: a resposta do cadastro agora espera a
+chamada de rede ao Resend terminar.
+
+#### 12. [Backend / Contrato de Resposta] `AuthController.java` (5.1) + `infra/exception/MessageResponseDTO.java`
+
+`@note` 12.1. Caminho feliz: HTTP 201 Created, corpo `{ success: true, message: "Cadastro
+recebido! ..." }`.
+
+#### 13. [Backend / Tratamento de Erros] `infra/exception/GlobalExceptionHandler.java`
+
+`@note` 13.1. `MethodArgumentNotValidException` → HTTP 400; cobre `nome`/`email`/`password`
+vazios (bean validation do DTO, item 5.1) quando quem chama a API não faz a validação
+client-side do item 2.1.
+
+`@note` 13.2. `RegraDeNegocioException` → HTTP 422; cobre e-mail duplicado (item 7.1a) e o
+throttle de reenvio de código (item 10.1).
+
+`@note` 13.3. `ValidacaoException` → HTTP 400; cobre senha fora dos critérios do servidor (item
+8.1).
+
+`@note` 13.4. `DataIntegrityViolationException` → HTTP 400; cobre qualquer restrição de banco
+violada que passou pelas validações de aplicação, como a corrida de e-mail duplicado (item 9.2) ou
+um nome maior que `usu_nome VARCHAR(150)` (item 2.1).
+
+`@audit-issue` [outcome: fixed] `mensagemAmigavelParaRestricao` não tinha um caso para a corrida
+de e-mail duplicado: caía na mensagem genérica "Os dados enviados violam uma restrição do banco
+de dados.", em vez de repetir a mensagem específica que o mesmo cadastro já dá quando detecta o
+mesmo problema antes de tentar salvar (item 7.1a). Corrigido com um `if (causaRaiz.contains
+("usu_email"))` no início do método. O caso de nome longo demais não precisou de um branch aqui:
+o `@Size(max=150)` do item 5 já barra isso antes de violar a restrição de banco.
+
+`@note` 13.5. `Exception` genérico → HTTP 500, mensagem fixa "Erro interno no servidor.": qualquer
+falha não prevista nos itens acima (por exemplo, o próprio banco fora do ar) cai aqui.
+
+`@note` 13.6. `HttpMessageNotReadableException` → HTTP 400; cobre corpo da requisição malformado
+(JSON inválido ou campo com tipo errado) antes mesmo da validação de bean do item 13.1 rodar.
+
+#### 14. [Frontend / Retorno ao Usuário] `Login/index.jsx` (1.3) + `src/utils/erros.js`
+
+`@note` 14.1. Função `getApiErrorMessage`: prioriza a mensagem vinda do backend
+(`err.response.data.message`, os textos dos itens 13.1 a 13.6); só cai para uma mensagem genérica
+por status HTTP quando o backend não manda `message`, ou para "sem resposta do servidor" quando
+não houve resposta alguma (sem conexão, ou tempo esgotado depois de 90 segundos, que tem mensagem própria).
+
+#### 15. [Frontend / Navegação] handoff para `app/verify-email.jsx` (`VerifyEmail`)
+
+`@note` 15.1. Depois do toast de sucesso, `router.replace({ pathname: '/verify-email', params: {
+email } })` leva o usuário para a tela de verificação. O cadastro termina aqui: a validação do
+código de 6 dígitos, o reenvio e a expiração pertencem à funcionalidade de Verificação de E-mail.
+
+#### 16. [Frontend / Componente Compartilhado] `src/components/common/PasswordInput/index.jsx`
+
+`@note` 16.1. Componente usado pelos campos `senha` (login e cadastro, item 1) e `confirmarSenha`
+(cadastro, item 1): expõe as props de conteúdo do teclado (`textContentType`, `autoComplete`) para
+o gerenciador de senhas nativo, com valores de senha existente como default e `{...resto}` por
+último, para os call sites poderem sobrescrever.
+
+`@audit-issue` [outcome: fixed] o default antigo usava `textContentType="oneTimeCode"` (o content
+type de código de SMS/OTP do iOS, não de senha), com `autoComplete="off"` e
+`importantForAutofill="no"` — desligando de propósito o gerenciador de senhas nativo. Isso
+impedia o iOS/Android de sugerir "Senha Forte" ao criar a conta em `Login/index.jsx` (item 1) e de
+oferecer salvar a credencial ao final do cadastro. Corrigido: o componente agora tem default
+`textContentType="password"`/`autoComplete="password"`, e os call sites do cadastro (`senha`
+quando `!isLoginTab`, e sempre em `confirmarSenha`) passam `textContentType="newPassword"` /
+`autoComplete="new-password"`.
 
 ---
 
-#### FLUXO 7 — Desistência (`POST /habits/{id}/executions` tipo FAIL)
-
-Este é o único fluxo com **dois desfechos distintos**, decididos pelo `tipo` enviado.
-
-```
-ExecutionScreen — botão "Desistir" (1)
-  → pause() → showGiveUpModal = true (2)
-  → GiveUpModal renderiza as opções (3)
-      "Usar Escudo" só aparece se bloqueios_acumulados > 0
-  → usuário escolhe (4)
-      FAIL_BLOQUEIO  (usar escudo)   ou   FAIL_TIMEOUT (assumir a falha)
-  → handleGiveUp(type) (5)
-    → pause() (6)
-    → payload: { execution_token, tipo, valor_realizado: <parcial já feito> } (7)
-    → api.submitExecution(id, payload) (8)
-      → POST /api/habits/{id}/executions (9)
-        → [Backend] GamificacaoService.processarExecucao() (10)
-          │
-          ├── tipo = FAIL_BLOQUEIO (11a)
-          │     → se bloqueios_acumulados <= 0 → erro 400 "Nenhum escudo disponível" 
-          │     → se bloqueio_usado_hoje       → erro 400 "Escudo já utilizado hoje"
-          │     → bloqueios_acumulados -= 1
-          │     → bloqueio_usado_hoje = true
-          │     → dias_seguidos PRESERVADO
-          │     → feedback: "Ofensiva protegida pelo escudo!"
-          │
-          └── tipo = FAIL_TIMEOUT (11b)
-                → dias_seguidos = 0
-                → feedback: "Ofensiva zerada. Recomece amanhã!"
-          
-          → StatusHabitoRepository.update(status) (12)
-          → HistoricoExecucaoRepository.save(historico) (13)
-        → Response: { moedas_ganhas: 0, dias_seguidos, texto_feedback } (14)
-    → storage.clearExecutionState(habitId) (15)
-    → navigate('/fail', { state: { type, feedback: res.data } }) (16)
-Fail lê state.type e escolhe a apresentação (17)
-    FAIL_BLOQUEIO → "Protegido!"      fundo âmbar,  ícone ShieldAlert
-    FAIL_TIMEOUT  → "Tempo Esgotado"  fundo vermelho, ícone Clock
-```
-
-> **O escudo é a única mecânica que protege a ofensiva.** `FAIL_BLOQUEIO` consome um escudo
-> (comprado por 1500 moedas) e mantém `dias_seguidos` intacto; `FAIL_TIMEOUT` zera. A flag
-> `bloqueio_usado_hoje` impede gastar mais de um escudo por dia no mesmo hábito, e é reposta pelo
-> [Fluxo 14](#fluxo-14--fechamento-diário-sem-origem-no-frontend) na virada do dia.
->
-> **Os quatro valores de `tipo` são fechados.** `COMPLETE_PADRAO`, `COMPLETE_EXTRA`,
-> `FAIL_BLOQUEIO` e `FAIL_TIMEOUT`. Qualquer outro valor lança exceção no service.
-
----
-
-#### FLUXO 8 — Tela de Sucesso (sem chamada à API)
-
-```
-Success monta (1)
-  → location.state.bonus → booleano de bônus (2)
-  → location.state.feedback → { moedas_ganhas, dias_seguidos, texto_feedback } (3)
-  → renderiza partículas com useMemo (50 partículas geradas) (4)
-  → exibe: emoji, título, subtítulo, card de recompensas (5)
-  → botão VOLTAR → navigate('/home') (6)
-```
-
----
-
-#### FLUXO 9 — Tela de Falha (sem chamada à API)
-
-```
-Fail monta (1)
-  → location.state.type → 'FAIL_TIMEOUT' | 'FAIL_BLOQUEIO' | 'BLOCK_ACTIVE' (2)
-  → location.state.feedback → { texto_feedback, moedas_ganhas } (3)
-  → seleciona ícone, título, subtítulo e cor de fundo por tipo (4)
-  → botão CONTINUAR → navigate('/home') (5)
-```
-
----
-
-#### FLUXO 10 — Estatísticas (`GET /stats/monthly`)
-
-```
-Stats monta (1)
-  → currentHabit do CurrentHabitContext (2)
-  → se !currentHabit: renderiza EmptyState (3)
-  → setLoading(true) → api.getWeeklyStats(currentHabit.id) (4)
-    → GET /api/stats/weekly?habitoId={id} com Bearer token (5)
-      → [Backend] StatsController.getStats() (6)
-      → [Backend] StatsService.obterEstatisticas() (6a)
-        → HistoricoExecucaoRepository — agrega por dia, últimos 30 dias,
-          na janela calculada no fuso do usuário (6b)
-        → completa os 30 dias mesmo sem execução (valor 0) (6c)
-  → Response: StatsResponseDTO { dias (30), recordes[3], dias_com_meta_cumprida, constancia_percentual, dias_periodo } (7)
-  → todo dia sem execução E sem desistência (30 dias inteiros): estado vazio
-    dedicado ("Ainda não há execuções registradas...") (7a)
-  → recharts BarChart renderiza uma barra por dia; dia com `parcial: true`
-    (desistência/escudo) usa cor diferente das barras de conclusão (8)
-  → StatCards: os três recordes do mês (com data) e o percentual de constância (RF17) (9)
-```
-
----
-
-#### FLUXO 11 — Loja / Compra de Escudo (`POST /habits/{id}/shield`)
-
-```
-Store monta (1)
-  → loadHabits() → api.getDashboard() (2)
-    → GET /dashboard — mesmo fluxo do dashboard (3)
-  → activeHabits = habits.filter(h => h.status !== 'ARCHIVED' && !== 'COMPLETED') (4)
-  → Select renderiza hábitos com moedas_locais (5)
-  → usuário seleciona hábito → setSelectedHabitId(id) (6)
-  → botão Comprar → handleBuyShield() (7)
-    → valida selectedHabitId (8)
-    → api.buyShield(selectedHabitId) (9)
-      → POST /api/habits/{id}/shield com Bearer token (10)
-        → [Backend] HabitoController.buyShield(id) (11)
-        → [Backend] GamificacaoService.comprarEscudo(id) (12)
-          → StatusHabitoRepository.findById() (13)
-          → valida moedas_locais >= 1500 (14)
-          → moedas_locais -= 1500 (15)
-          → bloqueios_acumulados += 1 (16)
-          → StatusHabitoRepository.update(status) (17)
-        → Response: { success: true, message: "Escudo comprado!" } (18)
-    → addToast('Escudo comprado!', 'success') (19)
-    → setSelectedHabitId('') → loadHabits() (20)
-```
-
----
-
-#### FLUXO 12 — Perfil / Atualização (`PUT /profile`)
-
-```
-Profile monta (1)
-  → formData inicial: nome vem de AuthContext.user.name (persistido no login) (2)
-  → handleUpdate(e) chamado no submit (3)
-    → monta payload em snake_case: { nome, fuso_horario,
-      ...(senha_atual + nova_senha) se novaSenha preenchida } (4)
-    → api.updateProfile(payload) (5)
-      → PUT /api/profile com Bearer token (6)
-        → [Backend] ProfileController.updateProfile() → email do SecurityContext (7)
-        → [Backend] UsuarioService.atualizarPerfil() (8)
-          → UsuarioRepository.findByEmail() (9)
-          → atualiza nome e fusoHorario se fornecidos (10)
-          → se novaSenha: valida senha_atual com BCrypt.matches() (11)
-          → BCrypt.encode(novaSenha) → setSenhaHash() (12)
-          → UsuarioRepository.update(usuario) (13)
-        → Response: { success: true } (14)
-    → updateLocalUser({ name }) — reflete o nome novo no AuthContext (15)
-    → addToast('Perfil atualizado!', 'success') (16)
-    → limpa campos de senha (17)
-```
-
----
-
-#### FLUXO 13 — Criar Hábito (`POST /habits`)
-
-```
-CreateHabit monta — step = 1 (modo criar) ou step = 3 pré-preenchido (modo editar,
-  ativado por location.state.editHabit vindo do menu "Editar" da Home) (1)
-  → Etapa 1: usuário toca num molde — AGUA / ESTUDO / EXERCICIO (carrossel com
-    scroll-snap, cartão ativo centralizado, navegável por teclado) (2)
-    → setMolde(m) → NextButton → setStep(2) (3)
-  → Etapa 2: card estático "Calibração Automática — Em breve" (não clicável) ao
-    lado de "Preencher Manualmente" — único caminho ativo (4)
-    → setStep(3) (5)
-  → Etapa 3: formulário — nome do hábito (até 60 caracteres, pré-preenchido com
-    o nome do molde), gatilho (opcional, até 120), meta_base, incremento,
-    dias_incremento, meta_maxima, frequencia_semanal (máscara de 7 dígitos,
-    bloqueia envio com 0 dias), vezes_dia (1-12) e, quando > 1, um horário por
-    ocorrência com o alvo calculado em tempo real (6)
-    → validação campo a campo ANTES de avançar — campo vazio bloqueia o envio
-      com erro no próprio campo, nunca vira 1 silenciosamente (7)
-    → handleRevisar() → Etapa 4: resumo de revisão ("Você vai criar/atualizar
-      [nome] com meta de [X], nos dias [Y], executando [Z] vez(es) ao dia") (8)
-    → handleSave() (9)
-      → setIsSubmitting(true) (10)
-      → monta payload completo (11)
-      → modo criar: api.createHabit(payload) → POST /api/habits (12)
-      → modo editar: api.updateHabit(id, payload) → PUT /api/habits/{id} (12a)
-        → [Backend] HabitoController.createHabit()/updateHabit() → email do
-          SecurityContext (14)
-          → [Backend] HabitoService.criarHabito()/atualizarHabito() (15)
-            → UsuarioRepository.findByEmail() (16)
-            → HabitoRepository.findAllByUsuarioId() — valida limite de 2 (só
-              na criação) (17)
-            → gera/recria as sub_atividades (uma por ocorrência) (18)
-            → HabitoRepository.save()/update() (18a)
-            → StatusHabitoRepository.save(status inicial) — só na criação (19)
-          → Response: HabitoResponseDTO completo, ou { success: true } na
-            edição (20)
-      → addToast('Hábito criado/atualizado com sucesso!', 'success') (21)
-      → navigate('/home') (22)
-```
-
-**Arquivar** (menu "⋮" do cartão da Home, fora deste fluxo): `DELETE /habits/{id}` faz
-`HabitoRepository.archive` — `UPDATE hab_ativo = false`, nunca `DELETE`. O histórico de
-execuções é preservado e a vaga entre os hábitos ativos é liberada, com confirmação explicando
-os dois pontos antes de executar.
-
----
-#### FLUXO 14 — Fechamento do dia (sem origem no frontend)
-
-O único fluxo que **não parte de uma ação do usuário** — e onde toda a gamificação acontece.
-
-```
-FechamentoDiarioJob.apurarDiasFechados — @Scheduled(fixedRate = 1h, initialDelay = 60s) (1)
-  → HabitoRepository.findAllByAtivoTrue()  — hábitos ativos de todos os usuários (2)
-  → para cada hábito:
-      → resolve o fuso do dono (ZonaUsuario.resolver), com cache por usuário (3)
-      → hoje = LocalDate.now(fusoDoDono)
-      → se sta_ultimo_reset é null: grava hoje e segue (primeiro contato, nada a apurar) (4)
-      → para cada dia de sta_ultimo_reset + 1 até ONTEM:                                  (5)
-          FechamentoService.fecharDia(habito, status, dia):
-            → dia fora de hab_frequencia_semanal? limpa contadores e sai — não era dia (5a)
-            → total = SUM(his_valor_realizado) das conclusões daquele dia               (5b)
-            → pote = total/meta >= 1.20 ? 150 : 100
-            → moedas = Σ (pote/N) * min(1, realizado_da_ocorrência / sub_alvo)           (5c)
-            → meta cumprida?  dias_seguidos += 1
-              senão, escudo disponível?  consome, preserva, grava PROTEGIDO_AUTOMATICO
-              senão                      dias_seguidos = 0                               (5d)
-            → sta_nivel_avatar = min(5, 1 + dias_seguidos / 10)                          (5e)
-            → zera execucoes_hoje, valor_acumulado_hoje, bloqueio_usado_hoje
-              e grava sta_ultimo_reset = dia                                             (5f)
-      → recalcula proximo_vencimento e aplica a progressão de meta                        (6)
-  → registra no log quantos dias foram apurados                                           (7)
-```
-
-**Por que roda de hora em hora, e não uma vez à meia-noite.** Cada usuário tem seu próprio
-`usu_fuso_horario`: a meia-noite acontece em instantes diferentes para cada um, então não existe um
-horário único correto. Uma passada por hora cobre todos os fusos com, no máximo, uma hora de
-atraso.
-
-**Por que apura vários dias de uma vez.** A instância do Render suspende por inatividade e o job
-simplesmente não roda enquanto ela dorme — e o usuário também pode passar três dias sem abrir o
-app. Fechar só "ontem" deixaria os dias do meio sem veredito, e RF13 manda zerar a ofensiva quando
-a meta não é atingida. O laço vai de `sta_ultimo_reset + 1` até ontem, inclusive; o dia corrente
-ainda está em andamento e não se fecha. Um teto de 60 dias por passada evita que um hábito parado
-há meses vire milhares de iterações numa execução só.
-
-**Por que é seguro rodar repetidamente.** `sta_ultimo_reset` é a guarda de idempotência: uma vez
-apurado, o dia sai do intervalo pendente e não é creditado de novo. `FechamentoDiarioIntegracaoTest`
-cobre exatamente isso.
-
-**Por que o total vem do histórico e não de `sta_valor_acumulado_hoje`.** O contador de "hoje" é
-um só; se o job ficar horas sem rodar, ele já misturou mais de um dia. `his_data_local` não mistura.
-O contador serve ao anel de progresso da tela, não à apuração.
-
-Um `try/catch` por hábito garante que uma linha problemática (por exemplo, com fuso inválido) não
-interrompa a apuração das demais.
-
-
----
 ## 9. Padrão de Rastreabilidade — `@audit-ok`
 
-Cada funcionalidade possui marcações `// @audit-ok` no código-fonte nas posições exatas onde cada etapa dos fluxos acima é implementada. O formato segue:
+A cada revisão, a jornada de uma funcionalidade é remapeada arquivo por arquivo (frontend e
+backend) em [§8](#8-fluxos-ponta-a-ponta) e anotada com um conjunto fixo de marcações. As
+marcações não vivem como comentário dentro do código-fonte: elas existem só nesta documentação,
+presas ao arquivo e à função onde a observação foi feita.
 
-- `// @audit-ok [FUNCIONALIDADE]` — marca a função/método que implementa a funcionalidade
-- `// @audit-ok [FUNCIONALIDADE (N)]` — marca o passo N dentro do fluxo de dados daquela funcionalidade
+| Tag            | Uso |
+| --------------- | --- |
+| `@note`        | Obrigatória em toda entrada do mapeamento. Segue a estrutura numérica rígida `N. [Camada] arquivo.ext ➔ N.M. Função: nome`, descrevendo o que aquele ponto do fluxo faz. |
+| `@todo`        | Marca fluxo, lógica ou método incompleto: existe no código, mas não cobre todo o requisito. |
+| `@remind`      | Marca código morto: inativo, não referenciado, ou função que nenhum caminho de execução chama. |
+| `@audit-issue` | Aponta um bug, erro lógico ou incoerência encontrada durante o percurso. |
+| `@audit-info`  | Detalhe técnico complexo que não é um bug, mas muda o comportamento de um jeito não óbvio (ex.: um limite de biblioteca, o efeito colateral de uma anotação de framework). |
+| `@audit-ok`    | Obrigatória sempre que o fluxo toca o banco de dados. Formato fixo: `@audit-ok - Tabela: [nome] \| Campos: [campo_A, campo_B] \| Avaliação: [análise da consistência do esquema]`. |
 
-**Exemplo de rastreio:** O passo 17 do Fluxo 6 (Execução) — envio do POST — está marcado como `// @audit-ok [Execução Timer (17)]` em `Execution/index.jsx` e como `// @audit-ok [Execução Timer (19)]` em `HabitoController.java`, ligando diretamente o front ao back.
+Cada funcionalidade documentada em [§8](#8-fluxos-ponta-a-ponta) usa exatamente essas seis tags. O
+[sumário de bookmarks](#12-sumário-de-bookmarks-do-fluxo-de-funcionalidades) reúne, por
+funcionalidade, só as ocorrências de `@todo`, `@remind`, `@audit-issue`, `@audit-info` e
+`@audit-ok`, como um índice rápido para quem não vai ler o fluxo inteiro.
 
 ---
 
 ## 10. Testando a API com o Postman
 
-O projeto inclui uma coleção Postman que cobre todos os endpoints, com scripts que guardam o token,
-o `habitoId` e o `calibracaoId` automaticamente entre as requisições — não é preciso copiar nada à
-mão.
+A coleção está em `backend/src/main/resources/Postman/Tempo Claro.json`, com 29 requisições em sete
+pastas. Ela documenta o comportamento esperado de cada rota, inclusive os casos de recusa, e cada
+descrição aponta o requisito que a requisição exercita.
 
-**Arquivo:** [backend/src/main/resources/Postman/Tempo Claro.json](backend/src/main/resources/Postman/Tempo%20Claro.json)
+### Como usar
 
-### 10.1. Importar e configurar
+1. No Postman, **Import** e selecionar o arquivo da coleção.
+2. Criar uma variável de ambiente `base_url` com `http://localhost:8084/api`.
+3. Rodar `01 - Autenticação → Register`, confirmar o e-mail com o código, e depois `Login`. A
+   resposta do login traz o token; guardá-lo na variável `token`, que as demais requisições usam no
+   cabeçalho de autorização.
 
-1. No Postman, **Import** → arraste o arquivo `Tempo Claro.json`.
-2. A coleção **"Tempo Claro — API"** aparece na barra lateral, com sete pastas.
-3. Ajuste a variável `baseUrl` se a sua porta local for diferente (padrão: `http://localhost:8084/api`;
-   para o backend publicado, `https://tempo-claro-tcc-tsi.onrender.com/api`).
+### As sete pastas
 
-As demais variáveis (`token`, `habitoId`, `calibracaoId`) são preenchidas pelos testes de cada
-requisição. A autenticação está configurada **no nível da coleção** (Bearer `{{token}}`), então toda
-requisição já sai autenticada, exceto as que declaram `noauth` de propósito.
+| Pasta | Requisições | O que cobre |
+| --- | --- | --- |
+| 01 - Autenticação | 3 | Cadastro, login e leitura do perfil pelo token |
+| 02 - Calibração | 5 | Questionário das três categorias, cálculo da sugestão e categoria inexistente |
+| 03 - Hábitos | 6 | Criação com e sem calibração, painel, edição, exclusão e o limite de dois ativos |
+| 04 - Execução | 8 | Frase pré-tarefa, conclusão, superação, desistência com e sem escudo, token repetido, tipo inválido e compra de escudo |
+| 05 - Estatísticas | 2 | Estatísticas do mês e o apelido da rota, que devolve o mesmo conteúdo |
+| 06 - Perfil | 2 | Atualização de nome e fuso, e troca de senha |
+| 07 - Segurança | 3 | Requisição sem token, senha errada e tentativa de acessar hábito de outro usuário |
 
-### 10.2. Fluxo sugerido
-
-Rode as pastas em ordem — cada uma prepara a seguinte:
-
-| Pasta | O que faz |
-|---|---|
-| **01 - Autenticação** | `Register` cria a conta e guarda o token; `Login` renova; `Me` confere o perfil |
-| **02 - Calibração** | Busca o questionário de uma categoria e calcula a sugestão, guardando `calibracaoId` |
-| **03 - Hábitos** | Cria o hábito aceitando a sugestão, lista o dashboard, edita, arquiva, e prova o limite de 2 (422) |
-| **04 - Execução** | Priming, conclusão, superação, as duas formas de desistência, idempotência e compra de escudo |
-| **05 - Estatísticas** | Janela mensal e a rota antiga `/weekly` como alias |
-| **06 - Perfil** | Nome, fuso, tema e troca de senha |
-| **07 - Segurança** | 403 sem token, 401 com senha errada, 404 em hábito alheio |
-
-### 10.3. O que observar na execução
-
-A coleção existe também para deixar visível o comportamento que mais mudou:
-
-- **A execução não credita moedas.** A resposta traz `moedas_previstas_hoje` (previsão do que o dia
-  renderá) e `moedas_totais` (saldo já confirmado). O saldo só muda no fechamento do dia e na compra
-  de escudo — ver Fluxo 14.
-- **A ofensiva não se move na execução.** `dias_seguidos` só avança ou zera quando o dia é apurado.
-- **Erros seguem a convenção da §5.1**: 400 validação, 401 credenciais, 403 token ausente, 404 não
-  encontrado, 422 regra de negócio. Repare que "terceiro hábito ativo" e "token repetido" devolvem
-  **422**, não 400.
-- **Hábito alheio devolve 404**, não 403 — não confirmar a existência do UUID é deliberado.
+A ordem importa: as pastas 03 a 06 dependem de uma sessão aberta na pasta 01, e a pasta 04 depende
+de um hábito criado na pasta 03.
 
 ---
 
 ## 11. Limitações Conhecidas
 
-Esta seção registra, de forma deliberada, o que **não** está implementado ou está implementado
-parcialmente. O objetivo é que a documentação descreva o sistema como ele é, e não como se
-pretendia que fosse.
+Duas listas. A primeira são os defeitos levantados pela campanha de testes de 06 de outubro de
+2026, registrados na aba Defeitos de
+[`tcc/Tabela De Testes Tempo Claro Rodrigo Miranda.xlsx`](tcc/), que é o registro canônico. Nenhum
+deles foi corrigido durante a campanha, por decisão metodológica: corrigir durante a execução
+invalidaria o resultado registrado. A correção veio depois, em 16/10/2026, como trabalho de
+manutenção, e a coluna Situação abaixo diz o que mudou. A segunda lista são as pendências de
+operação, que não são defeitos de código.
 
-### 11.1. Funcionalidades incompletas
+### Defeitos de severidade alta
 
-| Item | Situação |
-|---|---|
-| **Notificações push (RF18)** | Não implementado. A tabela `dispositivos_push` segue reservada no schema, mas não há endpoint de registro de token nem agendador — a própria §8.1 da monografia declara push e widget como trabalho futuro. As classes Java órfãs foram removidas. |
-| **Widget na tela inicial (RF19)** | Não implementado, mesmo motivo. |
-| **Seletor de idioma** | **Implementado (RNF13).** Português e inglês, com a escolha salva em `usu_preferencia_idioma`. O idioma atravessa as três camadas: a interface traduz por dicionário local, `biblioteca_textos` tem seed nas duas línguas (priming e textos de sucesso), e o catálogo de calibração é bilíngue com o servidor resolvendo o texto antes de responder. Um idioma sem conteúdo é recusado com 400 — aceitar seria prometer tradução que o servidor não tem. |
-| **Variação visual do avatar** | `sta_nivel_avatar` é calculado corretamente (RF14: a cada dez dias, teto de 5) e exposto no DTO, mas nenhuma tela desenha as variações v1–v5 ainda. |
-| **Excluir conta** | Não implementado em nenhuma camada. |
-| **Recuperação de senha por e-mail** | Não implementado em nenhuma camada, e sem RF na monografia. Exigiria uma tabela de códigos temporários, dois endpoints (solicitar e validar) e um provedor de envio (SMTP) com credenciais fora do repositório. A troca de senha **com a senha atual em mãos** funciona, em `PUT /profile`. |
+| ID | Defeito | Requisito | Situação |
+| --- | --- | --- | --- |
+| DEF-01 | Seis chaves de tradução ausentes em `pt.js` | RNF10 | Corrigido. As seis chaves existem nos dois idiomas, e o tempo esgotado ganhou mensagem própria |
+| DEF-02 | Hábito excluído continua operável pela API | RF08, RNF05 | Corrigido. `AcessoHabitoService.carregar` filtra `hab_ativo`: edição, nova exclusão, execução, escudo, priming e estatística respondem 404 |
+| DEF-03 | Notificações locais não aparecem no Android 13 ou superior | sem requisito | Corrigido. `POST_NOTIFICATIONS` declarada no `app.json`, canal `lembretes` criado antes do pedido de permissão, e o toque no aviso abre a tela inicial no hábito correspondente |
+| DEF-04 | Tráfego não criptografado habilitado sem necessidade | RNF05 | Corrigido. `usesCleartextTraffic` saiu do `app.json`; só o build de desenvolvimento aceita HTTP |
 
-### 11.2. Compromissos assumidos
+### Defeitos funcionais
 
-| Item | Descrição |
-|---|---|
-| **Meta atual aplicada a todo o período** | Nem `hab_meta_base` nem `sub_atividades` têm histórico próprio. Um mês em que a progressão automática subiu a meta é lido nas estatísticas com a meta de hoje, o que pode marcar como "não cumprido" um dia que, à época, cumpriu a meta menor. |
-| **`his_sub_atividade_id` pode ficar nulo** | A FK é `ON DELETE SET NULL`: reconfigurar um hábito apaga e recria as ocorrências, desvinculando as execuções já registradas. O fechamento trata esse caso caindo na proporção do dia inteiro, em vez de perder o crédito. |
-| **Nível defasado dentro do dia** | `sta_nivel_avatar` é recalculado no fechamento. Entre uma virada e outra ele não muda, o que é coerente: a ofensiva também só se move ali. |
-| **`modalidade` aceito e ignorado** | A coluna `hab_modalidade` saiu do schema (não tinha origem em nenhum RF/F/UC), mas o componente segue no `HabitoRequestDTO` porque `fail-on-unknown-properties` está ligado — removê-lo faria o app publicado receber 400 ao criar hábito. Sai quando os clientes pararem de enviá-lo. |
-| **`GET /stats/weekly`** | Mantido como alias de `/stats/monthly` pelo mesmo motivo: o app publicado ainda chama a rota antiga. |
+| ID | Defeito | Requisito | Situação |
+| --- | --- | --- | --- |
+| DEF-05 | Constância pode passar de cem por cento | sem requisito | Corrigido. O numerador conta só dias cobrados |
+| DEF-06 | A rota semanal devolve os mesmos trinta dias da mensal | sem requisito | Corrigido. `/weekly` devolve sete dias |
+| DEF-07 | Progressão de meta perdida quando o fechamento apura vários dias de uma vez | sem requisito | Corrigido. A progressão é avaliada a cada dia fechado, só no dia em que a ofensiva subiu, o que também impede repeti-la em dia de folga ou de escudo |
+| DEF-08 | Horários da calibração colidem acima de quatro ocorrências | sem requisito | Corrigido. Grade regular de 08:00 a 20:00, em ordem e sem repetição |
+| DEF-09 | Calibração duplicada por duplo toque | RNF07 | Corrigido. O servidor trava a linha do usuário e reaproveita a calibração idêntica dos últimos dois minutos; o app trava o botão por referência |
+| DEF-10 | Ocorrências individuais descartadas em silêncio | sem requisito | Corrigido. Lista de tamanho diferente de vezes ao dia, ou ocorrência sem horário, responde 400 dizendo qual |
+| DEF-11 | Cronômetro trava se a rede cair ao concluir | RNF04, RNF11 | Corrigido. O cronômetro é retomado depois do erro, o envio é travado contra toque duplo, e uma execução que o servidor já gravou é reconhecida na nova tentativa |
+| DEF-12 | Reuso da mesma senha não é bloqueado | RNF05 | Corrigido. Responde 422 no servidor, e o app avisa antes de enviar |
+| DEF-14 | Bônus e crédito de moedas usam bases diferentes | RNF06 | Corrigido. O bônus é decidido pelo total do dia, na mesma base das moedas, e só quando a execução credita moedas |
+| DEF-15 | Vínculo da calibração ao hábito falha em silêncio | sem requisito | Corrigido. Calibração inexistente ou de outro dono responde 404; já usada ou de outra categoria, 422; a criação do hábito é desfeita |
+| DEF-16 | Corrida no limite de dois hábitos ativos | sem requisito | Corrigido. A criação trava a linha do usuário antes de contar os ativos |
+| DEF-18 | Cobertura de acessibilidade incompleta | RNF02 | Corrigido. Os controles declaram papel (botão, aba, opção, caixa de seleção) e estado (selecionado, marcado, desabilitado, ocupado); os avisos são anunciados pelo leitor de tela |
+| DEF-19 | A liberação da execução usa o fuso do aparelho | RNF10 | Corrigido. Liberação, dia cobrado, contagem regressiva e agendamento dos lembretes usam o fuso do perfil |
 
-### 11.3. Segurança
+### Defeitos de severidade baixa
 
-| Item | Situação |
-|---|---|
-| **IDOR** | **Corrigido.** Todos os endpoints por `{id}` passam por `AcessoHabitoService`, que confere o dono contra o e-mail do token e responde 404 para hábito alheio. |
-| **`jwt.secret`** | **Corrigido.** Não há mais default embutido no código. O perfil default traz uma chave declaradamente de desenvolvimento; o perfil `prod` exige `JWT_SECRET` do ambiente e recusa subir sem ela (com validação de 64 bytes para HS512). |
-| **Credenciais do banco** | **Corrigido no arquivo**: `application-prod.properties` usa `${DB_URL}`, `${DB_USERNAME}` e `${DB_PASSWORD}`. ⚠ **A senha anterior continua no histórico do Git — ela precisa ser rotacionada no painel da Neon.** Removê-la do arquivo não a torna secreta. |
-| **Senhas no log** | **Corrigido.** `RequestLoggingFilter` passou a `matchIfMissing = false` e está explicitamente desligado em `prod`. Continua ligado no perfil de desenvolvimento, onde imprimir o corpo é o objetivo. |
-| **CORS** | **Corrigido.** `app.cors.allowed-origins` com lista explícita, em vez de `"*"`. |
+| ID | Defeito | Requisito | Situação |
+| --- | --- | --- | --- |
+| DEF-13 | Perfil não encontrado devolve 400 em vez de 404 | sem requisito | Corrigido |
+| DEF-17 | O gatilho-âncora não tem campo na interface | sem requisito | Corrigido. Campo opcional no formulário de criação e edição, que a edição também preserva |
+| DEF-20 | Rotas protegidas devolvem 403 onde a convenção HTTP pede 401 | RNF05 | Mantido. A seção 5.1 da monografia define 403 para token ausente ou expirado, e o aplicativo trata 401 e 403 igualmente |
 
-### 11.4. Qualidade e infraestrutura
+Das pontas soltas da auditoria fora da numeração DEF: a sobrecarga de quatro argumentos de
+`gerarSubAtividades` saiu (B20), e o fechamento registra aviso e pula o hábito cujo dono não existe
+mais (B21). Ficaram como estão a coluna `bib_texto_aviso_urgencia`, que nenhum serviço lê (B18), e a
+tabela `dispositivos_push` (B19), porque o push remoto é trabalho futuro na seção 9.1 da monografia.
 
-| Item | Descrição |
-|---|---|
-| **Cobertura de teste** | 54 testes JUnit: integração ponta a ponta contra Postgres real (auth, hábitos, execuções, fechamento, stats, calibração, perfil), mais os unitários de geração de sub-atividades e a trava de contagem de queries do dashboard. O `Dockerfile` ainda compila com `-DskipTests` — os testes de integração abrem conexão real com Postgres, indisponível no estágio de build isolado. No frontend não há framework de teste. A coleção de baselines JSON em `src/test/resources/baseline/` foi removida: congelava o contrato de antes da migração para JPA e passou a contradizer quase toda resposta da API. |
-| **Zero CI** | Não há `.github/workflows`. Os deploys em Render e Vercel são disparados manualmente pelos painéis. |
-| **N+1 no dashboard** | **Resolvido.** São 5 consultas fixas, independentemente do número de hábitos: checagem do token, usuário, hábitos, status de todos e ocorrências de todas. `HabitoDashboardQueryCountTest` falha se o custo voltar a crescer com o número de hábitos. |
-| **PWA nominal** | O `index.html` tem "PWA" no título, mas não referencia `manifest.webmanifest` nem registra service worker. |
+### Pendências de operação
 
+| Pendência | O que falta |
+| --- | --- |
+| Código de verificação fixo no painel do Render | A variável `CODIGO_VERIFICACAO_FIXO` já saiu do código e do `application-prod.properties`, mas se ainda estiver definida no painel do Render ela tem precedência sobre o padrão do arquivo. Conferir e apagar lá |
+| Remetente do Resend | O domínio verificado no Resend é `monzai.com.br` (o DKIM está em `resend._domainkey.monzai.com.br`; `send.monzai.com.br` é só o subdomínio de retorno). Definir `RESEND_FROM_EMAIL="Tempo Claro <verificacao@monzai.com.br>"` no Render. Em 16/10/2026 esse remetente entregou para dois endereços, um deles fora da conta do Resend |
 
-### 11.5. Sobre a arquitetura mobile
+### O que o sistema não faz
 
-O `frontend-web/` empacotado pelo Capacitor era um **WebView**, não um aplicativo nativo — e essa
-limitação motivou a migração para `frontend/` (React Native + Expo, `PLANO_MIGRACAO_EXPO.md`). Esta
-seção descrevia, numa versão anterior, os dois problemas que essa arquitetura WebView carregava.
-Com a migração feita (código completo, teste físico ainda pendente — ver §2), o retrato muda para
-cada um dos dois pontos:
+A campanha de 16/10/2026 (`docs/campanha-v1.1/CAMPANHA_E_CORRECOES.md`) levantou mais treze achados,
+C01 a C13, todos corrigidos na v1.2.0; o principal era a barra inferior por cima do formulário de
+criação, que fazia o toque em "Revisar" cair no botão de começar.
 
-- **Cronômetro em segundo plano — resolvido no app nativo.** O `frontend-web/` (WebView) compensava
-  o tempo decorrido escutando `visibilitychange`, o que só funciona enquanto o sistema mantém o
-  WebView vivo. O `frontend/` reescreveu `useTimer` sobre um **deadline absoluto** (`Date.now() +
-  segundos`, não mais um decremento por tick) com `AppState` do React Native no lugar de
-  `visibilitychange`: `pause`/`resume` só persistem e releem esse instante fixo, sem aritmética de
-  "quanto tempo passou". Cobre inclusive o caso que o WebView não tinha como tratar — o processo
-  sendo **morto** pelo sistema em segundo plano, não só pausado: ao reabrir, o hook confere o
-  estado salvo antes de reativar o cronômetro, dentro da mesma tolerância de 1 hora que já existia.
-- **Notificações locais — ainda não implementadas, mas agora possíveis.** A migração **remove a
-  barreira técnica** (o `capacitor.plugins.json` vazio do WebView não dava acesso a nenhum recurso
-  nativo; o Expo tem `expo-notifications` disponível) — mas nenhuma tarefa da migração implementou
-  notificações de fato. O app `frontend/` continua sem avisar o usuário sobre um prazo com o app
-  fechado, exatamente como o `frontend-web/` fazia. É trabalho futuro genuíno, não mais bloqueado por
-  arquitetura.
+Encerrar sessão no servidor, renovar token, revogar token e distinguir perfis de acesso não existem
+no código. A sessão termina pela expiração do token, e o cliente apenas descarta as credenciais
+locais. Notificações push, widget na tela inicial e versão web estão previstos como trabalho futuro
+e não têm implementação.
 
-O backend não precisou de nenhuma alteração para viabilizar isso — é REST puro e agnóstico de
-cliente, e a migração inteira trocou só a camada de apresentação.
+---
+
+## 12. Sumário de bookmarks do fluxo de funcionalidades
+
+Índice rápido das marcações que não são `@note` (ver convenção em [§9](#9-padrão-de-rastreabilidade--audit-ok)), por funcionalidade. Cada linha aponta para o item numerado do fluxo completo em [§8](#8-fluxos-ponta-a-ponta).
+
+### Cadastro
+
+Nenhuma ocorrência de `@todo` ou `@remind` neste fluxo.
+
+| Tag | Local | Resumo |
+| --- | ----- | ------ |
+| `@audit-info`  | 1.1 `Login/index.jsx`                                    | Botão físico de voltar do Android fica bloqueado em toda a tela de login/cadastro. |
+| `@audit-issue` | **[fixed]** 2.1 `Login/validation.js` → `criarRegisterSchema` | Campo `nome` sem limite de tamanho, nem cliente nem servidor. Corrigido com `.max(TAMANHO_MAXIMO_NOME)`. |
+| `@audit-issue` | **[fixed]** 5.1 `RegisterRequestDTO.java`                | Nenhum campo tinha `@Size`. Corrigido: `@Size(max=150)` em `nome`, `@Size(max=255)` em `email`. |
+| `@audit-info`  | 5.1 `RegisterRequestDTO.java`                            | `password` não ganhou `@Size` aqui de propósito: o teto foi para `SenhaValidator` (8.1), junto das outras regras de força de senha. |
+| `@audit-issue` | **[fixed]** 7.1 `AuthService.java` → `cadastrar`         | Faltava `@Transactional` entre salvar o usuário e gerar o código: uma falha no meio deixava um usuário órfão sem código de verificação. Corrigido. |
+| `@audit-info`  | **[fixed]** 8.1 `SenhaValidator.java` → `motivoInvalida`  | Sem limite máximo de senha; BCrypt trunca silenciosamente em 72 bytes. Corrigido com `TAMANHO_MAXIMO = 25` (escolha do autor), reaplicado em cadastro e redefinição de senha. |
+| `@audit-issue` | **[kept as-is]** 9.1 `UsuarioRepository.java` → `existsByEmail` | Checagem de e-mail duplicado é sensível a maiúsculas/minúsculas. Confirmado pelo autor: comportamento intencional, e-mail é case-sensitive de propósito. |
+| `@audit-ok`    | 9.2 `UsuarioRepository.java` → `save`                     | Tabela `usuarios`: ver avaliação completa em [§8, item 9](#8-fluxos-ponta-a-ponta). |
+| `@audit-issue` | **[fixed]** 9.2 `Usuario.java`                            | `usu_atualizado_em` existia no schema mas não na entidade: escritas via JPA deixavam a coluna congelada na data de criação. Corrigido com o campo `atualizadoEm` e callbacks `@PrePersist`/`@PreUpdate`. |
+| `@audit-ok`    | 10.1 `CodigoVerificacaoService.java` → `gerarCodigo`      | Tabela `codigos_verificacao`: ver avaliação completa em [§8, item 10](#8-fluxos-ponta-a-ponta). |
+| `@audit-issue` | **[fixed]** 10.1 `application-prod.properties`            | **Segurança.** Em produção, todo código de verificação/recuperação virava o valor fixo `123456` (contorno pro SMTP não entregar) — qualquer um que soubesse o e-mail de um usuário tomava a conta pelo "esqueci minha senha", sem acessar a caixa de entrada dele. Corrigido: a variável saiu do `application-prod.properties` e do código. Resta conferir o painel do Render, porque uma variável de ambiente definida lá tem precedência sobre o padrão do arquivo. Ver [§11](#11-limitações-conhecidas). |
+| `@audit-issue` | **[fixed]** 11.1 `SmtpEmailService.java` (removido) → `ResendEmailService.java` | SMTP direto (Gmail) nunca entregava em produção: o Render free bloqueia as portas 25/465/587 desde 26/09/2025. Corrigido trocando para a API HTTP do Resend (porta 443, não bloqueada). Requer `RESEND_API_KEY`/`RESEND_FROM_EMAIL` com domínio verificado no Resend. |
+| `@audit-issue` | **[fixed]** 11.1 `ResendEmailService.java` → `enviarCodigo` | Era `@Async`: falha do Resend não chegava à resposta HTTP nem ao usuário. Corrigido: método agora é síncrono e lança `RegraDeNegocioException` (422) quando o envio falha, que desfaz a transação do cadastro (item 7) junto. |
+| `@audit-issue` | **[fixed]** 13.4 `GlobalExceptionHandler.java` → `mensagemAmigavelParaRestricao` | Sem caso para a corrida de e-mail duplicado. Corrigido com `causaRaiz.contains("usu_email")`. |
+| `@audit-issue` | **[fixed]** 16.1 `PasswordInput/index.jsx`               | `textContentType="oneTimeCode"` (content type de OTP, não de senha) com autofill desligado nos campos de senha do cadastro. Corrigido para `password`/`newPassword` conforme o contexto. |
+
+---
+
+## 13. Artefatos do TCC
+
+A pasta `tcc/` reúne os documentos do trabalho de conclusão. Esta seção existe para responder, sem
+abrir arquivo nenhum, qual é o documento atual de cada assunto.
+
+| Arquivo | O que é | Versionado |
+| --- | --- | --- |
+| `TempoClaro_Monografia.docx` | A monografia. **É a fonte de verdade**: em qualquer divergência entre documentos do projeto, vale o corpo do texto dela, não os índices, que são campos automáticos e podem estar desatualizados | não, binário |
+| `atualizacao-monografia.md` | O que precisa mudar na monografia, capítulo por capítulo, já na formatação do documento. Contém apenas o que muda | sim |
+| `atualizacao-monografia.docx` | O mesmo conteúdo em Word, com as legendas de quadro em Título 5 e os títulos de seção em Título 1 a 3, para copiar e colar na monografia preservando os estilos | sim |
+| `capitulo-7-testes.md` | Texto do Capítulo 7, Testes e Validação, com os Quadros 10 a 13 | sim |
+| `apendice-b-casos-de-uso.md` | Texto do Apêndice B, com a síntese dos 27 casos de uso e a correlação com os requisitos, nos Quadros 16 a 18 | sim |
+| `validacao-requisitos-iso.md` | Validação dos requisitos contra a ISO/IEC 25010, a ISO/IEC/IEEE 29148 e a ISO 9001, com o de-para entre a numeração antiga e a vigente | sim |
+| `Tabela De Testes Tempo Claro Rodrigo Miranda.xlsx` | Planilha da campanha de testes: 281 casos em 17 abas, com rastreabilidade, cobertura e os 20 defeitos | não, binário |
+| `figura-07-casos-de-uso.png` | **A Figura 7 da monografia**, o diagrama de casos de uso na versão final | sim |
+| `figura-07-casos-de-uso-gerado.*` | Versão do mesmo diagrama produzida por programa, em 300 pontos por polegada. Serve de conferência: foi com ela que se verificou que nenhuma linha cruza outra e que nenhum caso de uso inclui mais de um outro | o `.png` não |
+| `gerar-diagrama-casos-de-uso.py` | Gera a versão de conferência e roda o verificador de cruzamentos | sim |
+
+### Como regerar o diagrama de conferência
+
+```sh
+cd tcc
+python3 gerar-diagrama-casos-de-uso.py                       # escreve .svg e .drawio
+rsvg-convert -d 300 -p 300 figura-07-casos-de-uso-gerado.svg \
+             -o figura-07-casos-de-uso-gerado.png
+```
+
+A saída precisa imprimir `VERIFICAÇÃO: nenhum cruzamento` e `casos de uso com mais de um include:
+nenhum`. Essas duas condições são exigência da modelagem: a primeira é legibilidade, a segunda vem
+da semântica de inclusão em UML, já que dois `«include»` obrigatórios no mesmo caso de uso não têm
+ordem definida.
+
+### Números que valem como referência rápida
+
+| O quê | Quanto |
+| --- | --- |
+| Requisitos funcionais | 21, de RF01 a RF21 |
+| Requisitos não funcionais | 11, de RNF01 a RNF11, classificados pela ISO/IEC 25010 |
+| Casos de uso | 27, de UC01 a UC27, um ator |
+| Quadros da monografia | 18 |
+| Figuras da monografia | 24 |
+| Casos de teste | 281, dos quais 222 executados: 200 aprovados e 22 reprovados |
+| Defeitos registrados | 20: 4 de severidade alta, 13 funcionais e 3 baixas |
+| Testes automatizados do backend | 144 na campanha; 171 depois da correção dos defeitos |
 
 ---
 

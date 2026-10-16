@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
+import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
+import com.rodrigo.backend2java.verificacao.model.CodigoVerificacao;
 
 @Service
 public class CodigoVerificacaoService {
@@ -18,22 +20,40 @@ public class CodigoVerificacaoService {
 
     private final CodigoVerificacaoRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     private final String codigoFixo;
 
     public CodigoVerificacaoService(CodigoVerificacaoRepository repository, PasswordEncoder passwordEncoder,
-            @Value("${app.verificacao.codigo-fixo:}") String codigoFixo) {
+            EmailService emailService, @Value("${app.verificacao.codigo-fixo:}") String codigoFixo) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
         this.codigoFixo = codigoFixo == null ? "" : codigoFixo.trim();
     }
 
+    // Gera o código e envia o e-mail na mesma transação: se o envio falhar, o código novo é
+    // desfeito junto, e a espera de 60 s entre reenvios não bloqueia a próxima tentativa.
+    @Transactional
+    public void emitirEEnviar(final String email, final TipoCodigo tipo, final String idioma) {
+        final var codigo = gerarCodigo(email, tipo);
+        emailService.enviarCodigo(email, codigo, tipo, idioma);
+    }
+
+    // @note - 10.1 (Cadastro) gerarCodigo, chamado por AuthService.cadastrar (item 7.1d): invalida
+    // qualquer código pendente do mesmo tipo para aquele e-mail, sorteia um código de 6 dígitos
+    // (ou usa app.verificacao.codigo-fixo, previsto só para teste) e grava o hash com expiração de
+    // 15 minutos. Ver README §8 > Cadastro > item 10.
     @Transactional
     public String gerarCodigo(final String email, final TipoCodigo tipo) {
+        // @note - 10.1 (Cadastro) ramificação de throttle: se já existe um código do mesmo tipo
+        // emitido há menos de 60s, lança RegraDeNegocioException (item 13.2). Na prática
+        // inatingível a partir de um cadastro novo, porque um e-mail que ainda não existe em
+        // usuarios nunca teve código de verificação emitido antes.
         final var ultimoEmitido = repository.findFirstByEmailAndTipoOrderByCriadoEmDesc(email, tipo.name());
         if (ultimoEmitido.isPresent()
                 && ultimoEmitido.get().getCriadoEm().plusSeconds(THROTTLE_REENVIO_SEGUNDOS).isAfter(OffsetDateTime.now())) {
-            throw new RegraDeNegocioException("Aguarde um pouco antes de pedir um novo código.");
+            throw new RegraDeNegocioException("codigo.aguarde");
         }
 
         invalidarPendentes(email, tipo);
@@ -42,6 +62,11 @@ public class CodigoVerificacaoService {
                 ? String.format("%06d", ALEATORIO.nextInt(1_000_000))
                 : codigoFixo;
 
+        // @audit-ok - Tabela: codigos_verificacao | Campos: cod_id, cod_email, cod_codigo_hash,
+        // cod_tipo, cod_expira_em, cod_tentativas, cod_criado_em | Avaliação: consistente com o
+        // schema.sql; o código em si nunca é persistido em texto puro, só o hash (mesmo
+        // PasswordEncoder das senhas, ver SecurityConfig.java item 6.2), e cod_tipo grava o nome
+        // do enum TipoCodigo, que bate com o CHECK da coluna.
         repository.save(CodigoVerificacao.builder()
                 .id(UUID.randomUUID())
                 .email(email)
@@ -57,18 +82,18 @@ public class CodigoVerificacaoService {
     public void validarCodigo(final String email, final String codigoDigitado, final TipoCodigo tipo) {
         final var pendente = repository
                 .findFirstByEmailAndTipoAndUsadoEmIsNullOrderByCriadoEmDesc(email, tipo.name())
-                .orElseThrow(() -> new RegraDeNegocioException("Nenhum código pendente para este e-mail. Peça um novo."));
+                .orElseThrow(() -> new RegraDeNegocioException("codigo.nenhumPendente"));
 
         if (pendente.getExpiraEm().isBefore(OffsetDateTime.now())) {
-            throw new RegraDeNegocioException("Código expirado. Peça um novo.");
+            throw new RegraDeNegocioException("codigo.expirado");
         }
         if (pendente.getTentativas() >= MAX_TENTATIVAS) {
-            throw new RegraDeNegocioException("Muitas tentativas erradas. Peça um novo código.");
+            throw new RegraDeNegocioException("codigo.muitasTentativas");
         }
         if (!passwordEncoder.matches(codigoDigitado, pendente.getCodigoHash())) {
             pendente.setTentativas((short) (pendente.getTentativas() + 1));
             repository.save(pendente);
-            throw new RegraDeNegocioException("Código incorreto.");
+            throw new RegraDeNegocioException("codigo.incorreto");
         }
 
         pendente.setUsadoEm(OffsetDateTime.now());

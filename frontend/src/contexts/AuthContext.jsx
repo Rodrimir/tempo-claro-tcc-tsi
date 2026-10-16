@@ -6,11 +6,16 @@ import {
   register as apiRegister,
   verifyEmail as apiVerifyEmail,
   resetPassword as apiResetPassword,
-  getDashboard,
+  getMe,
   setUnauthorizedHandler,
-} from '../services/api';
+  liberarAvisoDeSessao,
+  excluirConta as apiExcluirConta,
+  concluirOnboarding as apiConcluirOnboarding,
+} from '@/services/api';
+import { cancelarTodas } from '@/services/notificacoes';
+import { definirFusoDoUsuario } from '@/utils/fuso';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { traduzir, IDIOMA_PADRAO } from '../i18n';
+import { traduzir, IDIOMA_PADRAO } from '@/i18n';
 import {
   setAuthToken,
   clearAuthToken,
@@ -18,7 +23,25 @@ import {
   setUserProfile,
   getUserProfile,
   clearUserProfile,
-} from '../utils/storage';
+  limparEstadoDeExecucao,
+} from '@/utils/storage';
+
+// O /me usa "nome" e o login usa "name"; o app guarda tudo no formato do login.
+export function perfilDoServidor(perfil, salvo) {
+  return {
+    ...(salvo || {}),
+    name: perfil.nome ?? perfil.name ?? salvo?.name,
+    email: perfil.email ?? salvo?.email,
+    fuso_horario: perfil.fuso_horario ?? salvo?.fuso_horario,
+    fuso_pendente: perfil.fuso_pendente ?? null,
+    fuso_vigente_em: perfil.fuso_vigente_em ?? null,
+    tema: perfil.tema ?? salvo?.tema,
+    preferencia_idioma: perfil.preferencia_idioma ?? salvo?.preferencia_idioma,
+    notificacoes_ativas: perfil.notificacoes_ativas ?? salvo?.notificacoes_ativas ?? true,
+    som_ativo: perfil.som_ativo ?? salvo?.som_ativo ?? true,
+    onboarding_concluido: perfil.onboarding_concluido ?? salvo?.onboarding_concluido ?? false,
+  };
+}
 
 const AuthContext = createContext();
 
@@ -27,6 +50,21 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const router = useRouter();
+
+  // Atualizado durante a renderização, e não num efeito, para que as telas filhas já leiam o fuso
+  // novo na mesma passada em que recebem o usuário.
+  definirFusoDoUsuario(user?.fuso_horario);
+
+  // Sair da conta, por vontade própria, sessão expirada ou exclusão: nada da conta anterior fica no
+  // aparelho (token, perfil, lembretes agendados e execução em andamento).
+  const limparSessaoLocal = async () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    await clearAuthToken();
+    await clearUserProfile();
+    await limparEstadoDeExecucao().catch(() => {});
+    await cancelarTodas().catch(() => {});
+  };
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -37,10 +75,21 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
           return;
         }
-        await getDashboard();
-        setUser(await getUserProfile());
+        const salvo = await getUserProfile();
+        try {
+          const { data: perfil } = await getMe();
+          const atualizado = perfilDoServidor(perfil, salvo);
+          await setUserProfile(atualizado);
+          setUser(atualizado);
+        } catch (erro) {
+          const status = erro?.response?.status;
+          if (status === 401 || status === 403) throw erro;
+          // Sem resposta, tempo esgotado ou erro do servidor: a API pode estar acordando no
+          // Render. A sessão salva continua valendo; um token vencido aparece na próxima chamada.
+          setUser(salvo);
+        }
         setIsAuthenticated(true);
-      } catch (error) {
+      } catch (_error) {
         setIsAuthenticated(false);
         await clearAuthToken();
         await clearUserProfile();
@@ -60,19 +109,18 @@ export const AuthProvider = ({ children }) => {
         duration: 2000,
       });
       setTimeout(async () => {
-        await clearAuthToken();
-        await clearUserProfile();
-        setIsAuthenticated(false);
-        setUser(null);
+        await limparSessaoLocal();
         router.replace('/login');
+        liberarAvisoDeSessao();
       }, 2000);
     });
   }, [router]);
 
   const persistSession = async (response) => {
     const token = response.data?.token;
-    const profile = response.data?.user || null;
+    const profile = response.data?.user ? perfilDoServidor(response.data.user, null) : null;
     if (token) {
+      liberarAvisoDeSessao();
       await setAuthToken(token);
       if (profile) {
         await setUserProfile(profile);
@@ -81,6 +129,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
     }
   };
+
 
   const login = async (data) => {
     const payload = {
@@ -91,6 +140,10 @@ export const AuthProvider = ({ children }) => {
     await persistSession(response);
   };
 
+  // @note - 3.1 (Cadastro) register: traduz os campos do formulário (nome, email, senha, idioma)
+  // para o payload que a API espera (password, preferencia_idioma) e delega a chamada HTTP (ver
+  // README §8 > Cadastro > item 4). Diferente de login, confirmarEmail e redefinirSenha, não
+  // chama persistSession: o cadastro isolado nunca grava token nem autentica o usuário.
   const register = async (data) => {
     const payload = {
       nome: data.nome,
@@ -112,10 +165,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    await clearAuthToken();
-    await clearUserProfile();
+    await limparSessaoLocal();
+  };
+
+  const excluirMinhaConta = async (confirmacao) => {
+    await apiExcluirConta(confirmacao);
+    await limparSessaoLocal();
+  };
+
+  const marcarOnboardingConcluido = async () => {
+    const { data } = await apiConcluirOnboarding();
+    const next = perfilDoServidor(data, user);
+    await setUserProfile(next);
+    setUser(next);
   };
 
   const updateLocalUser = async (patch) => {
@@ -135,6 +197,8 @@ export const AuthProvider = ({ children }) => {
         confirmarEmail,
         redefinirSenha,
         logout,
+        excluirMinhaConta,
+        marcarOnboardingConcluido,
         updateLocalUser,
       }}
     >

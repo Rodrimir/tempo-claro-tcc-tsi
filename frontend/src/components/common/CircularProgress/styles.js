@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import { Svg, Circle } from 'react-native-svg';
-import { fonts } from '../../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const ProgressContainer = styled.View`
   width: 200px;

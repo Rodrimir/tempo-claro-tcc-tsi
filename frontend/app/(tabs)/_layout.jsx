@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import BottomNav from '../../src/components/layout/BottomNav';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function TabsLayout() {
   return (
@@ -8,7 +8,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="stats" />
       <Tabs.Screen name="store" />
       <Tabs.Screen name="profile" />
-      <Tabs.Screen name="create" options={{ href: null }} />
     </Tabs>
   );
 }

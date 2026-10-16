@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/assets/*": ["./assets/*", "./src/assets/*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.js", "**/*.jsx"],
+  "exclude": ["node_modules", "android", ".expo"]
+}

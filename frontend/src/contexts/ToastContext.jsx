@@ -52,7 +52,13 @@ export const ToastProvider = ({ children }) => {
       {children}
       <ToastContainer pointerEvents="box-none" $insetTop={insets.top}>
         {toasts.map((toast) => (
-          <Pressable key={toast.id} onPress={() => dispensarToast(toast.id)}>
+          <Pressable
+            key={toast.id}
+            onPress={() => dispensarToast(toast.id)}
+            accessibilityRole="alert"
+            accessibilityLiveRegion={toast.type === "error" ? "assertive" : "polite"}
+            accessibilityLabel={toast.message}
+          >
             <ToastMessage
               $type={toast.type}
               entering={SlideInRight.duration(300)}

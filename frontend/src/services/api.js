@@ -1,33 +1,114 @@
 import axios from 'axios';
-import { getAuthToken } from '../utils/storage';
+import { DeviceEventEmitter } from 'react-native';
+import { getAuthToken } from '@/utils/storage';
+import { mensagemNoIdiomaAtual } from '@/utils/erros';
+
+const URL_DA_API = process.env.EXPO_PUBLIC_API_URL || 'https://tempo-claro-tcc-tsi.onrender.com/api';
+
+// No plano gratuito do Render a API dorme depois de um tempo parada e leva perto de um minuto para
+// acordar. O limite de 90 s cobre esse primeiro acesso, e o aviso abaixo explica a demora.
+const TEMPO_LIMITE_MS = 90000;
+const AVISO_DE_DEMORA_MS = 6000;
 
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://tempo-claro-tcc-tsi.onrender.com/api',
-  timeout: 60000,
+  baseURL: URL_DA_API,
+  timeout: TEMPO_LIMITE_MS,
 });
 
+let requisicoesEmAndamento = 0;
+let temporizadorDoAviso = null;
+let avisoJaMostrado = false;
+
+function comecarAcompanhamento() {
+  requisicoesEmAndamento += 1;
+  if (requisicoesEmAndamento === 1) {
+    temporizadorDoAviso = setTimeout(() => {
+      if (avisoJaMostrado) return;
+      avisoJaMostrado = true;
+      DeviceEventEmitter.emit('tempoClaro:toast', {
+        message: mensagemNoIdiomaAtual('comum.servidorAcordando'),
+        type: 'default',
+        duration: 8000,
+      });
+    }, AVISO_DE_DEMORA_MS);
+  }
+}
+
+function encerrarAcompanhamento(config) {
+  if (!config?.acompanhada) return;
+  config.acompanhada = false;
+  requisicoesEmAndamento = Math.max(0, requisicoesEmAndamento - 1);
+  if (requisicoesEmAndamento === 0) {
+    clearTimeout(temporizadorDoAviso);
+    temporizadorDoAviso = null;
+    avisoJaMostrado = false;
+  }
+}
+
+let acordando = null;
+
+// Chamada fora do axios, sem token, só para tirar a API do sono enquanto a pessoa ainda está na
+// tela de entrada. Usa a rota pública /health, que não toca no banco.
+export function acordarServidor() {
+  if (!acordando) {
+    acordando = fetch(`${URL_DA_API.replace(/\/$/, '')}/health`).catch(() => null);
+  }
+  return acordando;
+}
+
+// O servidor responde no idioma do app: mensagens de erro e textos de sucesso vêm traduzidos.
+let idiomaDasRequisicoes = 'pt-BR';
+
+export function definirIdiomaDasRequisicoes(idioma) {
+  idiomaDasRequisicoes = idioma || 'pt-BR';
+}
+
 api.interceptors.request.use(async (config) => {
-  const token = await getAuthToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  comecarAcompanhamento();
+  config.acompanhada = true;
+  config.headers['Accept-Language'] = idiomaDasRequisicoes;
+  try {
+    const token = await getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (erro) {
+    encerrarAcompanhamento(config);
+    throw erro;
   }
   return config;
 });
 
 let unauthorizedHandler = null;
+// Várias requisições podem voltar 403 juntas (painel e estatísticas, por exemplo); o aviso de
+// sessão expirada e a saída para o login acontecem uma vez só.
+let sessaoExpirando = false;
+
+export function liberarAvisoDeSessao() {
+  sessaoExpirando = false;
+}
 
 export function setUnauthorizedHandler(fn) {
   unauthorizedHandler = fn;
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    encerrarAcompanhamento(response.config);
+    return response;
+  },
   (error) => {
+    encerrarAcompanhamento(error.config);
     const status = error.response?.status;
     if (status === 401 || status === 403) {
+      // @note - 4.2 (Cadastro) interceptor de resposta: em qualquer 401/403 de rotas que não
+      // sejam /auth/login ou /auth/register, dispara o tratamento de sessão expirada. Como a
+      // rota de cadastro é permitAll no backend (ver SecurityConfig.java, item 6.1), esse
+      // interceptor nunca chega a agir sobre uma resposta de registro.
       const url = error.config?.url || '';
       const isAuthUrl = url.includes('/auth/login') || url.includes('/auth/register');
-      if (!isAuthUrl && unauthorizedHandler) {
+      if (!isAuthUrl && unauthorizedHandler && !sessaoExpirando) {
+        sessaoExpirando = true;
         unauthorizedHandler();
       }
     }
@@ -37,6 +118,8 @@ api.interceptors.response.use(
 
 export const login = async (data) => api.post('/auth/login', data);
 
+// @note - 4.1 (Cadastro) register: POST /auth/register com o payload montado em
+// AuthContext.jsx (item 3.1). Ver README §8 > Cadastro > item 4.
 export const register = async (data) => api.post('/auth/register', data);
 
 export const verifyEmail = async (data) => api.post('/auth/verify-email', data);
@@ -57,13 +140,22 @@ export const updateProfile = async (data) => api.put('/profile', data);
 
 export const getMe = async () => api.get('/me');
 
+export const excluirConta = async (confirmacao) => api.delete('/me', { data: { confirmacao } });
+
+export const definirPreferenciasIniciais = async (preferencia_idioma, fuso_horario) =>
+  api.post('/me/onboarding/preferencias', { preferencia_idioma, fuso_horario });
+
+export const concluirOnboarding = async () => api.post('/me/onboarding/concluir');
+
 export const createHabit = async (data) => api.post('/habits', data);
 
 export const updateHabit = async (id, data) => api.put(`/habits/${id}`, data);
 
-export const archiveHabit = async (id) => api.delete(`/habits/${id}`);
+export const excluirHabito = async (id) => api.delete(`/habits/${id}`);
 
 export const getMonthlyStats = async (habitoId) => api.get('/stats/monthly', { params: { habitoId } });
+
+export const getWeeklyStats = async (habitoId) => api.get('/stats/weekly', { params: { habitoId } });
 
 export const getPreTaskPriming = async (id) => api.get(`/habits/${id}/priming`);
 

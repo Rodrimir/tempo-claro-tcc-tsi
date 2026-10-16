@@ -4,10 +4,10 @@ import { BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useExecutionResult } from '../../contexts/ExecutionResultContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { useFloat } from '../../hooks/useFloat';
+import { useExecutionResult } from '@/contexts/ExecutionResultContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { useFloat } from '@/hooks/useFloat';
 import {
   FailContainer,
   ContentWrapper,
@@ -53,15 +53,15 @@ const Fail = () => {
     subtitle = feedbackMsg || t('falha.protegidoTexto');
     bgColor = theme.warningStrong;
   } else if (type === 'FAIL_TIMEOUT') {
-    icon = <Feather name="clock" size={80} color="white" />;
+    icon = <Feather name="pause-circle" size={80} color="white" />;
     title = t('falha.tempoEsgotado');
     subtitle = feedbackMsg || t('falha.tempoEsgotadoTexto');
-    bgColor = theme.dangerStrong;
+    bgColor = theme.bonusStrong;
   } else {
-    icon = <MaterialCommunityIcons name="heart-broken" size={80} color="white" />;
+    icon = <Feather name="sunrise" size={80} color="white" />;
     title = t('falha.ofensivaPerdida');
     subtitle = feedbackMsg || t('falha.ofensivaPerdidaTexto');
-    bgColor = theme.dangerStrong;
+    bgColor = theme.bonusStrong;
   }
 
   return (
@@ -74,7 +74,7 @@ const Fail = () => {
           <CoinsCardText>{t('falha.suasMoedas')}</CoinsCardText>
           <CoinsCardText>{moedasTotais}</CoinsCardText>
         </CoinsCard>
-        <ActionButton onPress={() => router.replace('/home')}>
+        <ActionButton accessibilityRole="button" onPress={() => router.replace('/home')}>
           <ActionButtonText $bgColor={bgColor}>{t('comum.continuar').toUpperCase()}</ActionButtonText>
         </ActionButton>
       </ContentWrapper>

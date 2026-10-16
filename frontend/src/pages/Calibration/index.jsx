@@ -5,12 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather } from '@expo/vector-icons';
 
-import { getCalibrationQuestions, submitCalibration } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import LoadingScreen from '../../components/common/LoadingScreen';
-import TimePickerField from '../../components/common/TimePickerField';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useSfx } from '../../contexts/SoundContext';
+import { getCalibrationQuestions, submitCalibration } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import TimePickerField from '@/components/common/TimePickerField';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { RE_HORA } from '@/utils/validacao';
+import { getApiErrorMessage } from '@/utils/erros';
 
 import {
   Container,
@@ -47,7 +49,6 @@ import {
 } from './styles';
 
 
-const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const Calibration = () => {
   const router = useRouter();
@@ -56,7 +57,8 @@ const Calibration = () => {
   const { addToast } = useToast();
   const { t } = useI18n();
   const { tocar } = useSfx();
-  const { categoria } = useLocalSearchParams();
+  const { categoria, guia } = useLocalSearchParams();
+  const doGuia = guia === '1' ? { guia: '1' } : {};
 
   const [questionario, setQuestionario] = useState(null);
   const [indice, setIndice] = useState(0);
@@ -72,7 +74,7 @@ const Calibration = () => {
         const { data } = await getCalibrationQuestions(categoria);
         if (ativo) setQuestionario(data);
       } catch (err) {
-        addToast(err.response?.data?.message || t('calibracao.erroCarregar'), 'error');
+        addToast(getApiErrorMessage(err, t('calibracao.erroCarregar')), 'error');
         router.back();
       } finally {
         if (ativo) setCarregando(false);
@@ -81,7 +83,7 @@ const Calibration = () => {
     return () => {
       ativo = false;
     };
-  }, [categoria, addToast, router]);
+  }, [categoria, addToast, router, t]);
 
   const perguntas = questionario?.perguntas ?? [];
   const pergunta = perguntas[indice];
@@ -106,18 +108,23 @@ const Calibration = () => {
     setIndice((i) => i - 1);
   }, [indice, router]);
 
+  const enviandoRef = useRef(false);
+
   const enviar = useCallback(async () => {
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
     setEnviando(true);
     try {
       const lista = Object.entries(respostas).map(([pergunta_codigo, valor]) => ({ pergunta_codigo, valor }));
       const { data } = await submitCalibration(categoria, lista);
       setSugestao(data);
     } catch (err) {
-      addToast(err.response?.data?.message || t('calibracao.erroCalcular'), 'error');
+      addToast(getApiErrorMessage(err, t('calibracao.erroCalcular')), 'error');
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
-  }, [categoria, respostas, addToast]);
+  }, [categoria, respostas, addToast, t]);
 
   const vezesAoDia = Number(respostas.VEZES_AO_DIA || 1);
 
@@ -175,6 +182,7 @@ const Calibration = () => {
       <Container style={{ paddingTop: insets.top }}>
         <TopBar>
           <BackButton
+            accessibilityRole="button"
             onPress={() => {
               tocar('voltar');
               setSugestao(null);
@@ -228,11 +236,14 @@ const Calibration = () => {
           </SugestaoCard>
 
           <PrimaryButton
+            accessibilityRole="button"
             onPress={() => {
               tocar('continuar');
-              router.replace({
+              // Volta para o formulário que abriu a calibração, em vez de empilhar outro.
+              router.dismissTo({
                 pathname: '/create',
                 params: {
+                  ...doGuia,
                   categoria,
                   sugestao: JSON.stringify({ ...s, calibracao_id: sugestao.calibracao_id }),
                 },
@@ -242,9 +253,10 @@ const Calibration = () => {
             <PrimaryButtonText>{t('calibracao.usarSugestao')}</PrimaryButtonText>
           </PrimaryButton>
           <SecondaryButton
+            accessibilityRole="button"
             onPress={() => {
               tocar('tap');
-              router.replace({ pathname: '/create', params: { categoria } });
+              router.dismissTo({ pathname: '/create', params: { ...doGuia, categoria } });
             }}
           >
             <SecondaryButtonText>{t('calibracao.ajustarManual')}</SecondaryButtonText>
@@ -265,6 +277,7 @@ const Calibration = () => {
     <Container style={{ paddingTop: insets.top }}>
       <TopBar>
         <BackButton
+          accessibilityRole="button"
           onPress={() => {
             tocar('voltar');
             voltar();
@@ -286,6 +299,8 @@ const Calibration = () => {
             {pergunta.tipo === 'RITMO' ? <Ajuda>{t('calibracao.ajudaRitmo')}</Ajuda> : null}
             {pergunta.opcoes.map((opcao) => (
               <Opcao
+                accessibilityRole="radio"
+                accessibilityState={{ selected: respostas[pergunta.codigo] === opcao.valor }}
                 key={opcao.valor}
                 $active={respostas[pergunta.codigo] === opcao.valor}
                 onPress={() => {
@@ -310,6 +325,8 @@ const Calibration = () => {
             <DiasRow>
               {t('diasSemanaCurto').map((letra, i) => (
                 <DiaCirculo
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: diasSelecionados[i] }}
                   key={i}
                   $active={diasSelecionados[i]}
                   onPress={() => {
@@ -331,6 +348,8 @@ const Calibration = () => {
             <ChipsRow>
               {Array.from({ length: pergunta.maximo || 4 }, (_, i) => i + 1).map((n) => (
                 <Chip
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: Number(respostas.VEZES_AO_DIA) === n }}
                   key={n}
                   $active={Number(respostas.VEZES_AO_DIA) === n}
                   onPress={() => {
@@ -365,6 +384,8 @@ const Calibration = () => {
 
         {pergunta && pergunta.tipo !== 'ESCOLHA_UNICA' && pergunta.tipo !== 'RITMO' ? (
           <PrimaryButton
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !podeAvancar }}
             $disabled={!podeAvancar}
             disabled={!podeAvancar}
             onPress={() => {
@@ -378,6 +399,8 @@ const Calibration = () => {
 
         {ehUltima && (pergunta?.tipo === 'ESCOLHA_UNICA' || pergunta?.tipo === 'RITMO') ? (
           <PrimaryButton
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !podeAvancar || enviando }}
             $disabled={!podeAvancar || enviando}
             disabled={!podeAvancar || enviando}
             onPress={() => {

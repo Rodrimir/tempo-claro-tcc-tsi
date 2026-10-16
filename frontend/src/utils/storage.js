@@ -58,3 +58,10 @@ export const getUserProfile = async () => {
 export const clearUserProfile = async () => {
   await AsyncStorage.removeItem('tempoClaro_user');
 };
+
+// Apaga o estado de qualquer execução em andamento, de qualquer hábito. Usado ao sair da conta.
+export const limparEstadoDeExecucao = async () => {
+  const chaves = await AsyncStorage.getAllKeys();
+  const deExecucao = chaves.filter((chave) => chave.startsWith('tempoClaro_exec') || chave === 'tempoClaro_execucao_habito_id');
+  if (deExecucao.length > 0) await AsyncStorage.multiRemove(deExecucao);
+};

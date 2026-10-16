@@ -1,22 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Crypto from 'expo-crypto';
 import { useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { useTimer } from '../../hooks/useTimer';
-import { useHoldToIncrement } from '../../hooks/useHoldToIncrement';
-import { submitExecution, getDashboard } from '../../services/api';
-import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
-import { useExecutionResult } from '../../contexts/ExecutionResultContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { saveExecutingHabitId, loadExecutingHabitId, clearExecutingHabitId } from '../../utils/storage';
-import CircularProgress from '../../components/common/CircularProgress';
-import MonospaceTimer from '../../components/common/MonospaceTimer';
-import GiveUpModal from '../../components/common/GiveUpModal';
-import LoadingScreen from '../../components/common/LoadingScreen';
-import { useI18n } from '../../contexts/LanguageContext';
+import { useTimer } from '@/hooks/useTimer';
+import { useHoldToIncrement } from '@/hooks/useHoldToIncrement';
+import { TipoMedida } from '@/model/TipoMedida';
+import { submitExecution, getDashboard } from '@/services/api';
+import { getApiErrorMessage } from '@/utils/erros';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { useExecutionResult } from '@/contexts/ExecutionResultContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { saveExecutingHabitId, loadExecutingHabitId, clearExecutingHabitId } from '@/utils/storage';
+import CircularProgress from '@/components/common/CircularProgress';
+import MonospaceTimer from '@/components/common/MonospaceTimer';
+import GiveUpModal from '@/components/common/GiveUpModal';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import { useI18n } from '@/contexts/LanguageContext';
 import {
   ExecutionContainer,
   HeaderWrapper,
@@ -43,11 +45,16 @@ const ExecutionScreen = () => {
   const [habit, setHabit] = useState(currentHabit || null);
   const [fase, setFase] = useState(currentHabit ? 'pronto' : 'recuperando');
 
+  const [habitDoContextoAnterior, setHabitDoContextoAnterior] = useState(currentHabit);
+  if (currentHabit && currentHabit !== habitDoContextoAnterior) {
+    setHabitDoContextoAnterior(currentHabit);
+    setHabit(currentHabit);
+    setFase('pronto');
+  }
+
   useEffect(() => {
     if (currentHabit) {
       saveExecutingHabitId(currentHabit.id);
-      setHabit(currentHabit);
-      setFase('pronto');
       return;
     }
 
@@ -80,7 +87,7 @@ const ExecutionScreen = () => {
     return () => {
       cancelado = true;
     };
-  }, [currentHabit]);
+  }, [currentHabit, router, setCurrentHabit]);
 
   if (fase !== 'pronto' || !habit) {
     return <LoadingScreen message={t('execucao.retomandoExecucao')} />;
@@ -96,9 +103,12 @@ const ExecutionActive = ({ habit }) => {
   const { t } = useI18n();
   const { tocar } = useSfx();
   const { setExecutionResult } = useExecutionResult();
-  const [executionToken, setExecutionToken] = useState('');
+  const [executionToken] = useState(() => Crypto.randomUUID());
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
   const [quantity, setQuantity] = useState(0);
+  const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false);
+  const tentativaSemRespostaRef = useRef(false);
 
   const metaOcorrenciaAtual = habit.alvo_ocorrencia_atual ?? habit.meta_base;
   const alvoEmSegundos = metaOcorrenciaAtual * 60;
@@ -115,15 +125,13 @@ const ExecutionActive = ({ habit }) => {
     }
   );
 
-  useEffect(() => {
-    setExecutionToken(Crypto.randomUUID());
-  }, []);
-
+  const avisarReinicio = useCallback(() => addToast(t('execucao.cronometroReiniciado'), 'default'), [addToast, t]);
   const { timeLeft, overachieveTime, isOverachieving, pause, resume, clearTimerState } = useTimer(
-    habit.tipo_medida === 'TEMPO' ? alvoEmSegundos : 0,
+    habit.tipo_medida === TipoMedida.TEMPO ? alvoEmSegundos : 0,
     habit.id,
     executionToken,
-    habit.tipo_medida === 'TEMPO'
+    habit.tipo_medida === TipoMedida.TEMPO,
+    avisarReinicio
   );
 
   useEffect(() => {
@@ -134,7 +142,7 @@ const ExecutionActive = ({ habit }) => {
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      pause();
+      pause({ congelar: true });
       setShowGiveUpModal(true);
       return true;
     });
@@ -148,13 +156,40 @@ const ExecutionActive = ({ habit }) => {
     opacity: withTiming(podeConcluir ? 1 : 0, { duration: 500 }),
   }));
 
+  // Uma tentativa que ficou sem resposta pode ter sido gravada no servidor. Se a nova tentativa,
+  // com o mesmo execution_token, voltar como duplicada, a execução já está registrada.
+  const jaFoiRegistrada = (err) =>
+    tentativaSemRespostaRef.current
+    && err?.response?.status === 422
+    && /duplicada/i.test(err?.response?.data?.message || '');
+
+  const encerrarComoJaRegistrada = async () => {
+    await clearTimerState();
+    await clearExecutingHabitId();
+    addToast(t('execucao.jaRegistrada'), 'success');
+    router.replace('/home');
+  };
+
+  const comecarEnvio = () => {
+    if (enviandoRef.current) return false;
+    enviandoRef.current = true;
+    setEnviando(true);
+    return true;
+  };
+
+  const terminarEnvio = () => {
+    enviandoRef.current = false;
+    setEnviando(false);
+  };
+
   const handleComplete = async () => {
+    if (!comecarEnvio()) return;
     try {
       pause();
       const payload = {
         execution_token: executionToken,
         valor_realizado:
-          habit.tipo_medida === 'TEMPO' ? metaOcorrenciaAtual + Math.floor(overachieveTime / 60) : quantity,
+          habit.tipo_medida === TipoMedida.TEMPO ? metaOcorrenciaAtual + Math.floor(overachieveTime / 60) : quantity,
       };
       const res = await submitExecution(habit.id, payload);
       await clearTimerState();
@@ -163,18 +198,27 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ feedback: res.data, subiuDeNivel });
       router.replace('/success');
     } catch (err) {
-      addToast(err.response?.data?.message || t('execucao.erroConclusao'), 'error');
+      if (jaFoiRegistrada(err)) {
+        await encerrarComoJaRegistrada();
+        return;
+      }
+      if (!err?.response) tentativaSemRespostaRef.current = true;
+      addToast(getApiErrorMessage(err, t('execucao.erroConclusao')), 'error');
+      resume();
+    } finally {
+      terminarEnvio();
     }
   };
 
   const handleGiveUp = async (type) => {
+    if (!comecarEnvio()) return;
     try {
       pause();
       const payload = {
         execution_token: executionToken,
         tipo: type,
         valor_realizado:
-          habit.tipo_medida === 'TEMPO' ? Math.floor((alvoEmSegundos - timeLeft) / 60) : quantity,
+          habit.tipo_medida === TipoMedida.TEMPO ? Math.floor((alvoEmSegundos - timeLeft) / 60) : quantity,
       };
       const res = await submitExecution(habit.id, payload);
       await clearTimerState();
@@ -182,8 +226,15 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ type, feedback: res.data });
       router.replace('/fail');
     } catch (err) {
-      addToast(err.response?.data?.message || t('execucao.erroDesistencia'), 'error');
+      if (jaFoiRegistrada(err)) {
+        await encerrarComoJaRegistrada();
+        return;
+      }
+      if (!err?.response) tentativaSemRespostaRef.current = true;
+      addToast(getApiErrorMessage(err, t('execucao.erroDesistencia')), 'error');
       resume();
+    } finally {
+      terminarEnvio();
     }
   };
 
@@ -200,15 +251,17 @@ const ExecutionActive = ({ habit }) => {
       </HeaderWrapper>
 
       <ContentWrapper>
-        {habit.tipo_medida === 'TEMPO' ? (
+        {habit.tipo_medida === TipoMedida.TEMPO ? (
           <MonospaceTimer isOverachieving={isOverachieving} overachieveTime={overachieveTime} timeLeft={timeLeft} />
         ) : (
           <CircularProgress quantity={quantity} meta_base={metaOcorrenciaAtual} onQuantityChange={setQuantity} />
         )}
 
-        {habit.tipo_medida === 'QUANTIDADE' && (
+        {habit.tipo_medida === TipoMedida.QUANTIDADE && (
           <ControlsWrapper>
             <SubButton
+              accessibilityRole="button"
+              accessibilityLabel={t('execucao.diminuir', { passo })}
               onPress={() => {
                 tocar('tap');
                 setQuantity(Math.max(0, quantity - passo));
@@ -216,7 +269,13 @@ const ExecutionActive = ({ habit }) => {
             >
               <SubButtonText>-{passo}</SubButtonText>
             </SubButton>
-            <AddButton onPressIn={onAddPressIn} onPressOut={onAddPressOut}>
+            <AddButton
+              accessibilityRole="button"
+              accessibilityLabel={t('execucao.aumentar', { passo })}
+              accessibilityHint={t('execucao.aumentarDica')}
+              onPressIn={onAddPressIn}
+              onPressOut={onAddPressOut}
+            >
               <AddButtonText>+{passo}</AddButtonText>
             </AddButton>
           </ControlsWrapper>
@@ -225,15 +284,25 @@ const ExecutionActive = ({ habit }) => {
 
       <ActionsWrapper>
         <CompleteButtonWrapper style={estiloConcluir} pointerEvents={podeConcluir ? 'auto' : 'none'}>
-          <CompleteButton onPress={handleComplete}>
+          <CompleteButton
+            onPress={handleComplete}
+            disabled={!podeConcluir || enviando}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !podeConcluir || enviando, busy: enviando }}
+            accessibilityElementsHidden={!podeConcluir}
+            importantForAccessibility={podeConcluir ? 'auto' : 'no-hide-descendants'}
+          >
             <CompleteButtonText>{t('execucao.concluirTarefa')}</CompleteButtonText>
           </CompleteButton>
         </CompleteButtonWrapper>
 
         <GiveUpButton
+          accessibilityRole="button"
+          disabled={enviando}
+          accessibilityState={{ disabled: enviando }}
           onPress={() => {
             tocar('open');
-            pause();
+            pause({ congelar: true });
             setShowGiveUpModal(true);
           }}
         >
@@ -243,6 +312,7 @@ const ExecutionActive = ({ habit }) => {
 
       {showGiveUpModal && (
         <GiveUpModal
+          enviando={enviando}
           bloqueiosAcumulados={habit.bloqueios_acumulados}
           handleGiveUp={handleGiveUp}
           onCancel={() => {

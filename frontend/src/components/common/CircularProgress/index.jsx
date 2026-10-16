@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
 import {
   ProgressContainer,
   SvgElement,
@@ -52,6 +52,7 @@ const CircularProgress = ({ quantity, meta_base, onQuantityChange }) => {
       <TextContainer>
         {editando ? (
           <QuantityInput
+            accessibilityLabel={t('comum.editarQuantidade')}
             keyboardType="numeric"
             autoFocus
             value={valorDigitado}

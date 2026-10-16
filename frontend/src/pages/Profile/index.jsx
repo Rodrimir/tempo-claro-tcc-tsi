@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Modal, View, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SlideInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
-import { useAuth } from '../../contexts/AuthContext';
-import { useI18n } from '../../contexts/LanguageContext';
-import { useThemeToggle } from '../../contexts/ThemeToggleContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useSfx } from '../../contexts/SoundContext';
-import { updateProfile, getMe } from '../../services/api';
-import { FUSOS } from './timezones';
+import { useAuth } from '@/contexts/AuthContext';
+import { useI18n } from '@/contexts/LanguageContext';
+import { useThemeToggle } from '@/contexts/ThemeToggleContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useSfx } from '@/contexts/SoundContext';
+import { updateProfile, getMe } from '@/services/api';
+import { FUSOS, rotuloDoFuso } from '@/model/Fusos';
+import { cancelarTodas, solicitarPermissao } from '@/services/notificacoes';
+import Dialogo, { BotaoDoDialogo, TextoDoBotao, TextoDoDialogo } from '@/components/common/Dialogo';
+import { NOME_MAX_LENGTH } from '@/model/Habito';
+import { getApiErrorMessage } from '@/utils/erros';
+import { confirmacaoDeExclusaoValida } from '@/utils/exclusao';
+import { criarAtualizadorOtimista } from './atualizacaoOtimista';
 import {
   Scrim,
   Panel,
@@ -35,29 +41,17 @@ import {
   LanguageChip,
   LanguageChipText,
   ThemeOptionButton,
-  PickerOverlay,
-  PickerSheet,
-  PickerTitulo,
   PickerGroupLabel,
   PickerOption,
   PickerOptionText,
-  CenterOverlay,
-  DialogCard,
-  DialogTitle,
-  DialogText,
   DialogInput,
-  DialogActions,
-  DialogCancel,
-  DialogCancelText,
-  DialogConfirm,
-  DialogConfirmText,
 } from './styles';
 
 const Profile = () => {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { logout, user, updateLocalUser } = useAuth();
+  const { logout, excluirMinhaConta, user, updateLocalUser } = useAuth();
   const { isDark, tema, setTema } = useThemeToggle();
   const { mudo, setMudo, tocar } = useSfx();
   const { addToast } = useToast();
@@ -70,12 +64,25 @@ const Profile = () => {
   const [rascunhoNome, setRascunhoNome] = useState('');
   const [sairAberto, setSairAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [fusoPendente, setFusoPendente] = useState(user?.fuso_pendente || null);
+  const [fusoVigenteEm, setFusoVigenteEm] = useState(user?.fuso_vigente_em || null);
+  const [lembretes, setLembretes] = useState(user?.notificacoes_ativas !== false);
+  const [excluirAberto, setExcluirAberto] = useState(false);
+  const [confirmacaoExclusao, setConfirmacaoExclusao] = useState('');
+  const [excluindo, setExcluindo] = useState(false);
+
+  const aplicarPerfil = (perfil) => {
+    if (perfil.nome) setNome(perfil.nome);
+    setFusoHorario(perfil.fuso_horario || 'America/Sao_Paulo');
+    setFusoPendente(perfil.fuso_pendente || null);
+    setFusoVigenteEm(perfil.fuso_vigente_em || null);
+    if (typeof perfil.notificacoes_ativas === 'boolean') setLembretes(perfil.notificacoes_ativas);
+  };
 
   useEffect(() => {
     getMe()
       .then((res) => {
-        if (res.data.nome) setNome(res.data.nome);
-        setFusoHorario(res.data.fuso_horario || 'America/Sao_Paulo');
+        aplicarPerfil(res.data);
         if (res.data.tema) setTema(res.data.tema);
       })
       .catch(() => {});
@@ -84,43 +91,96 @@ const Profile = () => {
 
   const fechar = () => router.replace('/home');
 
-  const fusoLabel = FUSOS.find((f) => f.value === fusoHorario)?.label || fusoHorario;
+  const fusoLabel = rotuloDoFuso(fusoHorario, idioma);
+  const palavraDeExclusao = t('perfil.palavraExcluir');
+  const exclusaoConfirmada = confirmacaoDeExclusaoValida(confirmacaoExclusao, palavraDeExclusao);
+  const horaDaTrocaDeFuso = fusoVigenteEm
+    ? new Intl.DateTimeFormat(idioma, { timeZone: fusoHorario, hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }).format(new Date(fusoVigenteEm))
+    : null;
 
-  const trocarIdioma = async (codigo) => {
+  const atualizarComRollback = criarAtualizadorOtimista(addToast);
+
+  const trocarIdioma = (codigo) => {
     if (codigo === idioma) return;
-    const anterior = idioma;
-    setIdioma(codigo);
-    try {
-      await updateProfile({ preferencia_idioma: codigo });
-      updateLocalUser({ preferencia_idioma: codigo });
-    } catch (err) {
-      setIdioma(anterior);
-      addToast(err.response?.data?.message || t('perfil.erroIdioma'), 'error');
-    }
+    atualizarComRollback({
+      valorAtual: idioma,
+      valorNovo: codigo,
+      setter: setIdioma,
+      chamadaApi: () => updateProfile({ preferencia_idioma: codigo }),
+      aoSucesso: () => updateLocalUser({ preferencia_idioma: codigo }),
+      mensagemErroPadrao: t('perfil.erroIdioma'),
+    });
   };
 
-  const trocarTema = async (novo) => {
-    const anterior = tema;
-    setTema(novo);
-    try {
-      await updateProfile({ tema: novo });
-    } catch (err) {
-      setTema(anterior);
-      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
-    }
+  const trocarTema = (novo) => {
+    atualizarComRollback({
+      valorAtual: tema,
+      valorNovo: novo,
+      setter: setTema,
+      chamadaApi: () => updateProfile({ tema: novo }),
+      aoSucesso: () => updateLocalUser({ tema: novo }),
+      mensagemErroPadrao: t('perfil.erroSalvar'),
+    });
   };
 
+  // A troca de fuso só vale à meia-noite seguinte do fuso atual: o dia em andamento termina no
+  // fuso em que começou. O perfil volta do servidor com a troca pendente e o horário em que vale.
   const salvarFuso = async (valor) => {
-    const anterior = fusoHorario;
-    setFusoHorario(valor);
     setFusoAberto(false);
     try {
       await updateProfile({ fuso_horario: valor });
-      updateLocalUser({ fuso_horario: valor });
-      addToast(t('perfil.salvoOk'), 'success');
+      const { data } = await getMe();
+      aplicarPerfil(data);
+      updateLocalUser({
+        fuso_horario: data.fuso_horario,
+        fuso_pendente: data.fuso_pendente || null,
+        fuso_vigente_em: data.fuso_vigente_em || null,
+      });
+      addToast(t(data.fuso_pendente ? 'perfil.fusoAgendado' : 'perfil.salvoOk'), 'success');
     } catch (err) {
-      setFusoHorario(anterior);
-      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+      addToast(getApiErrorMessage(err, t('perfil.erroSalvar')), 'error');
+    }
+  };
+
+  const trocarSom = (ligado) => {
+    setMudo(!ligado);
+    updateProfile({ som_ativo: ligado })
+      .then(() => updateLocalUser({ som_ativo: ligado }))
+      .catch(() => {});
+  };
+
+  const trocarLembretes = async (ligar) => {
+    if (ligar === lembretes) return;
+    if (ligar) {
+      const concedida = await solicitarPermissao(idioma).catch(() => false);
+      if (!concedida) {
+        addToast(t('perfil.lembretesSemPermissao'), 'error');
+        return;
+      }
+    } else {
+      await cancelarTodas().catch(() => {});
+    }
+    atualizarComRollback({
+      valorAtual: lembretes,
+      valorNovo: ligar,
+      setter: setLembretes,
+      chamadaApi: () => updateProfile({ notificacoes_ativas: ligar }),
+      aoSucesso: () => updateLocalUser({ notificacoes_ativas: ligar }),
+      mensagemErroPadrao: t('perfil.erroSalvar'),
+    });
+  };
+
+  const confirmarExclusao = async () => {
+    if (!exclusaoConfirmada || excluindo) return;
+    setExcluindo(true);
+    try {
+      await excluirMinhaConta(confirmacaoExclusao.trim());
+      setExcluirAberto(false);
+      addToast(t('perfil.contaExcluida'), 'success');
+      router.replace('/login');
+    } catch (err) {
+      addToast(getApiErrorMessage(err, t('perfil.erroExcluirConta')), 'error');
+      setExcluindo(false);
     }
   };
 
@@ -135,7 +195,7 @@ const Profile = () => {
       setNomeAberto(false);
       addToast(t('perfil.salvoOk'), 'success');
     } catch (err) {
-      addToast(err.response?.data?.message || t('perfil.erroSalvar'), 'error');
+      addToast(getApiErrorMessage(err, t('perfil.erroSalvar')), 'error');
     } finally {
       setSalvando(false);
     }
@@ -145,7 +205,7 @@ const Profile = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <Scrim onPress={fechar} accessibilityLabel={t('comum.fechar')} />
+      <Scrim accessibilityRole="button" onPress={fechar} accessibilityLabel={t('comum.fechar')} />
 
       <Panel entering={SlideInRight.duration(220)}>
         <PanelScroll $insetTop={insets.top}>
@@ -157,7 +217,7 @@ const Profile = () => {
               <Nome numberOfLines={1}>{nome || t('perfil.titulo')}</Nome>
               <Email numberOfLines={1}>{user?.email}</Email>
             </IdentidadeTexto>
-            <FecharButton onPress={fechar} accessibilityLabel={t('comum.fechar')}>
+            <FecharButton accessibilityRole="button" onPress={fechar} accessibilityLabel={t('comum.fechar')}>
               <Feather name="x" size={20} color={theme.textPrimary} />
             </FecharButton>
           </IdentidadeBloco>
@@ -174,6 +234,8 @@ const Profile = () => {
             <SegmentedControl>
               {Object.entries(idiomas).map(([codigo, info]) => (
                 <LanguageChip
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: idioma === codigo }}
                   key={codigo}
                   $active={idioma === codigo}
                   accessibilityLabel={info.nome}
@@ -200,6 +262,8 @@ const Profile = () => {
             </MenuTexto>
             <SegmentedControl>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: tema === 'claro' }}
                 $active={tema === 'claro'}
                 accessibilityLabel={t('perfil.temaClaroLabel')}
                 onPress={() => {
@@ -210,6 +274,8 @@ const Profile = () => {
                 <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: tema === 'escuro' }}
                 $active={tema === 'escuro'}
                 accessibilityLabel={t('perfil.temaEscuroLabel')}
                 onPress={() => {
@@ -220,6 +286,8 @@ const Profile = () => {
                 <Feather name="moon" size={16} color={tema === 'escuro' ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: tema === 'dinamico' }}
                 $active={tema === 'dinamico'}
                 accessibilityLabel={t('perfil.temaDinamicoLabel')}
                 onPress={() => {
@@ -244,21 +312,62 @@ const Profile = () => {
             </MenuTexto>
             <SegmentedControl>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: !mudo }}
                 $active={!mudo}
                 accessibilityLabel={t('perfil.somLigadoLabel')}
                 onPress={() => {
-                  setMudo(false);
+                  trocarSom(true);
                   tocar('alternar');
                 }}
               >
                 <Feather name="volume-2" size={16} color={!mudo ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: mudo }}
                 $active={mudo}
                 accessibilityLabel={t('perfil.somMudoLabel')}
-                onPress={() => setMudo(true)}
+                onPress={() => trocarSom(false)}
               >
                 <Feather name="volume-x" size={16} color={mudo ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+            </SegmentedControl>
+          </MenuRow>
+
+          <Separador />
+
+          <MenuRow>
+            <MenuIcone>
+              <Feather name={lembretes ? 'bell' : 'bell-off'} size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.lembretes')}</MenuLabel>
+            </MenuTexto>
+            <SegmentedControl>
+              <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: lembretes }}
+                $active={lembretes}
+                accessibilityLabel={t('perfil.lembretesLigadosLabel')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarLembretes(true);
+                }}
+              >
+                <Feather name="bell" size={16} color={lembretes ? theme.primaryColor : theme.textSecondary} />
+              </ThemeOptionButton>
+              <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: !lembretes }}
+                $active={!lembretes}
+                accessibilityLabel={t('perfil.lembretesDesligadosLabel')}
+                onPress={() => {
+                  tocar('alternar');
+                  trocarLembretes(false);
+                }}
+              >
+                <Feather name="bell-off" size={16} color={!lembretes ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
             </SegmentedControl>
           </MenuRow>
@@ -266,6 +375,7 @@ const Profile = () => {
           <SectionTitle>{t('perfil.seusDados')}</SectionTitle>
 
           <MenuRow
+            accessibilityRole="button"
             onPress={() => {
               setRascunhoNome(nome);
               setNomeAberto(true);
@@ -283,20 +393,25 @@ const Profile = () => {
 
           <Separador />
 
-          <MenuRow onPress={() => setFusoAberto(true)}>
+          <MenuRow accessibilityRole="button" onPress={() => setFusoAberto(true)}>
             <MenuIcone>
               <Feather name="clock" size={18} color={theme.primaryColor} />
             </MenuIcone>
             <MenuTexto>
               <MenuLabel>{t('perfil.fuso')}</MenuLabel>
               <MenuValor numberOfLines={1}>{fusoLabel}</MenuValor>
+              {fusoPendente ? (
+                <MenuValor numberOfLines={2}>
+                  {t('perfil.fusoPendente', { fuso: rotuloDoFuso(fusoPendente, idioma), quando: horaDaTrocaDeFuso })}
+                </MenuValor>
+              ) : null}
             </MenuTexto>
             <Feather name="chevron-right" size={20} color={theme.textSecondary} />
           </MenuRow>
 
           <Separador />
 
-          <MenuRow onPress={() => router.push('/change-password')}>
+          <MenuRow accessibilityRole="button" onPress={() => router.push('/change-password')}>
             <MenuIcone>
               <Feather name="lock" size={18} color={theme.primaryColor} />
             </MenuIcone>
@@ -309,7 +424,7 @@ const Profile = () => {
 
           <SectionTitle>{t('perfil.conta')}</SectionTitle>
 
-          <MenuRow $danger onPress={() => setSairAberto(true)}>
+          <MenuRow accessibilityRole="button" $danger onPress={() => setSairAberto(true)}>
             <MenuIcone $danger>
               <Feather name="log-out" size={18} color={theme.dangerColor} />
             </MenuIcone>
@@ -317,71 +432,147 @@ const Profile = () => {
               <MenuLabel $danger>{t('perfil.sair')}</MenuLabel>
             </MenuTexto>
           </MenuRow>
+
+          <Separador />
+
+          <MenuRow
+            accessibilityRole="button"
+            $danger
+            onPress={() => {
+              setConfirmacaoExclusao('');
+              setExcluirAberto(true);
+            }}
+          >
+            <MenuIcone $danger>
+              <Feather name="trash-2" size={18} color={theme.dangerColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel $danger>{t('perfil.excluirConta')}</MenuLabel>
+              <MenuValor>{t('perfil.excluirContaSub')}</MenuValor>
+            </MenuTexto>
+          </MenuRow>
         </PanelScroll>
       </Panel>
 
-      <Modal visible={fusoAberto} transparent animationType="fade" onRequestClose={() => setFusoAberto(false)}>
-        <PickerOverlay onPress={() => setFusoAberto(false)}>
-          <PickerSheet onStartShouldSetResponder={() => true}>
-            <PickerTitulo>{t('perfil.fuso')}</PickerTitulo>
-            <ScrollView>
-              {['brasil', 'outros'].map((grupo) => (
-                <View key={grupo}>
-                  <PickerGroupLabel>{t(`perfil.grupoFuso.${grupo}`)}</PickerGroupLabel>
-                  {FUSOS.filter((f) => f.group === grupo).map((f) => (
-                    <PickerOption key={f.value} onPress={() => salvarFuso(f.value)}>
-                      <PickerOptionText $active={f.value === fusoHorario}>{f.label}</PickerOptionText>
-                      {f.value === fusoHorario ? (
-                        <Feather name="check" size={18} color={theme.primaryColor} />
-                      ) : null}
-                    </PickerOption>
-                  ))}
-                </View>
-              ))}
-            </ScrollView>
-          </PickerSheet>
-        </PickerOverlay>
-      </Modal>
+      <Dialogo
+        visible={fusoAberto}
+        variante="folha"
+        onClose={() => setFusoAberto(false)}
+        titulo={t('perfil.fuso')}
+        accessibilityLabel={t('comum.fechar')}
+      >
+        <TextoDoDialogo>{t('perfil.fusoExplicacao')}</TextoDoDialogo>
+        {['brasil', 'americaDoNorte'].map((grupo) => (
+          <View key={grupo}>
+            <PickerGroupLabel>{t(`perfil.grupoFuso.${grupo}`)}</PickerGroupLabel>
+            {FUSOS.filter((f) => f.grupo === grupo).map((f) => {
+              const escolhido = f.value === (fusoPendente || fusoHorario);
+              return (
+                <PickerOption
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: escolhido }}
+                  key={f.value}
+                  onPress={() => salvarFuso(f.value)}
+                >
+                  <PickerOptionText $active={escolhido}>{rotuloDoFuso(f.value, idioma)}</PickerOptionText>
+                  {escolhido ? <Feather name="check" size={18} color={theme.primaryColor} /> : null}
+                </PickerOption>
+              );
+            })}
+          </View>
+        ))}
+      </Dialogo>
 
-      <Modal visible={nomeAberto} transparent animationType="fade" onRequestClose={() => setNomeAberto(false)}>
-        <CenterOverlay>
-          <DialogCard>
-            <DialogTitle>{t('perfil.nome')}</DialogTitle>
-            <DialogInput
-              value={rascunhoNome}
-              onChangeText={setRascunhoNome}
-              autoFocus
-              maxLength={60}
-              placeholder={t('perfil.nome')}
-            />
-            <DialogActions>
-              <DialogCancel onPress={() => setNomeAberto(false)}>
-                <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
-              </DialogCancel>
-              <DialogConfirm onPress={salvarNome} disabled={salvando || !rascunhoNome.trim()}>
-                <DialogConfirmText>{salvando ? t('perfil.salvando') : t('comum.salvar')}</DialogConfirmText>
-              </DialogConfirm>
-            </DialogActions>
-          </DialogCard>
-        </CenterOverlay>
-      </Modal>
+      <Dialogo
+        visible={nomeAberto}
+        onClose={() => setNomeAberto(false)}
+        titulo={t('perfil.nome')}
+        accessibilityLabel={t('comum.fechar')}
+        acoes={
+          <>
+            <BotaoDoDialogo accessibilityRole="button" onPress={() => setNomeAberto(false)}>
+              <TextoDoBotao>{t('comum.cancelar')}</TextoDoBotao>
+            </BotaoDoDialogo>
+            <BotaoDoDialogo
+              $tipo="primario"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: salvando || !rascunhoNome.trim() }}
+              onPress={salvarNome}
+              disabled={salvando || !rascunhoNome.trim()}
+            >
+              <TextoDoBotao $tipo="primario">{salvando ? t('perfil.salvando') : t('comum.salvar')}</TextoDoBotao>
+            </BotaoDoDialogo>
+          </>
+        }
+      >
+        <DialogInput
+          value={rascunhoNome}
+          onChangeText={setRascunhoNome}
+          autoFocus
+          maxLength={NOME_MAX_LENGTH}
+          placeholder={t('perfil.nome')}
+          accessibilityLabel={t('perfil.nome')}
+          style={{ marginBottom: 0 }}
+        />
+      </Dialogo>
 
-      <Modal visible={sairAberto} transparent animationType="fade" onRequestClose={() => setSairAberto(false)}>
-        <CenterOverlay>
-          <DialogCard>
-            <DialogTitle>{t('perfil.sair')}</DialogTitle>
-            <DialogText>{t('perfil.sairConfirmacao')}</DialogText>
-            <DialogActions>
-              <DialogCancel onPress={() => setSairAberto(false)}>
-                <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
-              </DialogCancel>
-              <DialogConfirm $danger onPress={logout}>
-                <DialogConfirmText>{t('perfil.sairConfirmar')}</DialogConfirmText>
-              </DialogConfirm>
-            </DialogActions>
-          </DialogCard>
-        </CenterOverlay>
-      </Modal>
+      <Dialogo
+        visible={sairAberto}
+        onClose={() => setSairAberto(false)}
+        titulo={t('perfil.sair')}
+        accessibilityLabel={t('comum.fechar')}
+        acoes={
+          <>
+            <BotaoDoDialogo accessibilityRole="button" onPress={() => setSairAberto(false)}>
+              <TextoDoBotao>{t('comum.cancelar')}</TextoDoBotao>
+            </BotaoDoDialogo>
+            <BotaoDoDialogo $tipo="perigo" accessibilityRole="button" onPress={logout}>
+              <TextoDoBotao $tipo="perigo">{t('perfil.sairConfirmar')}</TextoDoBotao>
+            </BotaoDoDialogo>
+          </>
+        }
+      >
+        <TextoDoDialogo>{t('perfil.sairConfirmacao')}</TextoDoDialogo>
+      </Dialogo>
+
+      <Dialogo
+        visible={excluirAberto}
+        onClose={excluindo ? undefined : () => setExcluirAberto(false)}
+        titulo={t('perfil.excluirContaTitulo')}
+        accessibilityLabel={t('comum.fechar')}
+        acoes={
+          <>
+            <BotaoDoDialogo
+              accessibilityRole="button"
+              disabled={excluindo}
+              onPress={() => setExcluirAberto(false)}
+            >
+              <TextoDoBotao>{t('comum.cancelar')}</TextoDoBotao>
+            </BotaoDoDialogo>
+            <BotaoDoDialogo
+              $tipo="perigo"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !exclusaoConfirmada || excluindo, busy: excluindo }}
+              disabled={!exclusaoConfirmada || excluindo}
+              onPress={confirmarExclusao}
+            >
+              <TextoDoBotao $tipo="perigo">{excluindo ? t('perfil.excluindoConta') : t('perfil.excluirContaConfirmar')}</TextoDoBotao>
+            </BotaoDoDialogo>
+          </>
+        }
+      >
+        <TextoDoDialogo>{t('perfil.excluirContaTexto')}</TextoDoDialogo>
+        <TextoDoDialogo style={{ marginTop: 12 }}>{t('perfil.excluirContaDigite', { palavra: palavraDeExclusao })}</TextoDoDialogo>
+        <DialogInput
+          value={confirmacaoExclusao}
+          onChangeText={setConfirmacaoExclusao}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder={palavraDeExclusao}
+          accessibilityLabel={t('perfil.excluirContaDigite', { palavra: palavraDeExclusao })}
+          style={{ marginTop: 12, marginBottom: 0 }}
+        />
+      </Dialogo>
     </View>
   );
 };
