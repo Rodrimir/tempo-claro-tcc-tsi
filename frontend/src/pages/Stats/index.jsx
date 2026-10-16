@@ -180,7 +180,7 @@ const Stats = () => {
       getDashboard()
         .then((res) => {
           const lista = res.data.habits || res.data || [];
-          setHabitosDisponiveis(lista.filter((h) => h.status !== STATUS_HABITO.ARCHIVED));
+          setHabitosDisponiveis(lista.filter((h) => h.status !== STATUS_HABITO.EXCLUIDO));
         })
         .catch(() => {});
     }, [])

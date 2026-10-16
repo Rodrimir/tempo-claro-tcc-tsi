@@ -300,6 +300,6 @@ public class HabitoService {
         @Transactional
         public void deletarHabito(final UUID habitoId, final String emailContexto) {
                 acessoHabitoService.carregar(habitoId, emailContexto);
-                habitoRepository.archive(habitoId);
+                habitoRepository.excluir(habitoId);
         }
 }

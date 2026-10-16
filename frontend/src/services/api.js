@@ -67,7 +67,7 @@ export const createHabit = async (data) => api.post('/habits', data);
 
 export const updateHabit = async (id, data) => api.put(`/habits/${id}`, data);
 
-export const archiveHabit = async (id) => api.delete(`/habits/${id}`);
+export const excluirHabito = async (id) => api.delete(`/habits/${id}`);
 
 export const getMonthlyStats = async (habitoId) => api.get('/stats/monthly', { params: { habitoId } });
 

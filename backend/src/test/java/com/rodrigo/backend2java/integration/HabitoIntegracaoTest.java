@@ -116,8 +116,8 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
     }
 
     @Test
-    void deletarHabito_arquivaSemRemoverDoBanco() {
-        final var criado = criarHabitoUmaVezAoDia("Para arquivar");
+    void deletarHabito_excluiSemRemoverDoBanco() {
+        final var criado = criarHabitoUmaVezAoDia("Para excluir");
 
         final var resposta = delete("/api/habits/" + criado.id(), Object.class);
 

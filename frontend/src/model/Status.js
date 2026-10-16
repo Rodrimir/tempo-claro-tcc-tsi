@@ -6,5 +6,5 @@ export const STATUS_OCORRENCIA = {
 
 export const STATUS_HABITO = {
   COMPLETED: 'COMPLETED',
-  ARCHIVED: 'ARCHIVED',
+  EXCLUIDO: 'EXCLUIDO',
 };

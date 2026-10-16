@@ -102,10 +102,10 @@ const Store = () => {
   );
 
   const activeHabits = habits.filter(
-    (h) => h.status !== STATUS_HABITO.ARCHIVED && h.status !== STATUS_HABITO.COMPLETED
+    (h) => h.status !== STATUS_HABITO.EXCLUIDO && h.status !== STATUS_HABITO.COMPLETED
   );
   const habitoSelecionado = activeHabits.find((h) => h.id === selectedHabitId);
-  const inventarioHabits = habits.filter((h) => h.status !== STATUS_HABITO.ARCHIVED);
+  const inventarioHabits = habits.filter((h) => h.status !== STATUS_HABITO.EXCLUIDO);
   const totalEscudos = inventarioHabits.reduce((soma, h) => soma + (h.bloqueios_acumulados || 0), 0);
   const nenhumEscudoAinda = totalEscudos === 0;
 

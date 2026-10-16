@@ -7,7 +7,7 @@ import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
 import { useI18n } from '@/contexts/LanguageContext';
 import { useThemeToggle } from '@/contexts/ThemeToggleContext';
 import { useToast } from '@/contexts/ToastContext';
-import { getDashboard, archiveHabit } from '@/services/api';
+import { getDashboard, excluirHabito } from '@/services/api';
 import { reagendarTodas, solicitarPermissao } from '@/services/notificacoes';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import LocalHeader from '@/components/layout/LocalHeader';
@@ -37,15 +37,15 @@ import {
   IconWrapper,
   RetryButton,
   RetryButtonText,
-  ArchiveModalOverlay,
-  ArchiveModalContent,
-  ArchiveModalTitle,
-  ArchiveModalText,
-  ArchiveModalActions,
-  ArchiveCancelButton,
-  ArchiveCancelButtonText,
-  ArchiveConfirmButton,
-  ArchiveConfirmButtonText,
+  ExcluirModalOverlay,
+  ExcluirModalContent,
+  ExcluirModalTitle,
+  ExcluirModalText,
+  ExcluirModalActions,
+  ExcluirCancelButton,
+  ExcluirCancelButtonText,
+  ExcluirConfirmButton,
+  ExcluirConfirmButtonText,
 } from './styles';
 
 const CRIAR_SLIDE = { id: '__criar__' };
@@ -67,8 +67,8 @@ const HomeScreen = () => {
   const [localHabits, setLocalHabits] = useState([]);
   const [limiteHabitos, setLimiteHabitos] = useState(2);
   const [menuAbertoId, setMenuAbertoId] = useState(null);
-  const [habitoParaArquivar, setHabitoParaArquivar] = useState(null);
-  const [arquivando, setArquivando] = useState(false);
+  const [habitoParaExcluir, setHabitoParaExcluir] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   const carregandoRef = useRef(false);
 
@@ -137,26 +137,26 @@ const HomeScreen = () => {
     router.push({ pathname: '/create', params: { modo: 'editar' } });
   };
 
-  const handleAbrirArquivar = (habit) => {
+  const handleAbrirExcluir = (habit) => {
     setMenuAbertoId(null);
-    setHabitoParaArquivar(habit);
+    setHabitoParaExcluir(habit);
   };
 
-  const handleConfirmarArquivar = async () => {
-    if (!habitoParaArquivar) return;
-    setArquivando(true);
+  const handleConfirmarExcluir = async () => {
+    if (!habitoParaExcluir) return;
+    setExcluindo(true);
     try {
-      await archiveHabit(habitoParaArquivar.id);
-      addToast(t('home.arquivadoOk'), 'success');
-      setHabitoParaArquivar(null);
+      await excluirHabito(habitoParaExcluir.id);
+      addToast(t('home.excluidoOk'), 'success');
+      setHabitoParaExcluir(null);
       setActiveIndex(0);
       listRef.current?.scrollToOffset({ offset: 0 });
       await loadData();
     } catch (err) {
-      const mensagem = getApiErrorMessage(err, t('home.erroArquivar'));
+      const mensagem = getApiErrorMessage(err, t('home.erroExcluir'));
       addToast(mensagem, 'error');
     } finally {
-      setArquivando(false);
+      setExcluindo(false);
     }
   };
 
@@ -233,7 +233,7 @@ const HomeScreen = () => {
               onAbrirMenu={(id) => setMenuAbertoId(menuAbertoId === id ? null : id)}
               onFecharMenu={() => setMenuAbertoId(null)}
               onEditar={handleEditar}
-              onArquivar={handleAbrirArquivar}
+              onExcluir={handleAbrirExcluir}
             />
           )
         }
@@ -260,25 +260,25 @@ const HomeScreen = () => {
       </ActionWrapper>
 
       <Modal
-        visible={!!habitoParaArquivar}
+        visible={!!habitoParaExcluir}
         transparent
         animationType="fade"
-        onRequestClose={() => !arquivando && setHabitoParaArquivar(null)}
+        onRequestClose={() => !excluindo && setHabitoParaExcluir(null)}
       >
-        <ArchiveModalOverlay>
-          <ArchiveModalContent>
-            <ArchiveModalTitle>{t('home.arquivarPergunta', { titulo: habitoParaArquivar?.titulo ?? '' })}</ArchiveModalTitle>
-            <ArchiveModalText>{t('home.arquivarDetalhe', { limite: limiteHabitos })}</ArchiveModalText>
-            <ArchiveModalActions>
-              <ArchiveCancelButton onPress={() => setHabitoParaArquivar(null)} disabled={arquivando}>
-                <ArchiveCancelButtonText>{t('comum.cancelar')}</ArchiveCancelButtonText>
-              </ArchiveCancelButton>
-              <ArchiveConfirmButton onPress={handleConfirmarArquivar} disabled={arquivando}>
-                <ArchiveConfirmButtonText>{arquivando ? t('home.arquivando') : t('comum.arquivar')}</ArchiveConfirmButtonText>
-              </ArchiveConfirmButton>
-            </ArchiveModalActions>
-          </ArchiveModalContent>
-        </ArchiveModalOverlay>
+        <ExcluirModalOverlay>
+          <ExcluirModalContent>
+            <ExcluirModalTitle>{t('home.excluirPergunta', { titulo: habitoParaExcluir?.titulo ?? '' })}</ExcluirModalTitle>
+            <ExcluirModalText>{t('home.excluirDetalhe', { limite: limiteHabitos })}</ExcluirModalText>
+            <ExcluirModalActions>
+              <ExcluirCancelButton onPress={() => setHabitoParaExcluir(null)} disabled={excluindo}>
+                <ExcluirCancelButtonText>{t('comum.cancelar')}</ExcluirCancelButtonText>
+              </ExcluirCancelButton>
+              <ExcluirConfirmButton onPress={handleConfirmarExcluir} disabled={excluindo}>
+                <ExcluirConfirmButtonText>{excluindo ? t('home.excluindo') : t('comum.excluir')}</ExcluirConfirmButtonText>
+              </ExcluirConfirmButton>
+            </ExcluirModalActions>
+          </ExcluirModalContent>
+        </ExcluirModalOverlay>
       </Modal>
       </HomeVeu>
     </HomeContainer>

@@ -34,7 +34,7 @@ import {
 
 const INTERVALO_RELOGIO_MS = 60000;
 
-export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, onEditar, onArquivar }) {
+export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFecharMenu, onEditar, onExcluir }) {
   const theme = useTheme();
   const { t } = useI18n();
 
@@ -150,11 +150,11 @@ export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFechar
             <MenuOption
               onPress={() => {
                 onFecharMenu();
-                onArquivar(habit);
+                onExcluir(habit);
               }}
             >
-              <Feather name="archive" size={18} color={theme.dangerColor} />
-              <MenuOptionText $danger>{t('comum.arquivar')}</MenuOptionText>
+              <Feather name="trash-2" size={18} color={theme.dangerColor} />
+              <MenuOptionText $danger>{t('comum.excluir')}</MenuOptionText>
             </MenuOption>
           </BottomSheet>
         </BottomSheetOverlay>

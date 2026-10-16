@@ -17,5 +17,5 @@ public interface HabitoRepository extends JpaRepository<Habito, UUID> {
     @Transactional
     @Query(value = "UPDATE habitos SET hab_ativo = false, hab_arquivado_em = CURRENT_TIMESTAMP WHERE hab_id = ?1",
            nativeQuery = true)
-    void archive(UUID id);
+    void excluir(UUID id);
 }
