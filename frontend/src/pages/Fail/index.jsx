@@ -74,7 +74,7 @@ const Fail = () => {
           <CoinsCardText>{t('falha.suasMoedas')}</CoinsCardText>
           <CoinsCardText>{moedasTotais}</CoinsCardText>
         </CoinsCard>
-        <ActionButton onPress={() => router.replace('/home')}>
+        <ActionButton accessibilityRole="button" onPress={() => router.replace('/home')}>
           <ActionButtonText $bgColor={bgColor}>{t('comum.continuar').toUpperCase()}</ActionButtonText>
         </ActionButton>
       </ContentWrapper>

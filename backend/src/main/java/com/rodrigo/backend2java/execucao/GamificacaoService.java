@@ -16,10 +16,10 @@ import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.biblioteca.model.BibliotecaTexto;
 import com.rodrigo.backend2java.biblioteca.BibliotecaTextoRepository;
 import com.rodrigo.backend2java.habito.AcessoHabitoService;
+import com.rodrigo.backend2java.habito.ApuracaoService;
 import com.rodrigo.backend2java.habito.SubAtividadeRepository;
 import com.rodrigo.backend2java.habito.ProximoVencimentoService;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
-import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
@@ -51,14 +51,16 @@ public class GamificacaoService {
     private final ProximoVencimentoService proximoVencimentoService;
     private final SubAtividadeRepository subAtividadeRepository;
     private final AcessoHabitoService acessoHabitoService;
+    private final ApuracaoService apuracaoService;
 
-    public GamificacaoService(StatusHabitoRepository statusHabitoRepository, HistoricoExecucaoRepository historicoRepository, BibliotecaTextoRepository bibliotecaRepository, ProximoVencimentoService proximoVencimentoService, SubAtividadeRepository subAtividadeRepository, AcessoHabitoService acessoHabitoService) {
+    public GamificacaoService(StatusHabitoRepository statusHabitoRepository, HistoricoExecucaoRepository historicoRepository, BibliotecaTextoRepository bibliotecaRepository, ProximoVencimentoService proximoVencimentoService, SubAtividadeRepository subAtividadeRepository, AcessoHabitoService acessoHabitoService, ApuracaoService apuracaoService) {
         this.statusHabitoRepository = statusHabitoRepository;
         this.historicoRepository = historicoRepository;
         this.bibliotecaRepository = bibliotecaRepository;
         this.proximoVencimentoService = proximoVencimentoService;
         this.subAtividadeRepository = subAtividadeRepository;
         this.acessoHabitoService = acessoHabitoService;
+        this.apuracaoService = apuracaoService;
     }
 
     public PrimingResponseDTO obterPriming(final UUID habitoId, final String emailContexto) {
@@ -74,16 +76,15 @@ public class GamificacaoService {
     @Transactional
     public ExecutionResponseDTO processarExecucao(final UUID habitoId, final String emailContexto,
             final ExecutionRequestDTO request) {
-        if (historicoRepository.existsByExecutionToken(request.execution_token())) {
-            throw new RegraDeNegocioException("Execução duplicada");
-        }
-
         final var acesso = acessoHabitoService.carregar(habitoId, emailContexto);
         final var habito = acesso.habito();
         final var dono = acesso.dono();
 
-        final var status = statusHabitoRepository.findById(habitoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Status do hábito não encontrado"));
+        final var status = apuracaoService.apurarAteHoje(habitoId, dono).status();
+
+        if (historicoRepository.existsByExecutionToken(request.execution_token())) {
+            throw new RegraDeNegocioException("Execução duplicada");
+        }
 
         final var hojeLocal = LocalDate.now(ZonaUsuario.resolver(dono));
 
@@ -110,10 +111,6 @@ public class GamificacaoService {
                     .orElse(ocorrenciaMaisTardia(subAtividades));
             subAtividadeExecutada = ocorrencia == null ? null : ocorrencia.getId();
 
-            final var alvoDaOcorrencia = ocorrencia == null ? habito.getMetaBase() : ocorrencia.getAlvo();
-            bonus = classificarConclusaoPeloValorRealizado(alvoDaOcorrencia, request.valor_realizado());
-            tipoResultado = bonus ? "COMPLETE_EXTRA" : "COMPLETE_PADRAO";
-
             status.setExecucoesHoje(execucoesAntes + 1);
             status.setValorAcumuladoHoje(status.getValorAcumuladoHoje() + request.valor_realizado());
 
@@ -124,6 +121,9 @@ public class GamificacaoService {
                 status.setMoedasLocais(status.getMoedasLocais() + moedasGanhasAgora);
                 status.setMoedasCreditadasHoje(status.getMoedasCreditadasHoje() + moedasGanhasAgora);
             }
+
+            bonus = percentualDoDia >= MULTIPLICADOR_EXTRA && moedasGanhasAgora > 0;
+            tipoResultado = bonus ? "COMPLETE_EXTRA" : "COMPLETE_PADRAO";
 
             if (bonus) {
                 textoFeedback = buscarTextos(habito, dono)
@@ -189,10 +189,6 @@ public class GamificacaoService {
         return subAtividades.isEmpty() ? null : subAtividades.get(subAtividades.size() - 1);
     }
 
-    private boolean classificarConclusaoPeloValorRealizado(final Integer alvoDaOcorrencia, final int valorRealizado) {
-        return alvoDaOcorrencia != null && valorRealizado >= alvoDaOcorrencia * MULTIPLICADOR_EXTRA;
-    }
-
     private Optional<BibliotecaTexto> buscarTextos(final Habito habito, final Usuario dono) {
         return bibliotecaRepository.findByCategoriaAndIdioma(habito.getCategoria(), idiomaDe(dono));
     }
@@ -217,10 +213,9 @@ public class GamificacaoService {
 
     @Transactional
     public void comprarEscudo(final UUID habitoId, final String emailContexto) {
-        acessoHabitoService.carregar(habitoId, emailContexto);
+        final var acesso = acessoHabitoService.carregar(habitoId, emailContexto);
 
-        final var status = statusHabitoRepository.findById(habitoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Status do hábito não encontrado"));
+        final var status = apuracaoService.apurarAteHoje(habitoId, acesso.dono()).status();
 
         if (status.getMoedasLocais() < CUSTO_ESCUDO) {
             throw new RegraDeNegocioException("Saldo insuficiente");

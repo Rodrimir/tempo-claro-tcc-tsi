@@ -107,7 +107,11 @@ const Calibration = () => {
     setIndice((i) => i - 1);
   }, [indice, router]);
 
+  const enviandoRef = useRef(false);
+
   const enviar = useCallback(async () => {
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
     setEnviando(true);
     try {
       const lista = Object.entries(respostas).map(([pergunta_codigo, valor]) => ({ pergunta_codigo, valor }));
@@ -116,6 +120,7 @@ const Calibration = () => {
     } catch (err) {
       addToast(getApiErrorMessage(err, t('calibracao.erroCalcular')), 'error');
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
   }, [categoria, respostas, addToast]);
@@ -176,6 +181,7 @@ const Calibration = () => {
       <Container style={{ paddingTop: insets.top }}>
         <TopBar>
           <BackButton
+            accessibilityRole="button"
             onPress={() => {
               tocar('voltar');
               setSugestao(null);
@@ -229,6 +235,7 @@ const Calibration = () => {
           </SugestaoCard>
 
           <PrimaryButton
+            accessibilityRole="button"
             onPress={() => {
               tocar('continuar');
               router.replace({
@@ -243,6 +250,7 @@ const Calibration = () => {
             <PrimaryButtonText>{t('calibracao.usarSugestao')}</PrimaryButtonText>
           </PrimaryButton>
           <SecondaryButton
+            accessibilityRole="button"
             onPress={() => {
               tocar('tap');
               router.replace({ pathname: '/create', params: { categoria } });
@@ -266,6 +274,7 @@ const Calibration = () => {
     <Container style={{ paddingTop: insets.top }}>
       <TopBar>
         <BackButton
+          accessibilityRole="button"
           onPress={() => {
             tocar('voltar');
             voltar();
@@ -287,6 +296,8 @@ const Calibration = () => {
             {pergunta.tipo === 'RITMO' ? <Ajuda>{t('calibracao.ajudaRitmo')}</Ajuda> : null}
             {pergunta.opcoes.map((opcao) => (
               <Opcao
+                accessibilityRole="radio"
+                accessibilityState={{ selected: respostas[pergunta.codigo] === opcao.valor }}
                 key={opcao.valor}
                 $active={respostas[pergunta.codigo] === opcao.valor}
                 onPress={() => {
@@ -311,6 +322,8 @@ const Calibration = () => {
             <DiasRow>
               {t('diasSemanaCurto').map((letra, i) => (
                 <DiaCirculo
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: diasSelecionados[i] }}
                   key={i}
                   $active={diasSelecionados[i]}
                   onPress={() => {
@@ -332,6 +345,8 @@ const Calibration = () => {
             <ChipsRow>
               {Array.from({ length: pergunta.maximo || 4 }, (_, i) => i + 1).map((n) => (
                 <Chip
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: Number(respostas.VEZES_AO_DIA) === n }}
                   key={n}
                   $active={Number(respostas.VEZES_AO_DIA) === n}
                   onPress={() => {
@@ -366,6 +381,8 @@ const Calibration = () => {
 
         {pergunta && pergunta.tipo !== 'ESCOLHA_UNICA' && pergunta.tipo !== 'RITMO' ? (
           <PrimaryButton
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !podeAvancar }}
             $disabled={!podeAvancar}
             disabled={!podeAvancar}
             onPress={() => {
@@ -379,6 +396,8 @@ const Calibration = () => {
 
         {ehUltima && (pergunta?.tipo === 'ESCOLHA_UNICA' || pergunta?.tipo === 'RITMO') ? (
           <PrimaryButton
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !podeAvancar || enviando }}
             $disabled={!podeAvancar || enviando}
             disabled={!podeAvancar || enviando}
             onPress={() => {

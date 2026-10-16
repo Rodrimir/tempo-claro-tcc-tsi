@@ -51,7 +51,7 @@ separação é a tradução, em arquitetura, do requisito não funcional RNF08.
 
 | Camada | O que é | Onde |
 | --- | --- | --- |
-| Apresentação | Expo SDK 54 com React Native. Navegação pelo Expo Router, que deriva as rotas da árvore de arquivos. Estilos em `styled-components`. | `frontend/app`, `frontend/src/pages` |
+| Apresentação | Expo SDK 57 com React Native. Navegação pelo Expo Router, que deriva as rotas da árvore de arquivos. Estilos em `styled-components`. | `frontend/app`, `frontend/src/pages` |
 | Estado do cliente | Sete contextos React, um por preocupação: sessão, hábito corrente, resultado da execução, idioma, som, tema e avisos. Token em `expo-secure-store`, perfil em `AsyncStorage`. | `frontend/src/contexts` |
 | Transporte | Cliente Axios único, com interceptor que anexa o token e trata expiração de sessão. | `frontend/src/services/api.js` |
 | Controle | Cinco controladores Spring que recebem a requisição, validam o corpo e devolvem o DTO de resposta. Nenhuma regra de negócio aqui. | `backend/.../*Controller.java` |
@@ -68,7 +68,7 @@ separação é a tradução, em arquitetura, do requisito não funcional RNF08.
 | Backend | Lombok | Redução de código repetitivo nos DTOs e entidades |
 | Backend | Maven, via `./mvnw` | Compilação e testes |
 | Banco | PostgreSQL 16 | Dez tabelas, nove relacionamentos em cascata, sete índices |
-| Frontend | React Native, Expo SDK 54 | Aplicação Android |
+| Frontend | React Native, Expo SDK 57 | Aplicação Android |
 | Frontend | Expo Router | Navegação baseada em arquivos |
 | Frontend | styled-components | Estilo com tema claro e escuro |
 | Frontend | Axios | Camada HTTP |
@@ -87,6 +87,15 @@ plano gratuito do Render bloqueia as portas 25, 465 e 587, de modo que SMTP dire
 produção. A porta 443 não é bloqueada. O detalhamento da publicação está em
 [`docs/DEPLOY_PRODUCAO.md`](docs/DEPLOY_PRODUCAO.md).
 
+O mesmo plano suspende a instância depois de uns quinze minutos sem tráfego, o que tem três efeitos
+tratados no código. A primeira requisição depois da pausa demora até um minuto: o aplicativo chama
+a API assim que abre, espera até 90 segundos por resposta e avisa a pessoa quando a espera passa de
+seis segundos. Enquanto a instância dorme, a rotina horária de fechamento não roda: por isso toda
+requisição que usa os contadores do dia apura antes os dias vencidos daquele hábito
+(`ApuracaoService`), com trava na linha de `status_habitos`, e a rotina continua existindo para os
+hábitos de quem não abriu o aplicativo. E uma demora no reinício não encerra mais a sessão salva no
+aparelho, que só é descartada quando a API responde 401 ou 403.
+
 ---
 
 ## 3. Mapa de Diretórios
@@ -99,7 +108,7 @@ tempo-claro-tcc-tsi/
 │       │   ├── autenticacao/     Cadastro, login, emissão de token      (10 classes)
 │       │   ├── verificacao/      Código de 6 dígitos e envio de e-mail   (6 classes)
 │       │   ├── usuario/          Entidade do usuário e perfil            (6 classes)
-│       │   ├── habito/           Criação, edição, exclusão e painel     (13 classes)
+│       │   ├── habito/           Criação, edição, exclusão, painel e apuração (15 classes)
 │       │   ├── execucao/         Execução, desistência, escudo e moedas (10 classes)
 │       │   ├── calibracao/       Questionário e cálculo da sugestão     (10 classes)
 │       │   ├── biblioteca/       Frases motivacionais por categoria      (2 classes)
@@ -109,7 +118,7 @@ tempo-claro-tcc-tsi/
 │       │   ├── schema.sql        As dez tabelas, índices e restrições
 │       │   ├── calibracao/       Catálogo de perguntas do questionário
 │       │   └── Postman/          Coleção de testes manuais, 29 requisições
-│       └── test/java/            144 provas automatizadas
+│       └── test/java/            171 provas automatizadas
 ├── frontend/                     Aplicativo Expo
 │   ├── app/                      18 rotas do Expo Router, arquivos finos
 │   └── src/
@@ -227,11 +236,13 @@ npm install
 npx expo start                           # abre o menu do Metro
 ```
 
-O endereço da API fica em `frontend/src/services/api.js`. Para testar em um aparelho físico na
-mesma rede, trocar `localhost` pelo IP da máquina na rede local, porque `localhost`, dentro do
-aparelho, aponta para o próprio aparelho.
+O endereço da API vem de `EXPO_PUBLIC_API_URL`, em `frontend/.env`, e `frontend/src/services/api.js`
+usa o endereço do Render quando a variável não existe. Para testar contra a máquina local, apontar a
+variável para o IP da máquina na rede, porque `localhost`, dentro do aparelho, aponta para o próprio
+aparelho. O APK de release só aceita HTTPS (o tráfego não criptografado fica liberado apenas no
+build de desenvolvimento).
 
-### Rodando os 144 testes do backend
+### Rodando os testes do backend
 
 A suíte precisa de um PostgreSQL próprio na porta 5433, com a base `backend_db_teste`. O
 `compose.yaml` sobe isso em Docker, mas um cluster temporário local também serve e dispensa o
@@ -244,7 +255,7 @@ pg_ctl -D $PGDATA -l /tmp/pg.log \
   -o "-p 5433 -c unix_socket_directories='' -c listen_addresses=localhost" start
 psql -h 127.0.0.1 -p 5433 -U postgres -c "CREATE DATABASE backend_db_teste;"
 
-cd backend && ./mvnw test                # 144 testes
+cd backend && ./mvnw test                # 171 testes
 
 pg_ctl -D $PGDATA stop -m fast           # ao terminar
 ```
@@ -256,20 +267,32 @@ substituído, nos testes, por uma implementação falsa que expõe o último có
 há como cadastrar pela API, porque `AuthService.cadastrar` é transacional e desfaz o cadastro
 quando o envio do e-mail falha.
 
-Os relatórios saem em `backend/target/surefire-reports/`.
+Os relatórios saem em `backend/target/surefire-reports/`. Dos 171, 144 são os da campanha de
+06/10/2026; os outros 27 vieram com a correção dos defeitos, em
+`CorrecaoDefeitosIntegracaoTest` e `UsuarioServiceUsuarioAusenteTest`.
 
 ### Gerando o APK
 
-O build é feito pelo EAS, serviço de compilação do Expo, com a configuração em
-`frontend/eas.json`:
+O APK é gerado localmente, a partir do `android/` que o Expo deriva do `app.json` (a pasta não é
+versionada):
 
 ```sh
 cd frontend
-npx eas build --platform android --profile preview
+npx expo prebuild --platform android --clean --no-install
+cd android && ./gradlew assembleRelease --no-daemon
+# saída: android/app/build/outputs/apk/release/app-release.apk
 ```
 
-O APK aponta para o endereço de API que estiver em `api.js` no momento do build. Para um APK que
-converse com a máquina local, usar o IP da rede, e não `localhost`.
+O build só inclui as arquiteturas de aparelho real (`arm64-v8a` e `armeabi-v7a`) e assina o APK com
+a chave de release do projeto quando o Gradle encontra as propriedades `TEMPO_CLARO_KEYSTORE`,
+`TEMPO_CLARO_KEYSTORE_PASSWORD`, `TEMPO_CLARO_KEY_ALIAS` e `TEMPO_CLARO_KEY_PASSWORD` em
+`~/.gradle/gradle.properties`. Sem elas, cai na chave de debug. Quem injeta essa configuração a cada
+prebuild é `frontend/plugins/withAssinaturaRelease.js`. O keystore e as senhas ficam fora do
+repositório e precisam de cópia de segurança: sem eles, uma versão nova não instala por cima da
+anterior.
+
+O endereço embutido é o de `EXPO_PUBLIC_API_URL` no momento do build. A configuração do EAS em
+`frontend/eas.json` continua disponível, mas o projeto ainda não está ligado a uma conta do Expo.
 
 ---
 
@@ -298,7 +321,7 @@ uma em `SecurityConfig`; as demais exigem o token no cabeçalho `Authorization: 
 | EP14 | `POST /api/habits/{id}/executions` | token | Registro de execução, desistência ou escudo |
 | EP15 | `POST /api/habits/{id}/shield` | token | Compra de escudo |
 | EP16 | `GET /api/stats/monthly` | token | Estatísticas dos últimos trinta dias |
-| EP17 | `GET /api/stats/weekly` | token | Apelido da rota mensal, devolve o mesmo conteúdo. Ver DEF-06 |
+| EP17 | `GET /api/stats/weekly` | token | Estatísticas dos últimos sete dias |
 | EP18 | `GET /api/calibration/questions` | token | Perguntas da categoria, no idioma do usuário |
 | EP19 | `POST /api/calibration` | token | Cálculo da sugestão de meta |
 | EP20 | `FechamentoDiarioJob` | job | Apuração horária dos dias encerrados, não é rota HTTP |
@@ -422,7 +445,7 @@ Token. É o contrato mais extenso da API.
 | `ocorrencias` | lista | não | horários das sub-atividades; só é usada quando o tamanho da lista bate com `meta_frequencia_diaria`, ver DEF-10 |
 | `frequencia_semanal` | string | não | dias cobrados, validado por padrão de texto |
 | `meta_maxima`, `incremento`, `dias_incremento` | inteiro | não | progressão automática da meta |
-| `gatilho_ancora` | string | não | aceito pela API, sem campo na interface, ver DEF-17 |
+| `gatilho_ancora` | string | não | até 120 caracteres; campo opcional no formulário de criação e edição |
 | `calibracao_id` | UUID | não | vincula uma sessão de calibração; falha em silêncio se não existir, ver DEF-15 |
 
 | Status | Quando ocorre |
@@ -465,14 +488,15 @@ Token. Registra o desfecho de uma ocorrência.
 
 ### `POST /api/habits/{id}/shield`
 
-Token. Debita 1500 moedas do saldo do hábito e credita um escudo. Responde 422 quando o saldo é
+Token. Debita 400 moedas do saldo do hábito e credita um escudo. Responde 422 quando o saldo é
 insuficiente.
 
 ### `GET /api/stats/monthly` e `GET /api/stats/weekly`
 
-Token. As duas apontam para o mesmo método e devolvem a mesma janela de trinta dias: ofensiva
-atual, desempenho diário, os três maiores recordes e a constância. A existência da segunda rota é
-um apelido histórico, registrado como DEF-06.
+Token. Parâmetro `habitoId`. Desempenho diário, os três maiores recordes e a constância, numa janela
+de trinta dias na rota mensal e de sete dias na semanal. A constância conta só os dias cobrados pela
+frequência semanal, no numerador e no denominador, e por isso nunca passa de 100%. Hábito excluído
+responde 404.
 
 ### `GET /api/calibration/questions`
 
@@ -487,7 +511,9 @@ sessão, que pode ser passado depois em `calibracao_id` na criação do hábito.
 
 Não é rota. Roda de hora em hora e apura os dias já encerrados no fuso de cada usuário: decide se a
 meta foi cumprida, aplica ou zera a ofensiva, consome escudo quando há, e aplica a progressão
-automática da meta.
+automática da meta, avaliada a cada dia fechado. A mesma apuração (`ApuracaoService`) roda sob
+demanda antes do painel, da execução e da compra de escudo, para que a virada do dia não dependa
+de a API estar acordada na hora do job.
 
 ---
 
@@ -810,7 +836,7 @@ falha não prevista nos itens acima (por exemplo, o próprio banco fora do ar) c
 `@note` 14.1. Função `getApiErrorMessage`: prioriza a mensagem vinda do backend
 (`err.response.data.message`, os textos dos itens 13.1 a 13.6); só cai para uma mensagem genérica
 por status HTTP quando o backend não manda `message`, ou para "sem resposta do servidor" quando
-não houve resposta alguma (sem conexão, timeout de 60 segundos).
+não houve resposta alguma (sem conexão, ou tempo esgotado depois de 90 segundos, que tem mensagem própria).
 
 #### 15. [Frontend / Navegação] handoff para `app/verify-email.jsx` (`VerifyEmail`)
 
@@ -896,50 +922,56 @@ Duas listas. A primeira são os defeitos levantados pela campanha de testes de 0
 2026, registrados na aba Defeitos de
 [`tcc/Tabela De Testes Tempo Claro Rodrigo Miranda.xlsx`](tcc/), que é o registro canônico. Nenhum
 deles foi corrigido durante a campanha, por decisão metodológica: corrigir durante a execução
-invalidaria o resultado registrado. A segunda são as pendências de operação, que não são defeitos
-de código.
+invalidaria o resultado registrado. A correção veio depois, em 16/10/2026, como trabalho de
+manutenção, e a coluna Situação abaixo diz o que mudou. A segunda lista são as pendências de
+operação, que não são defeitos de código.
 
 ### Defeitos de severidade alta
 
-| ID | Defeito | Requisito | Efeito |
+| ID | Defeito | Requisito | Situação |
 | --- | --- | --- | --- |
-| DEF-01 | Seis chaves de tradução ausentes em `pt.js` | RNF10 | As chaves de erro genérico existem em `en.js` e não em `pt.js`. Uma falha de rede sem corpo de mensagem exibe ao usuário o nome técnico da chave, no idioma padrão do aplicativo |
-| DEF-02 | Hábito excluído continua operável pela API | RF08, RNF05 | `AcessoHabitoService.carregar` verifica a propriedade do hábito e não o campo `hab_ativo`, de modo que um hábito excluído aceita execução, edição e compra de escudo por chamada direta |
-| DEF-03 | Notificações locais não aparecem no Android 13 ou superior | sem requisito | O manifesto não declara `POST_NOTIFICATIONS`, obrigatória desde o Android 13, não há criação de canal e o toque no aviso não reabre o aplicativo |
-| DEF-04 | Tráfego não criptografado habilitado sem necessidade | RNF05 | `usesCleartextTraffic=true` está no `app.json` embora a única URL de API usada já seja HTTPS, o que amplia a superfície de ataque em rede local |
+| DEF-01 | Seis chaves de tradução ausentes em `pt.js` | RNF10 | Corrigido. As seis chaves existem nos dois idiomas, e o tempo esgotado ganhou mensagem própria |
+| DEF-02 | Hábito excluído continua operável pela API | RF08, RNF05 | Corrigido. `AcessoHabitoService.carregar` filtra `hab_ativo`: edição, nova exclusão, execução, escudo, priming e estatística respondem 404 |
+| DEF-03 | Notificações locais não aparecem no Android 13 ou superior | sem requisito | Corrigido. `POST_NOTIFICATIONS` declarada no `app.json`, canal `lembretes` criado antes do pedido de permissão, e o toque no aviso abre a tela inicial no hábito correspondente |
+| DEF-04 | Tráfego não criptografado habilitado sem necessidade | RNF05 | Corrigido. `usesCleartextTraffic` saiu do `app.json`; só o build de desenvolvimento aceita HTTP |
 
 ### Defeitos funcionais
 
-| ID | Defeito | Requisito |
-| --- | --- | --- |
-| DEF-05 | Constância pode passar de cem por cento: o numerador conta qualquer dia com meta cumprida e o denominador conta só os dias programados | sem requisito |
-| DEF-06 | A rota semanal devolve os mesmos trinta dias da mensal, porque as duas apontam para o mesmo método e a janela é fixa | sem requisito |
-| DEF-07 | Progressão de meta é perdida quando a rotina de fechamento apura vários dias de uma vez, porque a condição é avaliada depois do laço | sem requisito |
-| DEF-08 | Horários sugeridos pela calibração colidem acima de quatro ocorrências diárias, por causa do teto de doze horas | sem requisito |
-| DEF-09 | Calibração pode ser duplicada por duplo toque, por não usar token de idempotência | RNF07 |
-| DEF-10 | Ocorrências individuais são descartadas em silêncio quando a lista tem tamanho diferente do número de vezes ao dia | sem requisito |
-| DEF-11 | O cronômetro trava sem botão de retomada se a rede cair no momento exato de concluir a tarefa | RNF04, RNF11 |
-| DEF-12 | Reuso da mesma senha não é bloqueado na troca de senha | RNF05 |
-| DEF-14 | Critério de bônus e crédito de moedas usam bases diferentes de comparação | RNF06 |
-| DEF-15 | Vínculo da calibração ao hábito falha em silêncio quando o identificador não existe ou é de outro usuário | sem requisito |
-| DEF-16 | Corrida no limite de dois hábitos ativos: duas requisições simultâneas podem criar um terceiro | sem requisito |
-| DEF-18 | Cobertura de acessibilidade incompleta: 42 rótulos, 3 papéis e nenhuma dica ou estado declarado | RNF02 |
-| DEF-19 | A liberação da execução usa o fuso do aparelho, e não o fuso gravado no perfil | RNF10 |
+| ID | Defeito | Requisito | Situação |
+| --- | --- | --- | --- |
+| DEF-05 | Constância pode passar de cem por cento | sem requisito | Corrigido. O numerador conta só dias cobrados |
+| DEF-06 | A rota semanal devolve os mesmos trinta dias da mensal | sem requisito | Corrigido. `/weekly` devolve sete dias |
+| DEF-07 | Progressão de meta perdida quando o fechamento apura vários dias de uma vez | sem requisito | Corrigido. A progressão é avaliada a cada dia fechado, só no dia em que a ofensiva subiu, o que também impede repeti-la em dia de folga ou de escudo |
+| DEF-08 | Horários da calibração colidem acima de quatro ocorrências | sem requisito | Corrigido. Grade regular de 08:00 a 20:00, em ordem e sem repetição |
+| DEF-09 | Calibração duplicada por duplo toque | RNF07 | Corrigido. O servidor trava a linha do usuário e reaproveita a calibração idêntica dos últimos dois minutos; o app trava o botão por referência |
+| DEF-10 | Ocorrências individuais descartadas em silêncio | sem requisito | Corrigido. Lista de tamanho diferente de vezes ao dia, ou ocorrência sem horário, responde 400 dizendo qual |
+| DEF-11 | Cronômetro trava se a rede cair ao concluir | RNF04, RNF11 | Corrigido. O cronômetro é retomado depois do erro, o envio é travado contra toque duplo, e uma execução que o servidor já gravou é reconhecida na nova tentativa |
+| DEF-12 | Reuso da mesma senha não é bloqueado | RNF05 | Corrigido. Responde 422 no servidor, e o app avisa antes de enviar |
+| DEF-14 | Bônus e crédito de moedas usam bases diferentes | RNF06 | Corrigido. O bônus é decidido pelo total do dia, na mesma base das moedas, e só quando a execução credita moedas |
+| DEF-15 | Vínculo da calibração ao hábito falha em silêncio | sem requisito | Corrigido. Calibração inexistente ou de outro dono responde 404; já usada ou de outra categoria, 422; a criação do hábito é desfeita |
+| DEF-16 | Corrida no limite de dois hábitos ativos | sem requisito | Corrigido. A criação trava a linha do usuário antes de contar os ativos |
+| DEF-18 | Cobertura de acessibilidade incompleta | RNF02 | Corrigido. Os controles declaram papel (botão, aba, opção, caixa de seleção) e estado (selecionado, marcado, desabilitado, ocupado); os avisos são anunciados pelo leitor de tela |
+| DEF-19 | A liberação da execução usa o fuso do aparelho | RNF10 | Corrigido. Liberação, dia cobrado, contagem regressiva e agendamento dos lembretes usam o fuso do perfil |
 
 ### Defeitos de severidade baixa
 
-| ID | Defeito | Requisito |
-| --- | --- | --- |
-| DEF-13 | Perfil não encontrado devolve 400 em vez de 404, fugindo do padrão do resto do projeto | sem requisito |
-| DEF-17 | O gatilho-âncora é aceito pela API e devolvido na resposta, mas nenhuma tela oferece campo para preenchê-lo | sem requisito |
-| DEF-20 | Rotas protegidas devolvem 403 onde a convenção HTTP pede 401. É divergência de contrato deliberada, não falha de segurança | RNF05 |
+| ID | Defeito | Requisito | Situação |
+| --- | --- | --- | --- |
+| DEF-13 | Perfil não encontrado devolve 400 em vez de 404 | sem requisito | Corrigido |
+| DEF-17 | O gatilho-âncora não tem campo na interface | sem requisito | Corrigido. Campo opcional no formulário de criação e edição, que a edição também preserva |
+| DEF-20 | Rotas protegidas devolvem 403 onde a convenção HTTP pede 401 | RNF05 | Mantido. A seção 5.1 da monografia define 403 para token ausente ou expirado, e o aplicativo trata 401 e 403 igualmente |
+
+Das pontas soltas da auditoria fora da numeração DEF: a sobrecarga de quatro argumentos de
+`gerarSubAtividades` saiu (B20), e o fechamento registra aviso e pula o hábito cujo dono não existe
+mais (B21). Ficaram como estão a coluna `bib_texto_aviso_urgencia`, que nenhum serviço lê (B18), e a
+tabela `dispositivos_push` (B19), porque o push remoto é trabalho futuro na seção 9.1 da monografia.
 
 ### Pendências de operação
 
 | Pendência | O que falta |
 | --- | --- |
 | Código de verificação fixo no painel do Render | A variável `CODIGO_VERIFICACAO_FIXO` já saiu do código e do `application-prod.properties`, mas se ainda estiver definida no painel do Render ela tem precedência sobre o padrão do arquivo. Conferir e apagar lá |
-| Domínio do Resend | Confirmar no painel do Resend, em Domains, se `send.monzai.com.br` está verificado. Estando, definir `RESEND_FROM_EMAIL` no Render com um endereço desse domínio, no lugar do domínio de teste |
+| Remetente do Resend | O domínio verificado no Resend é `monzai.com.br` (o DKIM está em `resend._domainkey.monzai.com.br`; `send.monzai.com.br` é só o subdomínio de retorno). Definir `RESEND_FROM_EMAIL="Tempo Claro <verificacao@monzai.com.br>"` no Render. Em 16/10/2026 esse remetente entregou para dois endereços, um deles fora da conta do Resend |
 
 ### O que o sistema não faz
 
@@ -1021,7 +1053,7 @@ ordem definida.
 | Figuras da monografia | 24 |
 | Casos de teste | 281, dos quais 222 executados: 200 aprovados e 22 reprovados |
 | Defeitos registrados | 20: 4 de severidade alta, 13 funcionais e 3 baixas |
-| Testes automatizados do backend | 144 |
+| Testes automatizados do backend | 144 na campanha; 171 depois da correção dos defeitos |
 
 ---
 

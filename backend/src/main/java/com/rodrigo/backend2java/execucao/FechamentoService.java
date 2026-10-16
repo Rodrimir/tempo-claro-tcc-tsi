@@ -27,8 +27,11 @@ public class FechamentoService {
         this.historicoRepository = historicoRepository;
     }
 
+    // O dia em que o hábito foi criado conta a favor quando a meta foi cumprida, mas não penaliza:
+    // sem meta cumprida, só zera os contadores, sem consumir escudo.
     @Transactional
-    public void fecharDia(final Habito habito, final StatusHabito status, final LocalDate dia) {
+    public void fecharDia(final Habito habito, final StatusHabito status, final LocalDate dia,
+            final boolean diaDaCriacao) {
         if (!FrequenciaSemanal.ehDiaProgramado(habito.getFrequenciaSemanal(), dia)) {
             limparContadoresDoDia(status, dia);
             statusHabitoRepository.save(status);
@@ -40,6 +43,12 @@ public class FechamentoService {
         final var percentualDoDia = (double) totalRealizado / metaDoDia;
 
         final var metaCumprida = totalRealizado >= metaDoDia;
+
+        if (!metaCumprida && diaDaCriacao) {
+            limparContadoresDoDia(status, dia);
+            statusHabitoRepository.save(status);
+            return;
+        }
 
         var escudoConsumido = false;
         if (metaCumprida) {

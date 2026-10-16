@@ -188,6 +188,7 @@ const Store = () => {
               </Pilula>
 
               <Pilula
+                accessibilityRole="button"
                 onPress={() => {
                   tocar('open');
                   setInventarioAberto(true);
@@ -222,6 +223,7 @@ const Store = () => {
                 <FormGroup>
                   <Label>{t('loja.paraQualHabito')}</Label>
                   <SelectField
+                    accessibilityRole="button"
                     onPress={() => {
                       tocar('open');
                       setPickerAberto(true);
@@ -244,7 +246,7 @@ const Store = () => {
                   </SaldoLinha>
                 ) : null}
 
-                <BuyButton onPress={handleBuyShield} disabled={comprando} $disabled={comprando}>
+                <BuyButton accessibilityRole="button" accessibilityState={{ disabled: comprando }} onPress={handleBuyShield} disabled={comprando} $disabled={comprando}>
                   <Feather name="shopping-bag" size={18} color={comprando ? theme.textSecondary : 'white'} />
                   <BuyButtonText $disabled={comprando}>
                     {comprando ? t('loja.comprando') : t('loja.comprar', { custo: custoEscudo })}
@@ -268,6 +270,8 @@ const Store = () => {
         }}
       >
         <PickerOverlay
+          accessibilityRole="button"
+          accessibilityLabel={t('comum.fechar')}
           onPress={() => {
             tocar('close');
             setPickerAberto(false);
@@ -278,6 +282,8 @@ const Store = () => {
             <ScrollView>
               {activeHabits.map((h) => (
                 <PickerOption
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: h.id === selectedHabitId }}
                   key={h.id}
                   onPress={() => {
                     setSelectedHabitId(h.id);

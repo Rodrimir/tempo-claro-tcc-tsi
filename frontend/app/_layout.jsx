@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from 'styled-components/native';
 import {
@@ -21,8 +22,11 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { SoundProvider } from '@/contexts/SoundContext';
 import { lightTheme, darkTheme } from '@/styles/theme';
 import LoadingScreen from '@/components/common/LoadingScreen';
+import { acordarServidor } from '@/services/api';
+import { habitoDaNotificacao } from '@/services/notificacoes';
 
 SplashScreen.preventAutoHideAsync();
+acordarServidor();
 
 const ROTAS_PUBLICAS = ['login', 'verify-email', 'forgot-password'];
 
@@ -30,6 +34,7 @@ function AuthGuard() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const ultimaRespostaDeNotificacao = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
     if (loading) return;
@@ -38,6 +43,17 @@ function AuthGuard() {
       router.replace('/login');
     }
   }, [loading, isAuthenticated, segments]);
+
+  // Tocar num lembrete abre a tela inicial já no hábito do aviso, com o app aberto ou fechado.
+  useEffect(() => {
+    if (loading || !isAuthenticated || !ultimaRespostaDeNotificacao) return;
+    if (ultimaRespostaDeNotificacao.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    const habitoId = habitoDaNotificacao(ultimaRespostaDeNotificacao);
+    Notifications.clearLastNotificationResponse();
+    if (habitoId) {
+      router.replace({ pathname: '/home', params: { habitoId } });
+    }
+  }, [loading, isAuthenticated, ultimaRespostaDeNotificacao, router]);
 
   if (loading) {
     return <LoadingScreen />;

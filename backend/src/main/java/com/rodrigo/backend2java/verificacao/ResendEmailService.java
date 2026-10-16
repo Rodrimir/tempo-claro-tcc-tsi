@@ -1,11 +1,17 @@
 package com.rodrigo.backend2java.verificacao;
 import java.util.List;
+import java.time.Duration;
+import java.net.http.HttpClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
 
@@ -20,17 +26,30 @@ import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
 @Profile("!test")
 public class ResendEmailService implements EmailService {
 
+    private static final Logger log = LoggerFactory.getLogger(ResendEmailService.class);
+
+    private static final Duration TEMPO_LIMITE_CONEXAO = Duration.ofSeconds(10);
+    private static final Duration TEMPO_LIMITE_RESPOSTA = Duration.ofSeconds(20);
+
     private final RestClient restClient;
     private final String remetente;
 
     public ResendEmailService(final RestClient.Builder restClientBuilder,
             @Value("${app.resend.api-key}") final String apiKey,
             @Value("${app.resend.from}") final String remetente) {
+        final var fabricaDeRequisicoes = new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().connectTimeout(TEMPO_LIMITE_CONEXAO).build());
+        fabricaDeRequisicoes.setReadTimeout(TEMPO_LIMITE_RESPOSTA);
         this.restClient = restClientBuilder
+                .requestFactory(fabricaDeRequisicoes)
                 .baseUrl("https://api.resend.com")
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
         this.remetente = remetente;
+        if (apiKey == null || apiKey.isBlank() || remetente == null || remetente.isBlank()) {
+            log.error("Envio de e-mail desconfigurado: defina RESEND_API_KEY e RESEND_FROM_EMAIL. "
+                    + "Sem eles, cadastro e recuperação de senha não conseguem enviar o código.");
+        }
     }
 
     // @audit-issue - 11.1 (Cadastro) [outcome: fixed] antes era @Async sem tratamento de erro
@@ -51,7 +70,13 @@ public class ResendEmailService implements EmailService {
                     .body(new EnvioResend(remetente, List.of(destino), assunto(tipo, idioma), corpo(tipo, idioma, codigo)))
                     .retrieve()
                     .toBodilessEntity();
+        } catch (RestClientResponseException recusaDoResend) {
+            log.error("Resend recusou o envio ({}): {}", recusaDoResend.getStatusCode().value(),
+                    recusaDoResend.getResponseBodyAsString());
+            throw new RegraDeNegocioException(
+                    "Não foi possível enviar o e-mail de verificação agora. Tente novamente em instantes.");
         } catch (RestClientException falhaNoEnvio) {
+            log.error("Falha de comunicação com o Resend: {}", falhaNoEnvio.getMessage());
             throw new RegraDeNegocioException(
                     "Não foi possível enviar o e-mail de verificação agora. Tente novamente em instantes.");
         }

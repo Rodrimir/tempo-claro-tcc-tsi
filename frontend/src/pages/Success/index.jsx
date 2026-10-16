@@ -164,7 +164,7 @@ const Success = () => {
           </Row>
         </RewardCard>
 
-        <BackButton onPress={() => router.replace('/home')}>
+        <BackButton accessibilityRole="button" onPress={() => router.replace('/home')}>
           <BackButtonText $isBonus={isBonus}>{t('sucesso.voltar')}</BackButtonText>
         </BackButton>
       </ContentWrapper>

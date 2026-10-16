@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FlatList, Modal, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
@@ -60,6 +60,7 @@ const HomeScreen = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef(null);
   const router = useRouter();
+  const { habitoId: habitoDaNotificacao } = useLocalSearchParams();
   const { setCurrentHabit } = useCurrentHabit();
   const { isDark } = useThemeToggle();
   const cenarioFonte = isDark ? cenarioNoite : cenarioDia;
@@ -71,9 +72,20 @@ const HomeScreen = () => {
   const [excluindo, setExcluindo] = useState(false);
 
   const carregandoRef = useRef(false);
+  const habitosRef = useRef([]);
 
+  // O pedido de permissão pode terminar depois da primeira carga, que nesse caso não conseguiu
+  // agendar nada; quando a permissão é concedida, os lembretes são agendados com os dados já lidos.
   useEffect(() => {
-    solicitarPermissao();
+    solicitarPermissao(idioma)
+      .then((concedida) => {
+        if (concedida && habitosRef.current.length > 0) {
+          reagendarTodas(habitosRef.current, idioma).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    // Uma vez por montagem: repetir o pedido a cada troca de idioma reabriria o diálogo do sistema.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = useCallback(async (silencioso = false) => {
@@ -95,6 +107,7 @@ const HomeScreen = () => {
           return new Date(a.proximo_vencimento) - new Date(b.proximo_vencimento);
         });
         setLocalHabits(data);
+        habitosRef.current = data;
         reagendarTodas(data, idioma).catch(() => {});
       }
     } catch (_error) {
@@ -121,6 +134,17 @@ const HomeScreen = () => {
       setCurrentHabit(null);
     }
   }, [activeIndex, localHabits, setCurrentHabit]);
+
+  useEffect(() => {
+    if (!habitoDaNotificacao || loading || localHabits.length === 0) return;
+    const indice = localHabits.findIndex((h) => h.id === habitoDaNotificacao);
+    router.setParams({ habitoId: undefined });
+    if (indice < 0) return;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({ offset: indice * width, animated: false });
+      setActiveIndex(indice);
+    });
+  }, [habitoDaNotificacao, loading, localHabits, width, router]);
 
   const podeCrearMais = localHabits.length < limiteHabitos;
   const dados = podeCrearMais ? [...localHabits, CRIAR_SLIDE] : localHabits;
@@ -175,7 +199,7 @@ const HomeScreen = () => {
             <EmptyTitle>{t('stats.erroTitulo')}</EmptyTitle>
             <EmptySubtitle>{t('stats.erroTexto')}</EmptySubtitle>
           </EmptyTextCard>
-          <RetryButton onPress={() => loadData()}>
+          <RetryButton accessibilityRole="button" onPress={() => loadData()}>
             <RetryButtonText>{t('comum.tentarNovamente')}</RetryButtonText>
           </RetryButton>
         </ErrorStateContainer>
@@ -199,7 +223,12 @@ const HomeScreen = () => {
               {t('home.boasVindasTexto', { limite: limiteHabitos, plural: limiteHabitos === 1 ? '' : 's' })}
             </EmptySubtitle>
           </EmptyTextCard>
-          <CreateHabitButton onPress={() => router.push({ pathname: '/create', params: { modo: 'criar' } })} style={{ marginTop: 24 }}>
+          <CreateHabitButton
+            accessibilityRole="button"
+            accessibilityLabel={t('home.novoHabitoTitulo')}
+            onPress={() => router.push({ pathname: '/create', params: { modo: 'criar' } })}
+            style={{ marginTop: 24 }}
+          >
             <Feather name="play" size={32} color="white" style={{ transform: [{ rotate: '90deg' }] }} />
           </CreateHabitButton>
         </ErrorStateContainer>
@@ -270,10 +299,10 @@ const HomeScreen = () => {
             <ExcluirModalTitle>{t('home.excluirPergunta', { titulo: habitoParaExcluir?.titulo ?? '' })}</ExcluirModalTitle>
             <ExcluirModalText>{t('home.excluirDetalhe', { limite: limiteHabitos })}</ExcluirModalText>
             <ExcluirModalActions>
-              <ExcluirCancelButton onPress={() => setHabitoParaExcluir(null)} disabled={excluindo}>
+              <ExcluirCancelButton accessibilityRole="button" accessibilityState={{ disabled: excluindo }} onPress={() => setHabitoParaExcluir(null)} disabled={excluindo}>
                 <ExcluirCancelButtonText>{t('comum.cancelar')}</ExcluirCancelButtonText>
               </ExcluirCancelButton>
-              <ExcluirConfirmButton onPress={handleConfirmarExcluir} disabled={excluindo}>
+              <ExcluirConfirmButton accessibilityRole="button" accessibilityState={{ disabled: excluindo }} onPress={handleConfirmarExcluir} disabled={excluindo}>
                 <ExcluirConfirmButtonText>{excluindo ? t('home.excluindo') : t('comum.excluir')}</ExcluirConfirmButtonText>
               </ExcluirConfirmButton>
             </ExcluirModalActions>

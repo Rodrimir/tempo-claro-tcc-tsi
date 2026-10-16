@@ -1,15 +1,73 @@
 import axios from 'axios';
+import { DeviceEventEmitter } from 'react-native';
 import { getAuthToken } from '@/utils/storage';
+import { mensagemNoIdiomaAtual } from '@/utils/erros';
+
+const URL_DA_API = process.env.EXPO_PUBLIC_API_URL || 'https://tempo-claro-tcc-tsi.onrender.com/api';
+
+// No plano gratuito do Render a API dorme depois de um tempo parada e leva perto de um minuto para
+// acordar. O limite de 90 s cobre esse primeiro acesso, e o aviso abaixo explica a demora.
+const TEMPO_LIMITE_MS = 90000;
+const AVISO_DE_DEMORA_MS = 6000;
 
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://tempo-claro-tcc-tsi.onrender.com/api',
-  timeout: 60000,
+  baseURL: URL_DA_API,
+  timeout: TEMPO_LIMITE_MS,
 });
 
+let requisicoesEmAndamento = 0;
+let temporizadorDoAviso = null;
+let avisoJaMostrado = false;
+
+function comecarAcompanhamento() {
+  requisicoesEmAndamento += 1;
+  if (requisicoesEmAndamento === 1) {
+    temporizadorDoAviso = setTimeout(() => {
+      if (avisoJaMostrado) return;
+      avisoJaMostrado = true;
+      DeviceEventEmitter.emit('tempoClaro:toast', {
+        message: mensagemNoIdiomaAtual('comum.servidorAcordando'),
+        type: 'default',
+        duration: 8000,
+      });
+    }, AVISO_DE_DEMORA_MS);
+  }
+}
+
+function encerrarAcompanhamento(config) {
+  if (!config?.acompanhada) return;
+  config.acompanhada = false;
+  requisicoesEmAndamento = Math.max(0, requisicoesEmAndamento - 1);
+  if (requisicoesEmAndamento === 0) {
+    clearTimeout(temporizadorDoAviso);
+    temporizadorDoAviso = null;
+    avisoJaMostrado = false;
+  }
+}
+
+let acordando = null;
+
+// Chamada fora do axios, sem token, só para tirar a API do sono enquanto a pessoa ainda está na
+// tela de entrada. A resposta não importa (a raiz devolve 403), e por isso não passa pelo
+// interceptor que trata 403 como sessão expirada.
+export function acordarServidor() {
+  if (!acordando) {
+    acordando = fetch(URL_DA_API.replace(/\/api\/?$/, '/')).catch(() => null);
+  }
+  return acordando;
+}
+
 api.interceptors.request.use(async (config) => {
-  const token = await getAuthToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  comecarAcompanhamento();
+  config.acompanhada = true;
+  try {
+    const token = await getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (erro) {
+    encerrarAcompanhamento(config);
+    throw erro;
   }
   return config;
 });
@@ -21,8 +79,12 @@ export function setUnauthorizedHandler(fn) {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    encerrarAcompanhamento(response.config);
+    return response;
+  },
   (error) => {
+    encerrarAcompanhamento(error.config);
     const status = error.response?.status;
     if (status === 401 || status === 403) {
       // @note - 4.2 (Cadastro) interceptor de resposta: em qualquer 401/403 de rotas que não

@@ -52,6 +52,7 @@ const CircularProgress = ({ quantity, meta_base, onQuantityChange }) => {
       <TextContainer>
         {editando ? (
           <QuantityInput
+            accessibilityLabel={t('comum.editarQuantidade')}
             keyboardType="numeric"
             autoFocus
             value={valorDigitado}

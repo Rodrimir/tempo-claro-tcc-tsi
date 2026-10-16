@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import TimePickerField from '@/components/common/TimePickerField';
 import { calcularAlvos } from '@/pages/CreateHabit/formModel';
-import { NOME_MAX_LENGTH } from '@/model/Habito';
+import { NOME_MAX_LENGTH, GATILHO_MAX_LENGTH } from '@/model/Habito';
 import { Categoria } from '@/model/Categoria';
 import {
   StepContainer,
@@ -51,11 +51,27 @@ export function StepFormulario({
             <Input
               maxLength={NOME_MAX_LENGTH}
               placeholder={t('criar.nomeHabito')}
+              accessibilityLabel={t('criar.nomeHabito')}
               value={formData.titulo}
               $error={Boolean(errors.titulo)}
               onChangeText={(v) => atualizarCampo('titulo', v)}
             />
             {errors.titulo && <ErrorText>{errors.titulo}</ErrorText>}
+          </FormGroup>
+
+          <FormGroup>
+            <Label>{t('criar.gatilho')}</Label>
+            <Input
+              maxLength={GATILHO_MAX_LENGTH}
+              placeholder={t('criar.gatilhoPlaceholder')}
+              accessibilityLabel={t('criar.gatilho')}
+              accessibilityHint={t('criar.gatilhoAjuda')}
+              value={formData.gatilho_ancora}
+              $error={Boolean(errors.gatilho_ancora)}
+              onChangeText={(v) => atualizarCampo('gatilho_ancora', v)}
+            />
+            <FieldHint>{t('criar.gatilhoAjuda')}</FieldHint>
+            {errors.gatilho_ancora && <ErrorText>{errors.gatilho_ancora}</ErrorText>}
           </FormGroup>
         </FormCard>
 
@@ -113,7 +129,7 @@ export function StepFormulario({
             <Label>{t('criar.frequenciaSemanal')}</Label>
             <WeekDaysContainer>
               {nomesDiasSemana.map((dia, index) => (
-                <DayButton key={dia} onPress={() => toggleDia(index)} $active={formData.frequencia_semanal.includes(index)}>
+                <DayButton accessibilityRole="checkbox" accessibilityState={{ checked: formData.frequencia_semanal.includes(index) }} key={dia} onPress={() => toggleDia(index)} $active={formData.frequencia_semanal.includes(index)}>
                   <DayButtonText $active={formData.frequencia_semanal.includes(index)}>{dia}</DayButtonText>
                 </DayButton>
               ))}
@@ -186,7 +202,7 @@ export function StepFormulario({
           )}
         </FormCard>
 
-        <SubmitButton onPress={onRevisar}>
+        <SubmitButton accessibilityRole="button" onPress={onRevisar}>
           <SubmitButtonText>{t('criar.revisarHabito')}</SubmitButtonText>
           <Feather name="chevron-right" size={20} color="white" />
         </SubmitButton>

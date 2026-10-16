@@ -1,5 +1,5 @@
 import { RE_HORA } from '@/utils/validacao';
-import { NOME_MAX_LENGTH, MAX_VEZES_AO_DIA } from '@/model/Habito';
+import { NOME_MAX_LENGTH, GATILHO_MAX_LENGTH, MAX_VEZES_AO_DIA } from '@/model/Habito';
 
 export function validarFormulario(formData, t) {
   const erros = {};
@@ -8,6 +8,10 @@ export function validarFormulario(formData, t) {
     erros.titulo = t('criar.erroNome');
   } else if (formData.titulo.length > NOME_MAX_LENGTH) {
     erros.titulo = t('criar.erroNomeMaximo', { max: NOME_MAX_LENGTH });
+  }
+
+  if ((formData.gatilho_ancora || '').trim().length > GATILHO_MAX_LENGTH) {
+    erros.gatilho_ancora = t('criar.erroGatilhoMaximo', { max: GATILHO_MAX_LENGTH });
   }
 
   const metaBaseNum = formData.meta_base === '' ? NaN : Number(formData.meta_base);

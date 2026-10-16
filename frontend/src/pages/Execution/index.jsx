@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -106,6 +106,9 @@ const ExecutionActive = ({ habit }) => {
   const [executionToken] = useState(() => Crypto.randomUUID());
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
   const [quantity, setQuantity] = useState(0);
+  const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false);
+  const tentativaSemRespostaRef = useRef(false);
 
   const metaOcorrenciaAtual = habit.alvo_ocorrencia_atual ?? habit.meta_base;
   const alvoEmSegundos = metaOcorrenciaAtual * 60;
@@ -151,7 +154,34 @@ const ExecutionActive = ({ habit }) => {
     opacity: withTiming(podeConcluir ? 1 : 0, { duration: 500 }),
   }));
 
+  // Uma tentativa que ficou sem resposta pode ter sido gravada no servidor. Se a nova tentativa,
+  // com o mesmo execution_token, voltar como duplicada, a execução já está registrada.
+  const jaFoiRegistrada = (err) =>
+    tentativaSemRespostaRef.current
+    && err?.response?.status === 422
+    && /duplicada/i.test(err?.response?.data?.message || '');
+
+  const encerrarComoJaRegistrada = async () => {
+    await clearTimerState();
+    await clearExecutingHabitId();
+    addToast(t('execucao.jaRegistrada'), 'success');
+    router.replace('/home');
+  };
+
+  const comecarEnvio = () => {
+    if (enviandoRef.current) return false;
+    enviandoRef.current = true;
+    setEnviando(true);
+    return true;
+  };
+
+  const terminarEnvio = () => {
+    enviandoRef.current = false;
+    setEnviando(false);
+  };
+
   const handleComplete = async () => {
+    if (!comecarEnvio()) return;
     try {
       pause();
       const payload = {
@@ -166,11 +196,20 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ feedback: res.data, subiuDeNivel });
       router.replace('/success');
     } catch (err) {
+      if (jaFoiRegistrada(err)) {
+        await encerrarComoJaRegistrada();
+        return;
+      }
+      if (!err?.response) tentativaSemRespostaRef.current = true;
       addToast(getApiErrorMessage(err, t('execucao.erroConclusao')), 'error');
+      resume();
+    } finally {
+      terminarEnvio();
     }
   };
 
   const handleGiveUp = async (type) => {
+    if (!comecarEnvio()) return;
     try {
       pause();
       const payload = {
@@ -185,8 +224,15 @@ const ExecutionActive = ({ habit }) => {
       setExecutionResult({ type, feedback: res.data });
       router.replace('/fail');
     } catch (err) {
+      if (jaFoiRegistrada(err)) {
+        await encerrarComoJaRegistrada();
+        return;
+      }
+      if (!err?.response) tentativaSemRespostaRef.current = true;
       addToast(getApiErrorMessage(err, t('execucao.erroDesistencia')), 'error');
       resume();
+    } finally {
+      terminarEnvio();
     }
   };
 
@@ -212,6 +258,8 @@ const ExecutionActive = ({ habit }) => {
         {habit.tipo_medida === TipoMedida.QUANTIDADE && (
           <ControlsWrapper>
             <SubButton
+              accessibilityRole="button"
+              accessibilityLabel={t('execucao.diminuir', { passo })}
               onPress={() => {
                 tocar('tap');
                 setQuantity(Math.max(0, quantity - passo));
@@ -219,7 +267,13 @@ const ExecutionActive = ({ habit }) => {
             >
               <SubButtonText>-{passo}</SubButtonText>
             </SubButton>
-            <AddButton onPressIn={onAddPressIn} onPressOut={onAddPressOut}>
+            <AddButton
+              accessibilityRole="button"
+              accessibilityLabel={t('execucao.aumentar', { passo })}
+              accessibilityHint={t('execucao.aumentarDica')}
+              onPressIn={onAddPressIn}
+              onPressOut={onAddPressOut}
+            >
               <AddButtonText>+{passo}</AddButtonText>
             </AddButton>
           </ControlsWrapper>
@@ -228,12 +282,22 @@ const ExecutionActive = ({ habit }) => {
 
       <ActionsWrapper>
         <CompleteButtonWrapper style={estiloConcluir} pointerEvents={podeConcluir ? 'auto' : 'none'}>
-          <CompleteButton onPress={handleComplete}>
+          <CompleteButton
+            onPress={handleComplete}
+            disabled={!podeConcluir || enviando}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !podeConcluir || enviando, busy: enviando }}
+            accessibilityElementsHidden={!podeConcluir}
+            importantForAccessibility={podeConcluir ? 'auto' : 'no-hide-descendants'}
+          >
             <CompleteButtonText>{t('execucao.concluirTarefa')}</CompleteButtonText>
           </CompleteButton>
         </CompleteButtonWrapper>
 
         <GiveUpButton
+          accessibilityRole="button"
+          disabled={enviando}
+          accessibilityState={{ disabled: enviando }}
           onPress={() => {
             tocar('open');
             pause();
@@ -246,6 +310,7 @@ const ExecutionActive = ({ habit }) => {
 
       {showGiveUpModal && (
         <GiveUpModal
+          enviando={enviando}
           bloqueiosAcumulados={habit.bloqueios_acumulados}
           handleGiveUp={handleGiveUp}
           onCancel={() => {

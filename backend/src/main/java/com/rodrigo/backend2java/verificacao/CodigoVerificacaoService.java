@@ -20,14 +20,24 @@ public class CodigoVerificacaoService {
 
     private final CodigoVerificacaoRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     private final String codigoFixo;
 
     public CodigoVerificacaoService(CodigoVerificacaoRepository repository, PasswordEncoder passwordEncoder,
-            @Value("${app.verificacao.codigo-fixo:}") String codigoFixo) {
+            EmailService emailService, @Value("${app.verificacao.codigo-fixo:}") String codigoFixo) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
         this.codigoFixo = codigoFixo == null ? "" : codigoFixo.trim();
+    }
+
+    // Gera o código e envia o e-mail na mesma transação: se o envio falhar, o código novo é
+    // desfeito junto, e a espera de 60 s entre reenvios não bloqueia a próxima tentativa.
+    @Transactional
+    public void emitirEEnviar(final String email, final TipoCodigo tipo, final String idioma) {
+        final var codigo = gerarCodigo(email, tipo);
+        emailService.enviarCodigo(email, codigo, tipo, idioma);
     }
 
     // @note - 10.1 (Cadastro) gerarCodigo, chamado por AuthService.cadastrar (item 7.1d): invalida

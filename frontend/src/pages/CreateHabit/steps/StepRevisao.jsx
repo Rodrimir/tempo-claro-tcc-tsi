@@ -16,9 +16,17 @@ export function StepRevisao({ t, isEditMode, formData, unidadeMeta, diasSelecion
             <ReviewStrong>{formData.vezes_dia}</ReviewStrong>{' '}
             {Number(formData.vezes_dia) > 1 ? t('criar.revisarVezesAoDia') : t('criar.revisarVezAoDia')}
           </ReviewText>
+          {formData.gatilho_ancora?.trim() ? (
+            <ReviewText>⚓ {t('criar.revisarGatilho', { gatilho: formData.gatilho_ancora.trim() })}</ReviewText>
+          ) : null}
         </ReviewCard>
 
-        <SubmitButton onPress={onSave} disabled={isSubmitting}>
+        <SubmitButton
+          onPress={onSave}
+          disabled={isSubmitting}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+        >
           <SubmitButtonText disabled={isSubmitting}>
             {isSubmitting ? (isEditMode ? t('criar.salvando') : t('criar.criando')) : isEditMode ? t('criar.confirmarAlteracoes') : t('criar.confirmarCriar')}
           </SubmitButtonText>

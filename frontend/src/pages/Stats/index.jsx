@@ -198,11 +198,13 @@ const Stats = () => {
 
   const seletorModal = (
     <Modal visible={pickerAberto} transparent animationType="fade" onRequestClose={() => setPickerAberto(false)}>
-      <PickerOverlay onPress={() => setPickerAberto(false)}>
+      <PickerOverlay accessibilityRole="button" accessibilityLabel={t('comum.fechar')} onPress={() => setPickerAberto(false)}>
         <PickerSheet onStartShouldSetResponder={() => true}>
           <PickerTitulo>{t('stats.trocarHabito')}</PickerTitulo>
           {habitosDisponiveis.map((h) => (
             <PickerOption
+              accessibilityRole="radio"
+              accessibilityState={{ selected: h.id === habit.id }}
               key={h.id}
               onPress={() => {
                 setCurrentHabit(h);
@@ -239,7 +241,7 @@ const Stats = () => {
         title={t('stats.erroTitulo')}
         text={t('stats.erroTexto')}
       >
-        <RetryButton onPress={() => loadStats()}>
+        <RetryButton accessibilityRole="button" onPress={() => loadStats()}>
           <RetryButtonText>{t('comum.tentarNovamente')}</RetryButtonText>
         </RetryButton>
       </EmptyState>
@@ -252,7 +254,7 @@ const Stats = () => {
       <>
       <StatsContainer $insetTop={insets.top}>
         <Title>{t('stats.titulo')}</Title>
-        <HabitTitleButton onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
+        <HabitTitleButton accessibilityRole="button" onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
         <HabitTitle>{habit.titulo}</HabitTitle>
         <Feather name='chevron-down' size={16} color={theme.primaryColor} />
       </HabitTitleButton>
@@ -271,7 +273,7 @@ const Stats = () => {
     <>
     <StatsContainer $insetTop={insets.top}>
       <Title>{t('stats.titulo')}</Title>
-      <HabitTitleButton onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
+      <HabitTitleButton accessibilityRole="button" onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
         <HabitTitle>{habit.titulo}</HabitTitle>
         <Feather name='chevron-down' size={16} color={theme.primaryColor} />
       </HabitTitleButton>

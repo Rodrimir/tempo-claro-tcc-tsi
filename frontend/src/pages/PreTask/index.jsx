@@ -46,7 +46,7 @@ const PreTask = () => {
   return (
     <PreTaskContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <BackButtonWrapper style={{ top: insets.top + 24 }}>
-        <BackButton onPress={() => router.push('/home')} accessibilityLabel={t('preTask.voltarParaHome')}>
+        <BackButton accessibilityRole="button" onPress={() => router.push('/home')} accessibilityLabel={t('preTask.voltarParaHome')}>
           <Feather name="arrow-left" size={32} color="white" />
         </BackButton>
       </BackButtonWrapper>
@@ -59,7 +59,7 @@ const PreTask = () => {
       </ContentWrapper>
 
       <ActionWrapper>
-        <ReadyButton onPress={() => router.push('/execute')}>
+        <ReadyButton accessibilityRole="button" onPress={() => router.push('/execute')}>
           <ReadyButtonText>{t('preTask.estouPronto')}</ReadyButtonText>
         </ReadyButton>
       </ActionWrapper>

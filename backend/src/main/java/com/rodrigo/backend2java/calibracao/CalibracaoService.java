@@ -3,8 +3,12 @@ package com.rodrigo.backend2java.calibracao;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.ArrayList;
+import java.time.Duration;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -12,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend2java.habito.AcessoHabitoService;
 import com.rodrigo.backend2java.habito.model.FrequenciaSemanal;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
+import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
+import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.CategoriaCalibracao;
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.OpcaoCalibracao;
 import com.rodrigo.backend2java.calibracao.CatalogoCalibracao.PerguntaCalibracao;
@@ -30,6 +36,12 @@ public class CalibracaoService {
     private static final String PERGUNTA_RITMO = "RITMO";
 
     private static final LocalTime HORARIO_PADRAO = LocalTime.of(8, 0);
+
+    private static final int INTERVALO_PADRAO_MINUTOS = 4 * 60;
+
+    private static final int JANELA_DOS_HORARIOS_PADRAO_MINUTOS = 12 * 60;
+
+    private static final Duration JANELA_CALIBRACAO_REPETIDA = Duration.ofMinutes(2);
 
     private final CatalogoCalibracao catalogo;
     private final CalibracaoRepository calibracaoRepository;
@@ -65,8 +77,15 @@ public class CalibracaoService {
 
     @Transactional
     public CalibracaoResponseDTO calibrar(final String emailContexto, final CalibracaoRequestDTO request) {
-        final var usuario = acessoHabitoService.usuarioPorEmail(emailContexto);
+        final var usuario = acessoHabitoService.travarUsuarioPorEmail(emailContexto);
         final var definicao = catalogo.categoria(request.categoria());
+
+        final var perguntasRespondidas = new HashSet<String>();
+        for (final var resposta : request.respostas()) {
+            if (!perguntasRespondidas.add(resposta.pergunta_codigo())) {
+                throw new ValidacaoException("A pergunta " + resposta.pergunta_codigo() + " foi respondida mais de uma vez.");
+            }
+        }
 
         final var respostas = request.respostas().stream()
                 .collect(Collectors.toMap(
@@ -85,27 +104,21 @@ public class CalibracaoService {
         final var metaMaxima = metaBase * Math.max(1, definicao.teto_multiplicador());
         final var idioma = idiomaDe(emailContexto);
 
-        final var calibracao = calibracaoRepository.save(Calibracao.builder()
-                .id(UUID.randomUUID())
-                .usuarioId(usuario.getId())
-                .categoria(request.categoria())
-                .versaoCatalogo(catalogo.versao())
-                .pontuacao(pontuacao)
-                .metaSugerida(metaBase)
-                .metaMaximaSugerida(metaMaxima)
-                .incrementoSugerido(ritmo == null || ritmo.incremento() == null ? 0 : ritmo.incremento())
-                .diasIncrementoSugerido(ritmo == null || ritmo.dias_incremento() == null ? 10 : ritmo.dias_incremento())
-                .vezesAoDiaSugerida(vezesAoDia)
-                .frequenciaSemanalSugerida(frequenciaSemanal)
-                .aceita(false)
-                .build());
-
-        request.respostas().forEach(resposta -> respostaRepository.save(CalibracaoResposta.builder()
-                .id(UUID.randomUUID())
-                .calibracaoId(calibracao.getId())
-                .perguntaCodigo(resposta.pergunta_codigo())
-                .resposta(resposta.valor())
-                .build()));
+        final var calibracao = calibracaoRepetida(usuario.getId(), request.categoria(), respostas)
+                .orElseGet(() -> registrarCalibracao(Calibracao.builder()
+                        .id(UUID.randomUUID())
+                        .usuarioId(usuario.getId())
+                        .categoria(request.categoria())
+                        .versaoCatalogo(catalogo.versao())
+                        .pontuacao(pontuacao)
+                        .metaSugerida(metaBase)
+                        .metaMaximaSugerida(metaMaxima)
+                        .incrementoSugerido(ritmo == null || ritmo.incremento() == null ? 0 : ritmo.incremento())
+                        .diasIncrementoSugerido(ritmo == null || ritmo.dias_incremento() == null ? 10 : ritmo.dias_incremento())
+                        .vezesAoDiaSugerida(vezesAoDia)
+                        .frequenciaSemanalSugerida(frequenciaSemanal)
+                        .aceita(false)
+                        .build(), request.respostas()));
 
         return CalibracaoResponseDTO.builder()
                 .calibracao_id(calibracao.getId())
@@ -126,15 +139,49 @@ public class CalibracaoService {
                 .build();
     }
 
+    private Calibracao registrarCalibracao(final Calibracao calibracao,
+            final List<CalibracaoRequestDTO.RespostaDTO> respostas) {
+        final var salva = calibracaoRepository.save(calibracao);
+        respostas.forEach(resposta -> respostaRepository.save(CalibracaoResposta.builder()
+                .id(UUID.randomUUID())
+                .calibracaoId(salva.getId())
+                .perguntaCodigo(resposta.pergunta_codigo())
+                .resposta(resposta.valor())
+                .build()));
+        return salva;
+    }
+
+    // Um toque duplo no botão de concluir manda o mesmo questionário duas vezes. A linha do usuário
+    // já está travada por calibrar, então a segunda requisição só chega aqui depois de a primeira
+    // gravar, e reaproveita a calibração em vez de criar outra igual.
+    private Optional<Calibracao> calibracaoRepetida(final UUID usuarioId, final String categoria,
+            final Map<String, String> respostas) {
+        final var desde = OffsetDateTime.now().minus(JANELA_CALIBRACAO_REPETIDA);
+        return calibracaoRepository
+                .findAllByUsuarioIdAndCategoriaAndHabitoIdIsNullAndCriadoEmAfterOrderByCriadoEmDesc(
+                        usuarioId, categoria, desde)
+                .stream()
+                .filter(calibracao -> respostas.equals(respostaRepository.findAllByCalibracaoId(calibracao.getId())
+                        .stream()
+                        .collect(Collectors.toMap(CalibracaoResposta::getPerguntaCodigo, CalibracaoResposta::getResposta))))
+                .findFirst();
+    }
+
     @Transactional
-    public void vincularAoHabito(final UUID calibracaoId, final UUID usuarioId, final UUID habitoId) {
-        calibracaoRepository.findById(calibracaoId)
-                .filter(calibracao -> usuarioId.equals(calibracao.getUsuarioId()))
-                .ifPresent(calibracao -> {
-                    calibracao.setHabitoId(habitoId);
-                    calibracao.setAceita(true);
-                    calibracaoRepository.save(calibracao);
-                });
+    public void vincularAoHabito(final UUID calibracaoId, final UUID usuarioId, final UUID habitoId,
+            final String categoriaDoHabito) {
+        final var calibracao = calibracaoRepository.findById(calibracaoId)
+                .filter(c -> usuarioId.equals(c.getUsuarioId()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Calibração não encontrada"));
+        if (calibracao.getHabitoId() != null && !calibracao.getHabitoId().equals(habitoId)) {
+            throw new RegraDeNegocioException("Esta calibração já foi usada em outro hábito.");
+        }
+        if (!calibracao.getCategoria().equals(categoriaDoHabito)) {
+            throw new RegraDeNegocioException("A calibração é de outra categoria de hábito.");
+        }
+        calibracao.setHabitoId(habitoId);
+        calibracao.setAceita(true);
+        calibracaoRepository.save(calibracao);
     }
 
 
@@ -229,10 +276,20 @@ public class CalibracaoService {
                 }
             }
         }
-        while (horarios.size() < vezesAoDia) {
-            horarios.add(HORARIO_PADRAO.plusHours(Math.min(12, horarios.size() * 4L)));
+        if (horarios.size() < vezesAoDia) {
+            final var intervalo = vezesAoDia <= 1
+                    ? 0
+                    : Math.min(INTERVALO_PADRAO_MINUTOS, JANELA_DOS_HORARIOS_PADRAO_MINUTOS / (vezesAoDia - 1));
+            for (var i = 0; horarios.size() < vezesAoDia; i++) {
+                final var candidato = HORARIO_PADRAO.plusMinutes((long) i * intervalo);
+                if (!horarios.contains(candidato)) {
+                    horarios.add(candidato);
+                }
+            }
         }
-        return horarios.subList(0, vezesAoDia);
+        final var escolhidos = new ArrayList<>(horarios.subList(0, vezesAoDia));
+        escolhidos.sort(null);
+        return escolhidos;
     }
 
     private OpcaoCalibracao lerRitmo(final String valor, final CategoriaCalibracao definicao) {

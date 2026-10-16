@@ -72,10 +72,10 @@ const CreateHabit = () => {
       setEditHabit(alvo);
       setMolde(moldeAlvo);
       setStep(alvo ? 3 : 1);
-      setFormData(formDataInicial(alvo, moldeAlvo));
+      setFormData(formDataInicial(alvo, t(`criar.moldes.${moldeAlvo.chave}.titulo`)));
       setErrors({});
       setIsSubmitting(false);
-    }, [modo, sugestaoParam, categoriaParam])
+    }, [modo, sugestaoParam, categoriaParam, t])
   );
 
   const handleNext = () => {
@@ -167,7 +167,7 @@ const CreateHabit = () => {
       const payload = {
         categoria: molde.id,
         titulo: formData.titulo.trim(),
-        gatilho_ancora: null,
+        gatilho_ancora: formData.gatilho_ancora?.trim() || null,
         tipo_medida: molde.id === Categoria.AGUA ? TipoMedida.QUANTIDADE : TipoMedida.TEMPO,
         meta_base: parseInt(formData.meta_base, 10),
         incremento: parseInt(formData.incremento, 10) || 0,
@@ -216,11 +216,12 @@ const CreateHabit = () => {
     <Container $insetTop={insets.top}>
       <Header>
         {step > (isEditMode ? 3 : 1) ? (
-          <BackButton onPress={handleBack} accessibilityLabel={t('comum.voltar')}>
+          <BackButton accessibilityRole="button" onPress={handleBack} accessibilityLabel={t('comum.voltar')}>
             <Feather name="arrow-left" size={28} color={theme.textPrimary} />
           </BackButton>
         ) : (
           <BackButton
+            accessibilityRole="button"
             onPress={() => {
               tocar('voltar');
               router.replace('/home');

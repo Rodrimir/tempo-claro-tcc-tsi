@@ -11,6 +11,8 @@ export function StepMolde({ molde, onSelecionarMolde, onMoldeBloqueado, onNext, 
       <MoldeGrid>
         {MOLDES.map((m) => (
           <MoldeCard
+            accessibilityRole="radio"
+            accessibilityState={{ selected: Boolean(m.id) && molde.id === m.id, disabled: !m.id }}
             key={m.id ?? 'reservado'}
             onPress={() => (m.id ? onSelecionarMolde(m) : onMoldeBloqueado())}
             disabled={!m.id}
@@ -34,7 +36,7 @@ export function StepMolde({ molde, onSelecionarMolde, onMoldeBloqueado, onNext, 
           </MoldeCard>
         ))}
       </MoldeGrid>
-      <NextButton onPress={onNext}>
+      <NextButton accessibilityRole="button" onPress={onNext}>
         <NextButtonText>{t('criar.continuarCom', { molde: t(`criar.moldes.${molde.chave}.titulo`) })}</NextButtonText>
         <Feather name="chevron-right" size={20} color="white" />
       </NextButton>

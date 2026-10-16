@@ -1,14 +1,21 @@
 package com.rodrigo.backend2java.usuario;
 import java.util.UUID;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import com.rodrigo.backend2java.usuario.model.Usuario;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     Optional<Usuario> findByEmail(String email);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM Usuario u WHERE u.email = :email")
+    Optional<Usuario> travarPorEmail(@Param("email") String email);
 
     // @note - 9.1 (Cadastro) existsByEmail: checagem de duplicidade usada em AuthService.cadastrar
     // (item 7.1a). Ver README §8 > Cadastro > item 9.

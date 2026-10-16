@@ -37,13 +37,14 @@ const VerifyEmail = () => {
   const { addToast } = useToast();
   const { t } = useI18n();
   const { tocar } = useSfx();
-  const { email } = useLocalSearchParams();
+  const { email, origem } = useLocalSearchParams();
 
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [reenviando, setReenviando] = useState(false);
-  const [cooldown, setCooldown] = useState(COOLDOWN_INICIAL);
+  // Vindo do login, nenhum código novo acabou de ser enviado: o reenvio fica liberado de imediato.
+  const [cooldown, setCooldown] = useState(origem === 'login' ? 0 : COOLDOWN_INICIAL);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -89,6 +90,7 @@ const VerifyEmail = () => {
     >
       <Container $insetTop={insets.top}>
         <BackButton
+          accessibilityRole="button"
           style={{ top: insets.top + 16 }}
           onPress={() => {
             tocar('voltar');
@@ -117,6 +119,8 @@ const VerifyEmail = () => {
           </FormGroup>
 
           <PrimaryButton
+            accessibilityRole="button"
+            accessibilityState={{ disabled: ocupado }}
             onPress={() => {
               tocar('continuar');
               confirmar();
@@ -132,6 +136,8 @@ const VerifyEmail = () => {
 
           <ResendRow>
             <ResendLink
+              accessibilityRole="button"
+              accessibilityState={{ disabled: cooldown > 0 || reenviando }}
               onPress={() => {
                 tocar('tap');
                 reenviar();

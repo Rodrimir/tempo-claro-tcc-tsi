@@ -105,6 +105,10 @@ const ChangePassword = () => {
       setErro(t('validacao.confirmacaoNaoBate'));
       return;
     }
+    if (!diferenteOk) {
+      setErro(t('perfil.senhaIgualAtual'));
+      return;
+    }
     setOcupado(true);
     setErro('');
     try {
@@ -136,7 +140,7 @@ const ChangePassword = () => {
     >
       <Container $insetTop={insets.top}>
         <Header>
-          <BackButton onPress={voltar} accessibilityLabel={t('comum.voltar')}>
+          <BackButton accessibilityRole="button" onPress={voltar} accessibilityLabel={t('comum.voltar')}>
             <Feather name="arrow-left" size={26} color={theme.textPrimary} />
           </BackButton>
           <HeaderText>
@@ -169,6 +173,8 @@ const ChangePassword = () => {
             </FormGroup>
 
             <PrimaryButton
+              accessibilityRole="button"
+              accessibilityState={{ disabled: ocupado }}
               onPress={() => {
                 tocar('continuar');
                 conferirSenhaAtual();
@@ -222,6 +228,8 @@ const ChangePassword = () => {
             {erro ? <ErrorText>{erro}</ErrorText> : null}
 
             <PrimaryButton
+              accessibilityRole="button"
+              accessibilityState={{ disabled: ocupado || !senhaValida || !confereOk || !diferenteOk }}
               onPress={() => {
                 tocar('continuar');
                 salvar();

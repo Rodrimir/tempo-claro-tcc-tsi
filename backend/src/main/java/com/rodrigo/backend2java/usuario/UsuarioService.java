@@ -5,6 +5,7 @@ import com.rodrigo.backend2java.infra.util.ZonaUsuario;
 import com.rodrigo.backend2java.infra.util.SenhaValidator;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
+import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend2java.usuario.model.ProfileUpdateDTO;
@@ -27,7 +28,7 @@ public class UsuarioService {
 
     public UsuarioResponseDTO buscarPerfil(final String emailContexto) {
         final var usuario = usuarioRepository.findByEmail(emailContexto)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
 
         return UsuarioResponseDTO.builder()
                 .id(usuario.getId())
@@ -42,7 +43,7 @@ public class UsuarioService {
     @Transactional
     public void atualizarPerfil(final String emailContexto, final ProfileUpdateDTO request) {
         final var usuario = usuarioRepository.findByEmail(emailContexto)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
 
         if (request.nome() != null && !request.nome().isBlank()) {
             usuario.setNome(request.nome());
@@ -84,6 +85,9 @@ public class UsuarioService {
             }
             if (!passwordEncoder.matches(request.senha_atual(), usuario.getSenhaHash())) {
                 throw new RegraDeNegocioException("Senha atual incorreta");
+            }
+            if (passwordEncoder.matches(request.nova_senha(), usuario.getSenhaHash())) {
+                throw new RegraDeNegocioException("A nova senha precisa ser diferente da atual.");
             }
             usuario.setSenhaHash(passwordEncoder.encode(request.nova_senha()));
         }

@@ -5,6 +5,16 @@ export default {
     escudos: "Escudos",
     editarQuantidade: "Editar quantidade manualmente",
     sessaoExpirada: "Sua sessão expirou. Entre novamente.",
+    erroSemResposta: "Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.",
+    erroTempoEsgotado:
+      "O servidor demorou para responder. Depois de um tempo parado ele leva até um minuto para acordar. Tente de novo.",
+    erroValidacao: "Alguns dados não foram aceitos. Confira o que você preencheu.",
+    erroCredencial: "E-mail ou senha incorretos.",
+    erroNaoEncontrado: "Não encontramos o que você procura.",
+    erroRegraDeNegocio: "Essa operação não é permitida agora.",
+    erroServidor: "Tivemos um problema no servidor. Tente de novo em instantes.",
+    servidorAcordando:
+      "Conectando ao servidor. Depois de um tempo parado, ele pode levar até um minuto para responder.",
     selecioneHabito: "Selecione um hábito",
     ofensiva: "Ofensiva",
     ofensivaDiasSeguidos: "Ofensiva (Dias Seguidos)",
@@ -142,6 +152,10 @@ export default {
     desistir: "Desistir",
     erroConclusao: "Erro ao registrar conclusão. Tente novamente.",
     erroDesistencia: "Erro ao registrar desistência. Tente novamente.",
+    jaRegistrada: "Sua execução já tinha sido registrada. Confira o resultado na tela inicial.",
+    diminuir: "Diminuir {passo}",
+    aumentar: "Aumentar {passo}",
+    aumentarDica: "Segure para aumentar mais rápido.",
     retomandoExecucao: "Retomando sua execução",
     deHoje: "{feito} de {total} hoje",
   },
@@ -251,6 +265,7 @@ export default {
     salvarNovaSenha: "Salvar nova senha",
     requisitoConfere: "As duas senhas conferem",
     requisitoDiferente: "É diferente da senha atual",
+    senhaIgualAtual: "A nova senha precisa ser diferente da atual.",
     sairConfirmacao:
       "Você vai precisar entrar de novo com e-mail e senha. Seus hábitos continuam salvos.",
     sairConfirmar: "Sair",
@@ -302,6 +317,11 @@ export default {
     manualSub: "Defina suas próprias regras",
     continuarCom: "Continuar com {molde}",
     nomeHabito: "Nome do hábito",
+    gatilho: "Gatilho (opcional)",
+    gatilhoPlaceholder: "Ex.: depois do café da manhã",
+    gatilhoAjuda: "Um hábito que você já tem e que vem logo antes deste. Ele aparece junto da tarefa.",
+    erroGatilhoMaximo: "O gatilho pode ter no máximo {max} caracteres.",
+    revisarGatilho: "Gatilho: {gatilho}",
     criadoOk: "Hábito criado com sucesso!",
     atualizadoOk: "Hábito atualizado com sucesso!",
     voltarParaHome: "Voltar para Home",
@@ -376,6 +396,7 @@ export default {
   },
 
   notificacao: {
+    canal: "Lembretes dos hábitos",
     faltam15:
       "Faltam 15 minutos para fazermos a atividade, não esqueça de mim!!",
     naHora: "Está na hora de fazer {atividade}",

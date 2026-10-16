@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import { useColorScheme, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import { partesNoFuso, FUSO_PADRAO } from '@/utils/fuso';
 
 const ThemeToggleContext = createContext();
 export const useThemeToggle = () => useContext(ThemeToggleContext);
@@ -11,23 +12,10 @@ const STORAGE_KEY = 'tema';
 
 const HORA_INICIO_ESCURO = 18;
 const HORA_FIM_ESCURO = 6;
-const FUSO_PADRAO = 'America/Sao_Paulo';
 const INTERVALO_REAVALIACAO_MS = 60000;
 
-function horaLocalEm(fuso) {
-  try {
-    return Number(
-      new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: fuso }).format(new Date())
-    );
-  } catch {
-    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: FUSO_PADRAO }).format(
-      new Date()
-    );
-  }
-}
-
 function ehHorarioEscuro(fuso) {
-  const hora = horaLocalEm(fuso || FUSO_PADRAO);
+  const { hora } = partesNoFuso(new Date(), fuso || FUSO_PADRAO);
   return hora >= HORA_INICIO_ESCURO || hora < HORA_FIM_ESCURO;
 }
 

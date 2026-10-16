@@ -89,7 +89,7 @@ function TimePickerField({ value, onChange, placeholder, error, limpavel = false
       </Field>
 
       <Modal visible={aberto} transparent animationType="fade" onRequestClose={() => setAberto(false)}>
-        <Overlay onPress={() => setAberto(false)}>
+        <Overlay accessibilityRole="button" accessibilityLabel={t('comum.fechar')} onPress={() => setAberto(false)}>
           <Sheet onStartShouldSetResponder={() => true}>
             <SheetTitle>{t('comum.escolhaHorario')}</SheetTitle>
             <Preview>
@@ -101,7 +101,14 @@ function TimePickerField({ value, onChange, placeholder, error, limpavel = false
                 <ColumnLabel>{t('comum.hora')}</ColumnLabel>
                 <ColumnScroll ref={scrollHoras}>
                   {HORAS.map((h) => (
-                    <CellButton key={h} $active={h === hora} onPress={() => setHora(h)}>
+                    <CellButton
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${t('comum.hora')} ${h}`}
+                      accessibilityState={{ selected: h === hora }}
+                      key={h}
+                      $active={h === hora}
+                      onPress={() => setHora(h)}
+                    >
                       <CellText $active={h === hora}>{h}</CellText>
                     </CellButton>
                   ))}
@@ -111,7 +118,14 @@ function TimePickerField({ value, onChange, placeholder, error, limpavel = false
                 <ColumnLabel>{t('comum.minuto')}</ColumnLabel>
                 <ColumnScroll ref={scrollMinutos}>
                   {MINUTOS.map((m) => (
-                    <CellButton key={m} $active={m === minuto} onPress={() => setMinuto(m)}>
+                    <CellButton
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${t('comum.minuto')} ${m}`}
+                      accessibilityState={{ selected: m === minuto }}
+                      key={m}
+                      $active={m === minuto}
+                      onPress={() => setMinuto(m)}
+                    >
                       <CellText $active={m === minuto}>{m}</CellText>
                     </CellButton>
                   ))}
@@ -120,16 +134,16 @@ function TimePickerField({ value, onChange, placeholder, error, limpavel = false
             </ColumnsRow>
 
             <Actions>
-              <CancelButton onPress={() => setAberto(false)}>
+              <CancelButton accessibilityRole="button" onPress={() => setAberto(false)}>
                 <CancelButtonText>{t('comum.cancelar')}</CancelButtonText>
               </CancelButton>
-              <ConfirmButton onPress={confirmar}>
+              <ConfirmButton accessibilityRole="button" onPress={confirmar}>
                 <ConfirmButtonText>{t('comum.confirmar')}</ConfirmButtonText>
               </ConfirmButton>
             </Actions>
 
             {limpavel && value ? (
-              <ClearButton onPress={limpar}>
+              <ClearButton accessibilityRole="button" onPress={limpar}>
                 <ClearButtonText>{t('comum.limparHorario')}</ClearButtonText>
               </ClearButton>
             ) : null}

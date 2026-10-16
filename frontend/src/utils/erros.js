@@ -6,6 +6,14 @@ export function definirIdiomaDosErros(idioma) {
   idiomaAtual = idioma;
 }
 
+export function mensagemNoIdiomaAtual(chave) {
+  return traduzir(idiomaAtual, chave);
+}
+
+export function ehTempoEsgotado(err) {
+  return err?.code === 'ECONNABORTED' || err?.code === 'ETIMEDOUT';
+}
+
 function traduzirPorStatus(status) {
   switch (status) {
     case 400:
@@ -33,7 +41,7 @@ export function getApiErrorMessage(err, mensagemPadrao) {
   if (doServidor) return doServidor;
 
   if (!err?.response) {
-    return traduzir(idiomaAtual, 'comum.erroSemResposta');
+    return traduzir(idiomaAtual, ehTempoEsgotado(err) ? 'comum.erroTempoEsgotado' : 'comum.erroSemResposta');
   }
 
   return traduzirPorStatus(err.response.status) || mensagemPadrao;

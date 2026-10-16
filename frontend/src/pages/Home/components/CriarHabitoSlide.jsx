@@ -19,7 +19,12 @@ export function CriarHabitoSlide({ width, isDark, onPress }) {
           <EmptyTitle>{t('home.novoHabitoTitulo')}</EmptyTitle>
           <EmptySubtitle>{t('home.novoHabitoSub')}</EmptySubtitle>
         </EmptyTextCard>
-        <CreateHabitButton onPress={onPress} style={{ marginTop: 24 }}>
+        <CreateHabitButton
+          accessibilityRole="button"
+          accessibilityLabel={t('home.novoHabitoTitulo')}
+          onPress={onPress}
+          style={{ marginTop: 24 }}
+        >
           <Feather name="play" size={32} color="white" style={{ transform: [{ rotate: '90deg' }] }} />
         </CreateHabitButton>
       </SlideInner>

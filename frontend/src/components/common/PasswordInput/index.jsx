@@ -25,6 +25,7 @@ export function PasswordInput({ value, onChangeText, onBlur, placeholder, ...res
         onChangeText={onChangeText}
         onBlur={onBlur}
         placeholder={placeholder}
+        accessibilityLabel={placeholder}
         placeholderTextColor={theme.textSecondary}
         secureTextEntry={!visivel}
         autoCapitalize="none"

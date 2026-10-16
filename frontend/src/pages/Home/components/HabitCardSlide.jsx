@@ -60,7 +60,7 @@ export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFechar
     <HabitSlide $width={width}>
       <SlideInner>
         <HabitCard $completed={completed} $urgent={urgent} style={urgent && !completed ? pulso : undefined}>
-          <MenuButton onPress={() => onAbrirMenu(habit.id)} accessibilityLabel={t('home.maisOpcoesPara', { titulo: habit.titulo })}>
+          <MenuButton accessibilityRole="button" onPress={() => onAbrirMenu(habit.id)} accessibilityLabel={t('home.maisOpcoesPara', { titulo: habit.titulo })}>
             <Feather name="more-vertical" size={18} color={completed ? 'rgba(255,255,255,0.85)' : theme.textSecondary} />
           </MenuButton>
           <CardSubtitle $completed={completed} $urgent={urgent}>
@@ -83,7 +83,7 @@ export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFechar
                 unidade={unidade}
               />
               {temMaisDeUma ? (
-                <ExpandirButton onPress={() => setTarefasModalAberto(true)}>
+                <ExpandirButton accessibilityRole="button" onPress={() => setTarefasModalAberto(true)}>
                   <ExpandirTexto $completed={completed}>{t('home.verTodasTarefas')}</ExpandirTexto>
                   <Feather name="chevron-down" size={13} color={completed ? 'rgba(255,255,255,0.85)' : theme.primaryColor} />
                 </ExpandirButton>
@@ -116,7 +116,7 @@ export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFechar
       </SlideInner>
 
       <Modal visible={tarefasModalAberto} transparent animationType="fade" onRequestClose={() => setTarefasModalAberto(false)}>
-        <BottomSheetOverlay onPress={() => setTarefasModalAberto(false)}>
+        <BottomSheetOverlay accessibilityRole="button" accessibilityLabel={t('comum.fechar')} onPress={() => setTarefasModalAberto(false)}>
           <BottomSheet onStartShouldSetResponder={() => true}>
             <BottomSheetTitulo>{t('home.tarefasDoDia')}</BottomSheetTitulo>
             <ScrollView>
@@ -135,10 +135,11 @@ export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFechar
       </Modal>
 
       <Modal visible={menuAberto} transparent animationType="fade" onRequestClose={onFecharMenu}>
-        <BottomSheetOverlay onPress={onFecharMenu}>
+        <BottomSheetOverlay accessibilityRole="button" accessibilityLabel={t('comum.fechar')} onPress={onFecharMenu}>
           <BottomSheet onStartShouldSetResponder={() => true}>
             <BottomSheetTitulo numberOfLines={1}>{habit.titulo}</BottomSheetTitulo>
             <MenuOption
+              accessibilityRole="button"
               onPress={() => {
                 onFecharMenu();
                 onEditar(habit);
@@ -148,6 +149,7 @@ export function HabitCardSlide({ habit, width, menuAberto, onAbrirMenu, onFechar
               <MenuOptionText>{t('comum.editar')}</MenuOptionText>
             </MenuOption>
             <MenuOption
+              accessibilityRole="button"
               onPress={() => {
                 onFecharMenu();
                 onExcluir(habit);

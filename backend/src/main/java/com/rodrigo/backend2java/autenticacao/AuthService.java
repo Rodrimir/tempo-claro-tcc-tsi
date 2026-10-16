@@ -1,6 +1,8 @@
 package com.rodrigo.backend2java.autenticacao;
 import java.util.UUID;
 import java.time.OffsetDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend2java.usuario.model.Usuario;
@@ -15,7 +17,6 @@ import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.verificacao.CodigoVerificacaoService;
-import com.rodrigo.backend2java.verificacao.EmailService;
 import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
 import com.rodrigo.backend2java.autenticacao.model.AuthResponseDTO;
 import com.rodrigo.backend2java.autenticacao.model.LoginRequestDTO;
@@ -27,6 +28,8 @@ import com.rodrigo.backend2java.autenticacao.model.ForgotPasswordRequestDTO;
 
 @Service
 public class AuthService {
+        private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
         private static final java.util.Set<String> IDIOMAS_VALIDOS = java.util.Set.of("pt-BR", "en-US");
 
         private final UsuarioRepository usuarioRepository;
@@ -34,15 +37,13 @@ public class AuthService {
         private final AuthenticationManager authenticationManager;
         private final TokenService tokenService;
         private final CodigoVerificacaoService codigoVerificacaoService;
-        private final EmailService emailService;
 
-        public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, TokenService tokenService, CodigoVerificacaoService codigoVerificacaoService, EmailService emailService) {
+        public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, TokenService tokenService, CodigoVerificacaoService codigoVerificacaoService) {
             this.usuarioRepository = usuarioRepository;
             this.passwordEncoder = passwordEncoder;
             this.authenticationManager = authenticationManager;
             this.tokenService = tokenService;
             this.codigoVerificacaoService = codigoVerificacaoService;
-            this.emailService = emailService;
         }
         public AuthResponseDTO autenticar(final LoginRequestDTO request) {
                 final var authenticationDTO = new UsernamePasswordAuthenticationToken(request.email(), request.password());
@@ -112,8 +113,8 @@ public class AuthService {
                 // item 10) e dispara o e-mail (ResendEmailService, item 11 - síncrono: uma falha
                 // no envio propaga RegraDeNegocioException para cá, e o @Transactional do método
                 // desfaz o save do usuário e a geração do código junto).
-                final var codigo = codigoVerificacaoService.gerarCodigo(novoUsuario.getEmail(), TipoCodigo.VERIFICACAO_EMAIL);
-                emailService.enviarCodigo(novoUsuario.getEmail(), codigo, TipoCodigo.VERIFICACAO_EMAIL, novoUsuario.getPreferenciaIdioma());
+                codigoVerificacaoService.emitirEEnviar(novoUsuario.getEmail(), TipoCodigo.VERIFICACAO_EMAIL,
+                                novoUsuario.getPreferenciaIdioma());
 
                 return MessageResponseDTO.builder().success(true)
                                 .message("Cadastro recebido! Enviamos um código de verificação para o seu e-mail.")
@@ -149,8 +150,8 @@ public class AuthService {
                         throw new RegraDeNegocioException("E-mail já verificado. Você já pode entrar.");
                 }
 
-                final var codigo = codigoVerificacaoService.gerarCodigo(usuario.getEmail(), TipoCodigo.VERIFICACAO_EMAIL);
-                emailService.enviarCodigo(usuario.getEmail(), codigo, TipoCodigo.VERIFICACAO_EMAIL, usuario.getPreferenciaIdioma());
+                codigoVerificacaoService.emitirEEnviar(usuario.getEmail(), TipoCodigo.VERIFICACAO_EMAIL,
+                                usuario.getPreferenciaIdioma());
 
                 return MessageResponseDTO.builder().success(true).message("Novo código enviado.").build();
         }
@@ -158,14 +159,16 @@ public class AuthService {
         public MessageResponseDTO esqueciSenha(final ForgotPasswordRequestDTO request) {
                 usuarioRepository.findByEmail(request.email()).ifPresent(usuario -> {
                         try {
-                                final var codigo = codigoVerificacaoService.gerarCodigo(usuario.getEmail(), TipoCodigo.RECUPERACAO_SENHA);
                                 // @audit-info - (fora do mapeamento de Cadastro) enviarCodigo (ResendEmailService, item
                                 // 11.1) agora é síncrono e lança RegraDeNegocioException se o envio falhar. Este catch
                                 // já existia só para o throttle de reenvio, mas passa a engolir também uma falha real
                                 // de envio aqui: de propósito, porque esqueciSenha nunca deve revelar ao chamador se o
                                 // e-mail existe ou se o envio deu certo (sempre "success": true).
-                                emailService.enviarCodigo(usuario.getEmail(), codigo, TipoCodigo.RECUPERACAO_SENHA, usuario.getPreferenciaIdioma());
+                                codigoVerificacaoService.emitirEEnviar(usuario.getEmail(), TipoCodigo.RECUPERACAO_SENHA,
+                                                usuario.getPreferenciaIdioma());
                         } catch (RegraDeNegocioException throttleDoReenvioOuFalhaDeEnvio) {
+                                log.warn("Código de recuperação não enviado para {}: {}", usuario.getEmail(),
+                                                throttleDoReenvioOuFalhaDeEnvio.getMessage());
                         }
                 });
 

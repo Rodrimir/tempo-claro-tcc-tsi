@@ -16,7 +16,9 @@ import com.rodrigo.backend2java.stats.model.StatsResponseDTO;
 @Service
 public class StatsService {
 
-    private static final int DIAS_JANELA = 30;
+    public static final int DIAS_JANELA_MENSAL = 30;
+
+    public static final int DIAS_JANELA_SEMANAL = 7;
 
     private static final int TOTAL_RECORDES = 3;
 
@@ -31,13 +33,17 @@ public class StatsService {
     }
 
     public StatsResponseDTO obterEstatisticas(final UUID habitoId, final String emailContexto) {
+        return obterEstatisticas(habitoId, emailContexto, DIAS_JANELA_MENSAL);
+    }
+
+    public StatsResponseDTO obterEstatisticas(final UUID habitoId, final String emailContexto, final int diasJanela) {
         final var acesso = acessoHabitoService.carregar(habitoId, emailContexto);
         final var habito = acesso.habito();
 
         final var metaDoDia = Math.max(1, habito.getMetaBase() == null ? 1 : habito.getMetaBase());
 
         final var hoje = LocalDate.now(ZonaUsuario.resolver(acesso.dono()));
-        final var inicio = hoje.minusDays(DIAS_JANELA - 1L);
+        final var inicio = hoje.minusDays(diasJanela - 1L);
 
         final var agregadosPorData = historicoExecucaoRepository.agregarPorDia(habitoId, inicio, hoje).stream()
                 .collect(Collectors.toMap(HistoricoExecucaoRepository.AgregadoDiario::getData, agregado -> agregado));
@@ -46,11 +52,11 @@ public class StatsService {
                 .agregarDesistenciasPorDia(habitoId, inicio, hoje).stream()
                 .collect(Collectors.toMap(HistoricoExecucaoRepository.AgregadoDiario::getData, agregado -> agregado));
 
-        final var dias = new ArrayList<DiaStatsDTO>(DIAS_JANELA);
+        final var dias = new ArrayList<DiaStatsDTO>(diasJanela);
         var diasComMetaCumprida = 0;
         var diasProgramados = 0;
 
-        for (var i = 0; i < DIAS_JANELA; i++) {
+        for (var i = 0; i < diasJanela; i++) {
             final var data = inicio.plusDays(i);
             final var agregado = agregadosPorData.get(data);
             final var parcial = parciaisPorData.get(data);
@@ -68,7 +74,7 @@ public class StatsService {
                 diasProgramados++;
             }
 
-            if (metaCumprida) {
+            if (metaCumprida && diaProgramado) {
                 diasComMetaCumprida++;
             }
 
@@ -102,7 +108,7 @@ public class StatsService {
                 .recordes(recordes)
                 .dias_com_meta_cumprida(diasComMetaCumprida)
                 .constancia_percentual(constanciaPercentual)
-                .dias_periodo(DIAS_JANELA)
+                .dias_periodo(diasJanela)
                 .dias_cobrados(diasProgramados)
                 .build();
     }

@@ -7,6 +7,7 @@ export function StepComoConfigurar({ theme, t, tocar, onCalibrar, onNext }) {
       <OptionsContainer>
         <StepTitle>{t('criar.comoConfigurar')}</StepTitle>
         <OptionCard
+          accessibilityRole="button"
           onPress={() => {
             tocar('continuar');
             onCalibrar();
@@ -21,7 +22,7 @@ export function StepComoConfigurar({ theme, t, tocar, onCalibrar, onNext }) {
             <OptionSubtitle>{t('criar.calibrarSub')}</OptionSubtitle>
           </OptionText>
         </OptionCard>
-        <OptionCard onPress={onNext}>
+        <OptionCard accessibilityRole="button" onPress={onNext}>
           <OptionIconWrapper>
             <Feather name="edit-3" size={24} color={theme.primaryColor} />
           </OptionIconWrapper>

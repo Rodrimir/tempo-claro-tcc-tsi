@@ -3,8 +3,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.List;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.ArrayList;
 import java.time.ZonedDateTime;
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
@@ -15,11 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.rodrigo.backend2java.execucao.StatusHabitoRepository;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
 import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.model.HabitoRequestDTO.OcorrenciaRequestDTO;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
 import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
-import com.rodrigo.backend2java.infra.exception.ValidacaoException;
 import com.rodrigo.backend2java.habito.model.Habito;
 import com.rodrigo.backend2java.habito.model.SubAtividade;
 import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
@@ -31,10 +27,6 @@ public class HabitoService {
 
         private static final int ESCUDOS_INICIAIS = 3;
 
-        private static final int MAX_VEZES_AO_DIA = 12;
-
-        private static final LocalTime HORARIO_PADRAO = LocalTime.of(23, 59);
-
         private final HabitoRepository habitoRepository;
         private final StatusHabitoRepository statusHabitoRepository;
         private final SubAtividadeRepository subAtividadeRepository;
@@ -42,8 +34,10 @@ public class HabitoService {
         private final AcessoHabitoService acessoHabitoService;
         private final CalibracaoService calibracaoService;
         private final HistoricoExecucaoRepository historicoExecucaoRepository;
+        private final GeradorDeOcorrencias geradorDeOcorrencias;
+        private final ApuracaoService apuracaoService;
 
-        public HabitoService(HabitoRepository habitoRepository, StatusHabitoRepository statusHabitoRepository, SubAtividadeRepository subAtividadeRepository, ProximoVencimentoService proximoVencimentoService, AcessoHabitoService acessoHabitoService, CalibracaoService calibracaoService, HistoricoExecucaoRepository historicoExecucaoRepository) {
+        public HabitoService(HabitoRepository habitoRepository, StatusHabitoRepository statusHabitoRepository, SubAtividadeRepository subAtividadeRepository, ProximoVencimentoService proximoVencimentoService, AcessoHabitoService acessoHabitoService, CalibracaoService calibracaoService, HistoricoExecucaoRepository historicoExecucaoRepository, GeradorDeOcorrencias geradorDeOcorrencias, ApuracaoService apuracaoService) {
             this.habitoRepository = habitoRepository;
             this.statusHabitoRepository = statusHabitoRepository;
             this.subAtividadeRepository = subAtividadeRepository;
@@ -51,11 +45,13 @@ public class HabitoService {
             this.acessoHabitoService = acessoHabitoService;
             this.calibracaoService = calibracaoService;
             this.historicoExecucaoRepository = historicoExecucaoRepository;
+            this.geradorDeOcorrencias = geradorDeOcorrencias;
+            this.apuracaoService = apuracaoService;
         }
 
         @Transactional
         public HabitoResponseDTO criarHabito(final String emailContexto, final HabitoRequestDTO request) {
-                final var usuario = acessoHabitoService.usuarioPorEmail(emailContexto);
+                final var usuario = acessoHabitoService.travarUsuarioPorEmail(emailContexto);
 
                 final var habitosAtivos = habitoRepository.findAllByUsuarioIdAndAtivoTrue(usuario.getId());
                 if (habitosAtivos.size() >= LIMITE_HABITOS_ATIVOS) {
@@ -86,7 +82,7 @@ public class HabitoService {
 
                 habitoRepository.save(habito);
 
-                final var subAtividades = gerarSubAtividades(habitoId, request.meta_base(),
+                final var subAtividades = geradorDeOcorrencias.gerarSubAtividades(habitoId, request.meta_base(),
                                 request.meta_frequencia_diaria(), request.horario_agendado(), request.ocorrencias());
                 subAtividades.forEach(subAtividadeRepository::save);
 
@@ -101,12 +97,14 @@ public class HabitoService {
                                 .nivelAvatar(1)
                                 .proximoVencimento(proximoVencimentoService.calcular(habito, usuario, Set.of()))
                                 .bloqueioUsadoHoje(false)
+                                .ultimoReset(LocalDate.now(ZonaUsuario.resolver(usuario)).minusDays(1))
                                 .build();
 
                 statusHabitoRepository.saveAndFlush(status);
 
                 if (request.calibracao_id() != null) {
-                        calibracaoService.vincularAoHabito(request.calibracao_id(), usuario.getId(), habitoId);
+                        calibracaoService.vincularAoHabito(request.calibracao_id(), usuario.getId(), habitoId,
+                                        request.categoria());
                 }
 
                 return montar(habito, status, subAtividades, Set.of(), ZonedDateTime.now(ZonaUsuario.resolver(usuario)));
@@ -122,6 +120,15 @@ public class HabitoService {
                 final var ids = habitos.stream().map(Habito::getId).toList();
                 final var statusPorHabito = statusHabitoRepository.findAllByHabitoIdIn(ids).stream()
                                 .collect(Collectors.toMap(StatusHabito::getHabitoId, s -> s));
+
+                final var pendentes = statusPorHabito.values().stream()
+                                .filter(status -> ApuracaoService.temDiaPendente(status, usuario))
+                                .map(StatusHabito::getHabitoId)
+                                .toList();
+                if (!pendentes.isEmpty()) {
+                        pendentes.forEach(habitoId -> apuracaoService.apurarAteHoje(habitoId, usuario));
+                        return listarDashboard(emailContexto);
+                }
                 final var ocorrenciasPorHabito = subAtividadeRepository
                                 .findAllByHabitoIdInOrderByHabitoIdAscOrdemAsc(ids).stream()
                                 .collect(Collectors.groupingBy(SubAtividade::getHabitoId));
@@ -219,7 +226,7 @@ public class HabitoService {
                 habitoRepository.save(habito);
 
                 subAtividadeRepository.deleteAllByHabitoId(habitoId);
-                gerarSubAtividades(habitoId, request.meta_base(), request.meta_frequencia_diaria(),
+                geradorDeOcorrencias.gerarSubAtividades(habitoId, request.meta_base(), request.meta_frequencia_diaria(),
                                 request.horario_agendado(), request.ocorrencias())
                                 .forEach(subAtividadeRepository::save);
 
@@ -228,73 +235,6 @@ public class HabitoService {
                                         habito, acesso.dono(), Set.of()));
                         statusHabitoRepository.save(status);
                 });
-        }
-
-        List<SubAtividade> gerarSubAtividades(final UUID habitoId, final Integer metaBase,
-                        final Integer vezesAoDiaRequisitado, final LocalTime horarioAgendado) {
-                return gerarSubAtividades(habitoId, metaBase, vezesAoDiaRequisitado, horarioAgendado, null);
-        }
-
-        List<SubAtividade> gerarSubAtividades(final UUID habitoId, final Integer metaBase,
-                        final Integer vezesAoDiaRequisitado, final LocalTime horarioAgendado,
-                        final List<OcorrenciaRequestDTO> ocorrencias) {
-                final var vezesAoDia = vezesAoDiaRequisitado != null && vezesAoDiaRequisitado > 0
-                                ? vezesAoDiaRequisitado
-                                : 1;
-
-                if (vezesAoDia > MAX_VEZES_AO_DIA) {
-                        throw new ValidacaoException(
-                                        "Frequência diária máxima é " + MAX_VEZES_AO_DIA + " vezes ao dia");
-                }
-                if (metaBase == null || metaBase < vezesAoDia) {
-                        throw new ValidacaoException(
-                                        "A meta base deve ser maior ou igual à frequência diária (" + vezesAoDia
-                                                        + "x) para poder repartir a meta entre as ocorrências");
-                }
-
-                final var usaOcorrenciasIndividuais = ocorrencias != null && ocorrencias.size() == vezesAoDia;
-                if (usaOcorrenciasIndividuais) {
-                        for (final var ocorrencia : ocorrencias) {
-                                if (ocorrencia.horario_inicio() == null) {
-                                        throw new ValidacaoException(
-                                                        "Informe o horário de início de cada ocorrência");
-                                }
-                        }
-                } else if (vezesAoDia > 1 && horarioAgendado == null) {
-                        throw new ValidacaoException(
-                                        "Informe o horário de execução (obrigatório com mais de 1 vez ao dia)");
-                }
-
-                final var horarioUnico = horarioAgendado != null ? horarioAgendado : HORARIO_PADRAO;
-                final var alvoBase = metaBase / vezesAoDia;
-                final var resto = metaBase % vezesAoDia;
-
-                final var subAtividades = new ArrayList<SubAtividade>();
-                for (var ordem = 1; ordem <= vezesAoDia; ordem++) {
-                        final var alvo = alvoBase + (ordem == vezesAoDia ? resto : 0);
-                        final var construtor = SubAtividade.builder()
-                                        .id(UUID.randomUUID())
-                                        .habitoId(habitoId)
-                                        .ordem(ordem)
-                                        .alvo(alvo);
-                        if (usaOcorrenciasIndividuais) {
-                                final var ocorrencia = ocorrencias.get(ordem - 1);
-                                construtor.horarioInicio(ocorrencia.horario_inicio())
-                                                .horarioFim(ocorrencia.horario_fim());
-                        } else {
-                                construtor.horarioInicio(horarioUnico);
-                        }
-                        subAtividades.add(construtor.build());
-                }
-
-                final var soma = subAtividades.stream().mapToInt(SubAtividade::getAlvo).sum();
-                if (soma != metaBase) {
-                        throw new IllegalStateException(
-                                        "Soma das sub_atividades (" + soma + ") não confere com a meta base ("
-                                                        + metaBase + ")");
-                }
-
-                return subAtividades;
         }
 
         @Transactional

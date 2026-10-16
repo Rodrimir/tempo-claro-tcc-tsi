@@ -149,7 +149,7 @@ const Profile = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <Scrim onPress={fechar} accessibilityLabel={t('comum.fechar')} />
+      <Scrim accessibilityRole="button" onPress={fechar} accessibilityLabel={t('comum.fechar')} />
 
       <Panel entering={SlideInRight.duration(220)}>
         <PanelScroll $insetTop={insets.top}>
@@ -161,7 +161,7 @@ const Profile = () => {
               <Nome numberOfLines={1}>{nome || t('perfil.titulo')}</Nome>
               <Email numberOfLines={1}>{user?.email}</Email>
             </IdentidadeTexto>
-            <FecharButton onPress={fechar} accessibilityLabel={t('comum.fechar')}>
+            <FecharButton accessibilityRole="button" onPress={fechar} accessibilityLabel={t('comum.fechar')}>
               <Feather name="x" size={20} color={theme.textPrimary} />
             </FecharButton>
           </IdentidadeBloco>
@@ -178,6 +178,8 @@ const Profile = () => {
             <SegmentedControl>
               {Object.entries(idiomas).map(([codigo, info]) => (
                 <LanguageChip
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: idioma === codigo }}
                   key={codigo}
                   $active={idioma === codigo}
                   accessibilityLabel={info.nome}
@@ -204,6 +206,8 @@ const Profile = () => {
             </MenuTexto>
             <SegmentedControl>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: tema === 'claro' }}
                 $active={tema === 'claro'}
                 accessibilityLabel={t('perfil.temaClaroLabel')}
                 onPress={() => {
@@ -214,6 +218,8 @@ const Profile = () => {
                 <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: tema === 'escuro' }}
                 $active={tema === 'escuro'}
                 accessibilityLabel={t('perfil.temaEscuroLabel')}
                 onPress={() => {
@@ -224,6 +230,8 @@ const Profile = () => {
                 <Feather name="moon" size={16} color={tema === 'escuro' ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: tema === 'dinamico' }}
                 $active={tema === 'dinamico'}
                 accessibilityLabel={t('perfil.temaDinamicoLabel')}
                 onPress={() => {
@@ -248,6 +256,8 @@ const Profile = () => {
             </MenuTexto>
             <SegmentedControl>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: !mudo }}
                 $active={!mudo}
                 accessibilityLabel={t('perfil.somLigadoLabel')}
                 onPress={() => {
@@ -258,6 +268,8 @@ const Profile = () => {
                 <Feather name="volume-2" size={16} color={!mudo ? theme.primaryColor : theme.textSecondary} />
               </ThemeOptionButton>
               <ThemeOptionButton
+                accessibilityRole="radio"
+                accessibilityState={{ selected: mudo }}
                 $active={mudo}
                 accessibilityLabel={t('perfil.somMudoLabel')}
                 onPress={() => setMudo(true)}
@@ -270,6 +282,7 @@ const Profile = () => {
           <SectionTitle>{t('perfil.seusDados')}</SectionTitle>
 
           <MenuRow
+            accessibilityRole="button"
             onPress={() => {
               setRascunhoNome(nome);
               setNomeAberto(true);
@@ -287,7 +300,7 @@ const Profile = () => {
 
           <Separador />
 
-          <MenuRow onPress={() => setFusoAberto(true)}>
+          <MenuRow accessibilityRole="button" onPress={() => setFusoAberto(true)}>
             <MenuIcone>
               <Feather name="clock" size={18} color={theme.primaryColor} />
             </MenuIcone>
@@ -300,7 +313,7 @@ const Profile = () => {
 
           <Separador />
 
-          <MenuRow onPress={() => router.push('/change-password')}>
+          <MenuRow accessibilityRole="button" onPress={() => router.push('/change-password')}>
             <MenuIcone>
               <Feather name="lock" size={18} color={theme.primaryColor} />
             </MenuIcone>
@@ -313,7 +326,7 @@ const Profile = () => {
 
           <SectionTitle>{t('perfil.conta')}</SectionTitle>
 
-          <MenuRow $danger onPress={() => setSairAberto(true)}>
+          <MenuRow accessibilityRole="button" $danger onPress={() => setSairAberto(true)}>
             <MenuIcone $danger>
               <Feather name="log-out" size={18} color={theme.dangerColor} />
             </MenuIcone>
@@ -325,7 +338,7 @@ const Profile = () => {
       </Panel>
 
       <Modal visible={fusoAberto} transparent animationType="fade" onRequestClose={() => setFusoAberto(false)}>
-        <PickerOverlay onPress={() => setFusoAberto(false)}>
+        <PickerOverlay accessibilityRole="button" accessibilityLabel={t('comum.fechar')} onPress={() => setFusoAberto(false)}>
           <PickerSheet onStartShouldSetResponder={() => true}>
             <PickerTitulo>{t('perfil.fuso')}</PickerTitulo>
             <ScrollView>
@@ -333,7 +346,12 @@ const Profile = () => {
                 <View key={grupo}>
                   <PickerGroupLabel>{t(`perfil.grupoFuso.${grupo}`)}</PickerGroupLabel>
                   {FUSOS.filter((f) => f.group === grupo).map((f) => (
-                    <PickerOption key={f.value} onPress={() => salvarFuso(f.value)}>
+                    <PickerOption
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: f.value === fusoHorario }}
+                      key={f.value}
+                      onPress={() => salvarFuso(f.value)}
+                    >
                       <PickerOptionText $active={f.value === fusoHorario}>{f.label}</PickerOptionText>
                       {f.value === fusoHorario ? (
                         <Feather name="check" size={18} color={theme.primaryColor} />
@@ -359,10 +377,10 @@ const Profile = () => {
               placeholder={t('perfil.nome')}
             />
             <DialogActions>
-              <DialogCancel onPress={() => setNomeAberto(false)}>
+              <DialogCancel accessibilityRole="button" onPress={() => setNomeAberto(false)}>
                 <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
               </DialogCancel>
-              <DialogConfirm onPress={salvarNome} disabled={salvando || !rascunhoNome.trim()}>
+              <DialogConfirm accessibilityRole="button" accessibilityState={{ disabled: salvando || !rascunhoNome.trim() }} onPress={salvarNome} disabled={salvando || !rascunhoNome.trim()}>
                 <DialogConfirmText>{salvando ? t('perfil.salvando') : t('comum.salvar')}</DialogConfirmText>
               </DialogConfirm>
             </DialogActions>
@@ -376,10 +394,10 @@ const Profile = () => {
             <DialogTitle>{t('perfil.sair')}</DialogTitle>
             <DialogText>{t('perfil.sairConfirmacao')}</DialogText>
             <DialogActions>
-              <DialogCancel onPress={() => setSairAberto(false)}>
+              <DialogCancel accessibilityRole="button" onPress={() => setSairAberto(false)}>
                 <DialogCancelText>{t('comum.cancelar')}</DialogCancelText>
               </DialogCancel>
-              <DialogConfirm $danger onPress={logout}>
+              <DialogConfirm accessibilityRole="button" $danger onPress={logout}>
                 <DialogConfirmText>{t('perfil.sairConfirmar')}</DialogConfirmText>
               </DialogConfirm>
             </DialogActions>

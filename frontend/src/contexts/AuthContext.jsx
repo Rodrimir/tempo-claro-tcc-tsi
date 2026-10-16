@@ -6,9 +6,11 @@ import {
   register as apiRegister,
   verifyEmail as apiVerifyEmail,
   resetPassword as apiResetPassword,
-  getDashboard,
+  getMe,
   setUnauthorizedHandler,
 } from '@/services/api';
+import { cancelarTodas } from '@/services/notificacoes';
+import { definirFusoDoUsuario } from '@/utils/fuso';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { traduzir, IDIOMA_PADRAO } from '@/i18n';
 import {
@@ -28,6 +30,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const router = useRouter();
 
+  // Atualizado durante a renderização, e não num efeito, para que as telas filhas já leiam o fuso
+  // novo na mesma passada em que recebem o usuário.
+  definirFusoDoUsuario(user?.fuso_horario);
+
   useEffect(() => {
     const verifyAuth = async () => {
       try {
@@ -37,8 +43,26 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
           return;
         }
-        await getDashboard();
-        setUser(await getUserProfile());
+        const salvo = await getUserProfile();
+        try {
+          const { data: perfil } = await getMe();
+          const atualizado = {
+            ...(salvo || {}),
+            name: perfil.nome ?? salvo?.name,
+            email: perfil.email ?? salvo?.email,
+            fuso_horario: perfil.fuso_horario ?? salvo?.fuso_horario,
+            tema: perfil.tema ?? salvo?.tema,
+            preferencia_idioma: perfil.preferencia_idioma ?? salvo?.preferencia_idioma,
+          };
+          await setUserProfile(atualizado);
+          setUser(atualizado);
+        } catch (erro) {
+          const status = erro?.response?.status;
+          if (status === 401 || status === 403) throw erro;
+          // Sem resposta, tempo esgotado ou erro do servidor: a API pode estar acordando no
+          // Render. A sessão salva continua valendo; um token vencido aparece na próxima chamada.
+          setUser(salvo);
+        }
         setIsAuthenticated(true);
       } catch (_error) {
         setIsAuthenticated(false);
@@ -120,6 +144,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     await clearAuthToken();
     await clearUserProfile();
+    await cancelarTodas().catch(() => {});
   };
 
   const updateLocalUser = async (patch) => {

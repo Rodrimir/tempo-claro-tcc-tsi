@@ -19,9 +19,17 @@ public class StatsController {
         this.statsService = statsService;
     }
 
-    @GetMapping({ "/monthly", "/weekly" })
+    @GetMapping("/monthly")
     public ResponseEntity<StatsResponseDTO> getStats(@RequestParam final UUID habitoId) {
         final var emailContexto = SecurityContextHolder.getContext().getAuthentication().getName();
-        return ResponseEntity.ok(statsService.obterEstatisticas(habitoId, emailContexto));
+        return ResponseEntity.ok(statsService.obterEstatisticas(habitoId, emailContexto,
+                StatsService.DIAS_JANELA_MENSAL));
+    }
+
+    @GetMapping("/weekly")
+    public ResponseEntity<StatsResponseDTO> getWeeklyStats(@RequestParam final UUID habitoId) {
+        final var emailContexto = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(statsService.obterEstatisticas(habitoId, emailContexto,
+                StatsService.DIAS_JANELA_SEMANAL));
     }
 }

@@ -165,7 +165,7 @@ const ForgotPassword = () => {
     >
       <Container $insetTop={insets.top}>
         <Header>
-          <BackButton onPress={voltar} accessibilityLabel={t('comum.voltar')}>
+          <BackButton accessibilityRole="button" onPress={voltar} accessibilityLabel={t('comum.voltar')}>
             <Feather name="arrow-left" size={26} color={theme.textPrimary} />
           </BackButton>
           <HeaderText>
@@ -200,6 +200,8 @@ const ForgotPassword = () => {
             </FormGroup>
 
             <PrimaryButton
+              accessibilityRole="button"
+              accessibilityState={{ disabled: ocupado }}
               onPress={() => {
                 tocar('continuar');
                 enviarCodigo();
@@ -232,6 +234,8 @@ const ForgotPassword = () => {
 
             <ResendRow>
               <ResendLink
+                accessibilityRole="button"
+                accessibilityState={{ disabled: cooldown > 0 || reenviando }}
                 onPress={() => {
                   tocar('tap');
                   reenviarCodigo();
@@ -280,6 +284,8 @@ const ForgotPassword = () => {
             {erro ? <ErrorText>{erro}</ErrorText> : null}
 
             <PrimaryButton
+              accessibilityRole="button"
+              accessibilityState={{ disabled: ocupado || !senhaValida || !confereOk }}
               onPress={() => {
                 tocar('continuar');
                 redefinir();

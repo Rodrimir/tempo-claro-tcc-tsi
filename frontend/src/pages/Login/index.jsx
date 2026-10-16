@@ -145,7 +145,7 @@ const Login = () => {
       // (isLoginTab && status 403) é específico do login, não do cadastro.
       if (isLoginTab && err.response?.status === 403) {
         addToast(getApiErrorMessage(err, t('login.erroAutenticar')), 'error');
-        router.replace({ pathname: '/verify-email', params: { email: data.email } });
+        router.replace({ pathname: '/verify-email', params: { email: data.email, origem: 'login' } });
         return;
       }
       tocar('erro');
@@ -156,6 +156,7 @@ const Login = () => {
   return (
     <LoginContainer style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
       <MenuBtn
+        accessibilityRole="button"
         style={{ top: insets.top + 24 }}
         onPress={() => {
           tocar('open');
@@ -186,6 +187,8 @@ const Login = () => {
 
           <TabContainer>
             <TabButton
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isLoginTab }}
               $active={isLoginTab}
               onPress={() => {
                 tocar('alternar');
@@ -195,6 +198,8 @@ const Login = () => {
               <TabButtonText $active={isLoginTab}>{t('login.tabEntrar')}</TabButtonText>
             </TabButton>
             <TabButton
+              accessibilityRole="tab"
+              accessibilityState={{ selected: !isLoginTab }}
               $active={!isLoginTab}
               onPress={() => {
                 tocar('alternar');
@@ -292,6 +297,7 @@ const Login = () => {
               )}
               {isLoginTab && (
                 <ForgotPasswordLink
+                  accessibilityRole="button"
                   onPress={() => {
                     tocar('tap');
                     router.push('/forgot-password');
@@ -336,6 +342,8 @@ const Login = () => {
             )}
 
             <SubmitButton
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSubmitting }}
               disabled={isSubmitting}
               onPress={() => {
                 tocar('continuar');
@@ -367,6 +375,8 @@ const Login = () => {
               <ThemeSegmentedControl>
                 {Object.entries(idiomas).map(([codigo, info]) => (
                   <LanguageChip
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: idioma === codigo }}
                     key={codigo}
                     $active={idioma === codigo}
                     accessibilityLabel={info.nome}
@@ -388,6 +398,8 @@ const Login = () => {
               </SettingsRowLabel>
               <ThemeSegmentedControl>
                 <ThemeOptionButton
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: tema === 'claro' }}
                   $active={tema === 'claro'}
                   accessibilityLabel={t('perfil.temaClaroLabel')}
                   onPress={() => {
@@ -398,6 +410,8 @@ const Login = () => {
                   <Feather name="sun" size={16} color={tema === 'claro' ? theme.primaryColor : theme.textSecondary} />
                 </ThemeOptionButton>
                 <ThemeOptionButton
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: tema === 'escuro' }}
                   $active={tema === 'escuro'}
                   accessibilityLabel={t('perfil.temaEscuroLabel')}
                   onPress={() => {
@@ -410,6 +424,7 @@ const Login = () => {
               </ThemeSegmentedControl>
             </SettingsRow>
             <SettingsCloseButton
+              accessibilityRole="button"
               onPress={() => {
                 tocar('close');
                 setShowSettings(false);

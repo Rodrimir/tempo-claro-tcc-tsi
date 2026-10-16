@@ -25,6 +25,7 @@ export function formDataDaSugestao(sugestao, tituloPadrao) {
   const vezes = sugestao.meta_frequencia_diaria || 1;
   return {
     titulo: tituloPadrao,
+    gatilho_ancora: '',
     meta_base: String(sugestao.meta_base),
     incremento: String(sugestao.incremento ?? 0),
     dias_incremento: String(sugestao.dias_incremento ?? 10),
@@ -43,6 +44,7 @@ export function formDataInicial(editHabit, tituloPadrao) {
   if (!editHabit) {
     return {
       titulo: tituloPadrao,
+      gatilho_ancora: '',
       meta_base: '',
       incremento: '',
       dias_incremento: '10',
@@ -56,6 +58,7 @@ export function formDataInicial(editHabit, tituloPadrao) {
   const vezesDia = editHabit.meta_frequencia_diaria || 1;
   return {
     titulo: editHabit.titulo || tituloPadrao,
+    gatilho_ancora: editHabit.gatilho_ancora || '',
     meta_base: editHabit.meta_base != null ? String(editHabit.meta_base) : '',
     incremento: editHabit.incremento != null ? String(editHabit.incremento) : '',
     dias_incremento: editHabit.dias_incremento != null ? String(editHabit.dias_incremento) : '10',

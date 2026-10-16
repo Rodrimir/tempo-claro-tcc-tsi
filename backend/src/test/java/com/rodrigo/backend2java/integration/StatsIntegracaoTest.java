@@ -154,11 +154,13 @@ class StatsIntegracaoTest extends BaseAPIIntegracaoTest {
     }
 
     @Test
-    void rotaAntigaWeekly_continuaRespondendoOMesmoConteudo() {
+    void rotaWeekly_devolveJanelaDeSeteDias() {
         final var habitoId = criarHabito();
 
-        final var resposta = get("/api/stats/weekly?habitoId=" + habitoId, StatsResponseDTO.class);
+        final var resposta = get("/api/stats/weekly?habitoId=" + habitoId, StatsResponseDTO.class).getBody();
 
-        assertEquals(DIAS_JANELA, resposta.getBody().dias().size());
+        assertEquals(7, resposta.dias().size());
+        assertEquals(7, resposta.dias_periodo());
+        assertEquals(LocalDate.now(FUSO_PADRAO), resposta.dias().get(6).data());
     }
 }

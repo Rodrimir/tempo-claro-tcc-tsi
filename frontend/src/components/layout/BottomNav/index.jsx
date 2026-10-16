@@ -12,7 +12,12 @@ import { STATUS_HABITO } from '@/model/Status';
 
 function NavItem({ isActive, icon, label, theme, onPress }) {
   return (
-    <NavItemContainer onPress={onPress}>
+    <NavItemContainer
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: isActive }}
+    >
       {icon(isActive ? theme.primaryColor : theme.textSecondary)}
       <NavLabel $active={isActive}>{label}</NavLabel>
     </NavItemContainer>
@@ -55,7 +60,7 @@ const BottomNav = ({ state, navigation }) => {
   };
 
   return (
-    <NavContainer style={{ paddingBottom: insets.bottom + 12 }}>
+    <NavContainer style={{ paddingBottom: insets.bottom + 12 }} accessibilityRole="tablist">
       <NavItem
         isActive={nomeRotaAtiva === 'home'}
         onPress={() => irPara('home')}
@@ -73,6 +78,7 @@ const BottomNav = ({ state, navigation }) => {
 
       <PlayButtonWrapper>
         <PlayButton
+          accessibilityRole="button"
           $completed={isCompleted}
           onPress={handlePlay}
           accessibilityLabel={isCompleted ? t('nav2.tarefaConcluida') : t('nav2.comecarFocado')}

@@ -13,11 +13,11 @@ function Drawer({ visible, onClose, titulo, children }) {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <Backdrop onPress={onClose} accessibilityLabel={t('comum.fechar')} />
+      <Backdrop accessibilityRole="button" onPress={onClose} accessibilityLabel={t('comum.fechar')} />
       <Panel entering={SlideInRight.duration(220)} exiting={SlideOutRight.duration(180)} style={{ paddingTop: insets.top }}>
         <PanelHeader>
           <PanelTitle>{titulo}</PanelTitle>
-          <CloseButton onPress={onClose} accessibilityLabel={t('comum.fechar')}>
+          <CloseButton accessibilityRole="button" onPress={onClose} accessibilityLabel={t('comum.fechar')}>
             <Feather name="x" size={20} color={theme.textPrimary} />
           </CloseButton>
         </PanelHeader>

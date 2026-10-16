@@ -11,6 +11,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,6 +26,19 @@ public class GlobalExceptionHandler {
                 .body(MessageResponseDTO.builder().success(false).message("Erro interno no servidor.").build());
     }
 
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<MessageResponseDTO> handleRotaInexistente(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(MessageResponseDTO.builder().success(false).message("Rota não encontrada.").build());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<MessageResponseDTO> handleMetodoNaoSuportado(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(MessageResponseDTO.builder().success(false)
+                        .message("Método " + ex.getMethod() + " não é aceito nesta rota.").build());
+    }
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     public ResponseEntity<MessageResponseDTO> handleRecursoNaoEncontrado(RecursoNaoEncontradoException ex) {
