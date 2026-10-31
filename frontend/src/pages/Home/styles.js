@@ -1,7 +1,7 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { fonts } from '../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const HomeContainer = styled.ImageBackground.attrs({
   resizeMode: 'cover',
@@ -340,7 +340,7 @@ export const MenuButton = styled(Pressable)`
   justify-content: center;
 `;
 
-export const ArchiveModalOverlay = styled.View`
+export const ExcluirModalOverlay = styled.View`
   flex: 1;
   background-color: rgba(15, 23, 42, 0.85);
   align-items: center;
@@ -348,7 +348,7 @@ export const ArchiveModalOverlay = styled.View`
   padding: 24px;
 `;
 
-export const ArchiveModalContent = styled.View`
+export const ExcluirModalContent = styled.View`
   width: 100%;
   max-width: 400px;
   background-color: ${(props) => props.theme.bgSurface};
@@ -357,26 +357,26 @@ export const ArchiveModalContent = styled.View`
   elevation: 8;
 `;
 
-export const ArchiveModalTitle = styled.Text`
+export const ExcluirModalTitle = styled.Text`
   font-family: ${fonts.bold};
   font-size: 18px;
   margin-bottom: 12px;
   color: ${(props) => props.theme.textPrimary};
 `;
 
-export const ArchiveModalText = styled.Text`
+export const ExcluirModalText = styled.Text`
   font-size: 14px;
   color: ${(props) => props.theme.textSecondary};
   line-height: 20px;
   margin-bottom: 24px;
 `;
 
-export const ArchiveModalActions = styled.View`
+export const ExcluirModalActions = styled.View`
   flex-direction: row;
   gap: 12px;
 `;
 
-export const ArchiveCancelButton = styled(Pressable)`
+export const ExcluirCancelButton = styled(Pressable)`
   flex: 1;
   padding: 14px;
   border-radius: 12px;
@@ -386,12 +386,12 @@ export const ArchiveCancelButton = styled(Pressable)`
   align-items: center;
 `;
 
-export const ArchiveCancelButtonText = styled.Text`
+export const ExcluirCancelButtonText = styled.Text`
   font-family: ${fonts.bold};
   color: ${(props) => props.theme.textPrimary};
 `;
 
-export const ArchiveConfirmButton = styled(Pressable)`
+export const ExcluirConfirmButton = styled(Pressable)`
   flex: 1;
   padding: 14px;
   border-radius: 12px;
@@ -400,7 +400,7 @@ export const ArchiveConfirmButton = styled(Pressable)`
   opacity: ${(props) => (props.disabled ? 0.6 : 1)};
 `;
 
-export const ArchiveConfirmButtonText = styled.Text`
+export const ExcluirConfirmButtonText = styled.Text`
   font-family: ${fonts.bold};
   color: white;
 `;

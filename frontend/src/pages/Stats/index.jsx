@@ -1,23 +1,25 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Modal } from 'react-native';
-import { Svg, Rect } from 'react-native-svg';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import LoadingScreen from '../../components/common/LoadingScreen';
-import { useCurrentHabit } from '../../contexts/CurrentHabitContext';
-import { useToast } from '../../contexts/ToastContext';
-import { getMonthlyStats, getDashboard } from '../../services/api';
-import { useI18n } from '../../contexts/LanguageContext';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import { useCurrentHabit } from '@/contexts/CurrentHabitContext';
+import { useToast } from '@/contexts/ToastContext';
+import { getMonthlyStats, getWeeklyStats, getDashboard } from '@/services/api';
+import Dialogo from '@/components/common/Dialogo';
+import GraficoDesempenho from './GraficoDesempenho';
+import { dataCurta } from './grafico';
+import { useI18n } from '@/contexts/LanguageContext';
+import { STATUS_HABITO } from '@/model/Status';
+import { Categoria } from '@/model/Categoria';
+import { TipoMedida } from '@/model/TipoMedida';
+import { EmptyState } from '@/components/common/EmptyState';
 import {
   StatsContainer,
   Title,
   HabitTitleButton,
   HabitTitle,
-  PickerOverlay,
-  PickerSheet,
-  PickerTitulo,
   PickerOption,
   PickerOptionText,
   ContentWrapper,
@@ -33,93 +35,20 @@ import {
   RecordeData,
   RecordeValor,
   ChartTitle,
-  ChartWrapper,
-  BarLabel,
-  EmptyStateContainer,
-  EmptyIconWrapper,
-  EmptyTitle,
-  EmptyText,
   RetryButton,
   RetryButtonText,
+  SeletorPeriodo,
+  OpcaoPeriodo,
+  OpcaoPeriodoTexto,
 } from './styles';
-
-const ALTURA_GRAFICO = 160;
-
-function opacidadeDaBarra(dia) {
-  if (dia.valor_realizado > 0) return 1;
-  return dia.dia_programado === false ? 0.1 : 0.25;
-}
-
-function GraficoBarras({ dias, theme }) {
-  const [largura, setLargura] = useState(0);
-  const maxValor = Math.max(1, ...dias.map((d) => d.valor_realizado));
-  const barWidth = largura > 0 ? largura / dias.length : 0;
-  const gap = dias.length > 10 ? 2 : 8;
-
-  const intervaloRotulo = dias.length > 10 ? 5 : 1;
-  const rotulo = (dia, i) => {
-    if (i % intervaloRotulo !== 0) return '';
-    if (dias.length > 10) {
-      const [, mes, d] = dia.data.split('-');
-      return `${d}/${mes}`;
-    }
-    return dia.nome;
-  };
-
-  return (
-    <View>
-      <ChartWrapper onLayout={(e) => setLargura(e.nativeEvent.layout.width)} style={{ height: ALTURA_GRAFICO }}>
-        {largura > 0 && (
-          <Svg width={largura} height={ALTURA_GRAFICO}>
-            {dias.map((dia, i) => {
-              const h = Math.max(dia.valor_realizado > 0 ? 4 : 2, (dia.valor_realizado / maxValor) * (ALTURA_GRAFICO - 8));
-              return (
-                <Rect
-                  key={dia.data}
-                  x={i * barWidth + gap / 2}
-                  y={ALTURA_GRAFICO - h}
-                  width={Math.max(1, barWidth - gap)}
-                  height={h}
-                  rx={dias.length > 10 ? 2 : 6}
-                  fill={dia.parcial ? theme.warningColor : theme.primaryColor}
-                  opacity={opacidadeDaBarra(dia)}
-                />
-              );
-            })}
-          </Svg>
-        )}
-      </ChartWrapper>
-      <View style={{ height: 16 }}>
-        {largura > 0 &&
-          dias.map((dia, i) => {
-            const texto = rotulo(dia, i);
-            if (!texto) return null;
-            return (
-              <BarLabel
-                key={dia.data}
-                numberOfLines={1}
-                style={{
-                  position: 'absolute',
-                  left: i * barWidth + barWidth / 2 - 20,
-                  width: 40,
-                  textAlign: 'center',
-                }}
-              >
-                {texto}
-              </BarLabel>
-            );
-          })}
-      </View>
-    </View>
-  );
-}
 
 const Stats = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { currentHabit: habit, setCurrentHabit } = useCurrentHabit();
   const { addToast } = useToast();
-  const { t } = useI18n();
+  const { t, idioma } = useI18n();
+  const [periodo, setPeriodo] = useState(30);
   const [dias, setDias] = useState([]);
   const [recordes, setRecordes] = useState([]);
   const [constanciaPercentual, setConstanciaPercentual] = useState(0);
@@ -139,7 +68,7 @@ const Stats = () => {
     if (!silencioso) setLoading(true);
     setLoadError(false);
     try {
-      const response = await getMonthlyStats(habit.id);
+      const response = periodo === 7 ? await getWeeklyStats(habit.id) : await getMonthlyStats(habit.id);
       const dadosDias = response.data?.dias;
       if (Array.isArray(dadosDias)) {
         setDias(dadosDias);
@@ -154,13 +83,13 @@ const Stats = () => {
         setConstanciaPercentual(0);
         setDiasComMetaCumprida(0);
       }
-    } catch (error) {
+    } catch (_error) {
       addToast(t('stats.erro'), 'error');
       setLoadError(true);
     } finally {
       if (!silencioso) setLoading(false);
     }
-  }, [habit, addToast]);
+  }, [habit, addToast, periodo, t]);
 
   const primeiraCarga = useRef(true);
   useFocusEffect(
@@ -180,7 +109,7 @@ const Stats = () => {
       getDashboard()
         .then((res) => {
           const lista = res.data.habits || res.data || [];
-          setHabitosDisponiveis(lista.filter((h) => h.status !== 'ARCHIVED'));
+          setHabitosDisponiveis(lista.filter((h) => h.status !== STATUS_HABITO.EXCLUIDO));
         })
         .catch(() => {});
     }, [])
@@ -188,64 +117,77 @@ const Stats = () => {
 
   if (!habit) {
     return (
-      <EmptyStateContainer>
-        <EmptyIconWrapper>
-          <Feather name="search" size={32} color={theme.textSecondary} />
-        </EmptyIconWrapper>
-        <EmptyTitle>{t('stats.semHabito')}</EmptyTitle>
-        <EmptyText>{t('stats.semHabitoTexto')}</EmptyText>
-      </EmptyStateContainer>
+      <EmptyState
+        icon={<Feather name="search" size={32} color={theme.textSecondary} />}
+        title={t('stats.semHabito')}
+        text={t('stats.semHabitoTexto')}
+      />
     );
   }
 
   const seletorModal = (
-    <Modal visible={pickerAberto} transparent animationType="fade" onRequestClose={() => setPickerAberto(false)}>
-      <PickerOverlay onPress={() => setPickerAberto(false)}>
-        <PickerSheet onStartShouldSetResponder={() => true}>
-          <PickerTitulo>{t('stats.trocarHabito')}</PickerTitulo>
-          {habitosDisponiveis.map((h) => (
-            <PickerOption
-              key={h.id}
-              onPress={() => {
-                setCurrentHabit(h);
-                setPickerAberto(false);
-              }}
-            >
-              <PickerOptionText $active={h.id === habit.id}>{h.titulo}</PickerOptionText>
-              {h.id === habit.id ? <Feather name="check" size={18} color={theme.primaryColor} /> : null}
-            </PickerOption>
-          ))}
-        </PickerSheet>
-      </PickerOverlay>
-    </Modal>
+    <Dialogo
+      visible={pickerAberto}
+      variante="folha"
+      onClose={() => setPickerAberto(false)}
+      titulo={t('stats.trocarHabito')}
+      accessibilityLabel={t('comum.fechar')}
+    >
+      {habitosDisponiveis.map((h) => (
+        <PickerOption
+          accessibilityRole="radio"
+          accessibilityState={{ selected: h.id === habit.id }}
+          key={h.id}
+          onPress={() => {
+            setCurrentHabit(h);
+            setPickerAberto(false);
+          }}
+        >
+          <PickerOptionText $active={h.id === habit.id}>{h.titulo}</PickerOptionText>
+          {h.id === habit.id ? <Feather name="check" size={18} color={theme.primaryColor} /> : null}
+        </PickerOption>
+      ))}
+    </Dialogo>
   );
 
-  const isTempo = habit.tipo_medida === 'TEMPO';
+  const seletorDePeriodo = (
+    <SeletorPeriodo accessibilityRole="radiogroup">
+      {[7, 30].map((n) => (
+        <OpcaoPeriodo
+          key={n}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: periodo === n }}
+          $ativo={periodo === n}
+          onPress={() => setPeriodo(n)}
+        >
+          <OpcaoPeriodoTexto $ativo={periodo === n}>{t('stats.periodoDias', { n })}</OpcaoPeriodoTexto>
+        </OpcaoPeriodo>
+      ))}
+    </SeletorPeriodo>
+  );
+
+  const isTempo = habit.tipo_medida === TipoMedida.TEMPO;
 
   const formatMedida = (valor) => {
     if (isTempo) return `${Math.round(valor)} ${t('comum.min')}`;
-    return `${Math.round(valor)} ${habit.categoria === 'AGUA' ? t('comum.ml') : t('comum.vezes')}`;
+    return `${Math.round(valor)} ${habit.categoria === Categoria.AGUA ? t('comum.ml') : t('comum.vezes')}`;
   };
 
-  const formatarData = (iso) => {
-    const [, mes, dia] = iso.split('-');
-    return `${dia}/${mes}`;
-  };
+  const formatarData = (iso) => dataCurta(iso, idioma);
 
   if (loading) return <LoadingScreen message={t('stats.carregando')} />;
 
   if (loadError) {
     return (
-      <EmptyStateContainer>
-        <EmptyIconWrapper>
-          <Feather name="alert-triangle" size={32} color={theme.textSecondary} />
-        </EmptyIconWrapper>
-        <EmptyTitle>{t('stats.erroTitulo')}</EmptyTitle>
-        <EmptyText>{t('stats.erroTexto')}</EmptyText>
-        <RetryButton onPress={() => loadStats()}>
+      <EmptyState
+        icon={<Feather name="alert-triangle" size={32} color={theme.textSecondary} />}
+        title={t('stats.erroTitulo')}
+        text={t('stats.erroTexto')}
+      >
+        <RetryButton accessibilityRole="button" onPress={() => loadStats()}>
           <RetryButtonText>{t('comum.tentarNovamente')}</RetryButtonText>
         </RetryButton>
-      </EmptyStateContainer>
+      </EmptyState>
     );
   }
 
@@ -255,17 +197,16 @@ const Stats = () => {
       <>
       <StatsContainer $insetTop={insets.top}>
         <Title>{t('stats.titulo')}</Title>
-        <HabitTitleButton onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
+        <HabitTitleButton accessibilityRole="button" onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
         <HabitTitle>{habit.titulo}</HabitTitle>
         <Feather name='chevron-down' size={16} color={theme.primaryColor} />
       </HabitTitleButton>
-        <EmptyStateContainer>
-          <EmptyIconWrapper>
-            <Feather name="bar-chart-2" size={32} color={theme.textSecondary} />
-          </EmptyIconWrapper>
-          <EmptyTitle>{t('stats.nadaAqui')}</EmptyTitle>
-          <EmptyText>{t('stats.semExecucoesTexto')}</EmptyText>
-        </EmptyStateContainer>
+        {seletorDePeriodo}
+        <EmptyState
+          icon={<Feather name="bar-chart-2" size={32} color={theme.textSecondary} />}
+          title={t('stats.nadaAqui')}
+          text={t('stats.semExecucoesTexto')}
+        />
       </StatsContainer>
       {seletorModal}
       </>
@@ -276,10 +217,11 @@ const Stats = () => {
     <>
     <StatsContainer $insetTop={insets.top}>
       <Title>{t('stats.titulo')}</Title>
-      <HabitTitleButton onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
+      <HabitTitleButton accessibilityRole="button" onPress={() => setPickerAberto(true)} accessibilityLabel={t('stats.trocarHabito')}>
         <HabitTitle>{habit.titulo}</HabitTitle>
         <Feather name='chevron-down' size={16} color={theme.primaryColor} />
       </HabitTitleButton>
+      {seletorDePeriodo}
 
       <ContentWrapper>
         <GridRow>
@@ -289,6 +231,7 @@ const Stats = () => {
               <CardHeaderText>{t('stats.diasSeguidos')}</CardHeaderText>
             </CardHeader>
             <CardValue $large>{habit.dias_seguidos || 0}</CardValue>
+            <CardSubtext>{t('stats.diasSeguidosSub')}</CardSubtext>
           </StatCard>
           <StatCard>
             <CardHeader>
@@ -296,14 +239,16 @@ const Stats = () => {
               <CardHeaderText>{t('stats.melhorDia')}</CardHeaderText>
             </CardHeader>
             <CardValue>{recordes.length > 0 ? formatMedida(recordes[0].valor) : formatMedida(0)}</CardValue>
-            {recordes.length > 0 ? <CardSubtext>{formatarData(recordes[0].data)}</CardSubtext> : null}
+            <CardSubtext>
+              {recordes.length > 0 ? t('stats.melhorDiaSub', { data: formatarData(recordes[0].data) }) : t('stats.melhorDiaVazio')}
+            </CardSubtext>
           </StatCard>
         </GridRow>
 
         <StatCard>
           <CardHeader>
             <Feather name="percent" size={16} color={theme.successColor} />
-            <CardHeaderText>{t('stats.constancia')}</CardHeaderText>
+            <CardHeaderText>{t('stats.constanciaPeriodo', { n: diasPeriodo })}</CardHeaderText>
           </CardHeader>
           <CardValue $large>{constanciaPercentual}%</CardValue>
           <CardSubtext>{t('stats.constanciaSub', { feitos: diasComMetaCumprida, total: diasCobrados })}</CardSubtext>
@@ -313,11 +258,11 @@ const Stats = () => {
           <StatCard>
             <CardHeader>
               <MaterialCommunityIcons name="trophy-outline" size={16} color={theme.warningColor} />
-              <CardHeaderText>{t('stats.recordes')}</CardHeaderText>
+              <CardHeaderText>{t('stats.recordesPeriodo', { n: diasPeriodo })}</CardHeaderText>
             </CardHeader>
             {recordes.map((rec, i) => (
               <RecordeRow key={rec.data} $first={i === 0}>
-                <RecordePosicao $first={i === 0}>{i + 1}º</RecordePosicao>
+                <RecordePosicao $first={i === 0}>{t(`stats.ordinal.${i + 1}`)}</RecordePosicao>
                 <RecordeData>{formatarData(rec.data)}</RecordeData>
                 <RecordeValor $first={i === 0}>{formatMedida(rec.valor)}</RecordeValor>
               </RecordeRow>
@@ -326,13 +271,16 @@ const Stats = () => {
         ) : null}
 
         <ChartCard>
-          <ChartTitle>{t('stats.desempenho', { dias: diasPeriodo })}</ChartTitle>
-          {dias.some((dia) => dia.parcial) && (
-            <CardSubtext style={{ marginTop: -16, marginBottom: 16 }}>
-              {t('stats.legendaParcial')}
-            </CardSubtext>
-          )}
-          <GraficoBarras dias={dias} theme={theme} />
+          <ChartTitle style={{ marginBottom: 8 }}>{t('stats.desempenho', { dias: diasPeriodo })}</ChartTitle>
+          <GraficoDesempenho
+            key={`${habit.id}-${diasPeriodo}`}
+            dias={dias}
+            meta={habit.meta_base || 0}
+            theme={theme}
+            t={t}
+            idioma={idioma}
+            formatar={formatMedida}
+          />
         </ChartCard>
       </ContentWrapper>
     </StatsContainer>

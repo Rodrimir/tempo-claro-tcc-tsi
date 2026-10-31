@@ -1,3 +1,3 @@
-import Calibration from '../src/pages/Calibration';
+import Calibration from '@/pages/Calibration';
 
 export default Calibration;

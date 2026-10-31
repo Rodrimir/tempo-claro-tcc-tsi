@@ -1,48 +1,54 @@
-import { Modal } from 'react-native';
-import { useI18n } from '../../../contexts/LanguageContext';
-import {
-  Overlay,
-  ModalCard,
-  Title,
-  Subtitle,
-  ButtonContainer,
-  PrimaryButton,
-  PrimaryButtonText,
-  ShieldButton,
-  ShieldButtonText,
-  DangerButton,
-  DangerButtonText,
-} from './styles';
+import { useI18n } from '@/contexts/LanguageContext';
+import Dialogo, { BotaoDoDialogo, TextoDoBotao, TextoDoDialogo } from '@/components/common/Dialogo';
 
 const TIPO_ESCUDO = 'FAIL_BLOQUEIO';
 const TIPO_FALHA = 'FAIL_TIMEOUT';
 
-const GiveUpModal = ({ bloqueiosAcumulados, handleGiveUp, onCancel }) => {
+// Parar a execução, sem tom punitivo: continuar é a ação principal, e parar fica num botão neutro.
+// O que já foi feito fica registrado como parcial (RF13), e dá para voltar ao hábito no mesmo dia.
+const GiveUpModal = ({ bloqueiosAcumulados, handleGiveUp, onCancel, enviando = false }) => {
   const { t } = useI18n();
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
-      <Overlay>
-        <ModalCard>
-          <Title>{t('desistir.temCerteza')}</Title>
-          <Subtitle>{t('desistir.afetaConsistencia')}</Subtitle>
-          <ButtonContainer>
-            <PrimaryButton onPress={onCancel}>
-              <PrimaryButtonText>{t('desistir.voltarContinuar')}</PrimaryButtonText>
-            </PrimaryButton>
-
-            {bloqueiosAcumulados > 0 && (
-              <ShieldButton onPress={() => handleGiveUp(TIPO_ESCUDO)}>
-                <ShieldButtonText>{t('desistir.usarEscudo', { n: bloqueiosAcumulados })}</ShieldButtonText>
-              </ShieldButton>
-            )}
-
-            <DangerButton onPress={() => handleGiveUp(TIPO_FALHA)}>
-              <DangerButtonText>{t('desistir.assumirFalha')}</DangerButtonText>
-            </DangerButton>
-          </ButtonContainer>
-        </ModalCard>
-      </Overlay>
-    </Modal>
+    <Dialogo
+      visible
+      onClose={enviando ? undefined : onCancel}
+      titulo={t('desistir.temCerteza')}
+      accessibilityLabel={t('desistir.voltarContinuar')}
+      acoes={
+        <>
+          <BotaoDoDialogo
+            accessibilityRole="button"
+            onPress={() => handleGiveUp(TIPO_FALHA)}
+            disabled={enviando}
+            accessibilityState={{ disabled: enviando, busy: enviando }}
+          >
+            <TextoDoBotao>{t('desistir.assumirFalha')}</TextoDoBotao>
+          </BotaoDoDialogo>
+          <BotaoDoDialogo
+            $tipo="primario"
+            accessibilityRole="button"
+            onPress={onCancel}
+            disabled={enviando}
+            accessibilityState={{ disabled: enviando }}
+          >
+            <TextoDoBotao $tipo="primario">{t('desistir.voltarContinuar')}</TextoDoBotao>
+          </BotaoDoDialogo>
+        </>
+      }
+    >
+      <TextoDoDialogo>{t('desistir.afetaConsistencia')}</TextoDoDialogo>
+      {bloqueiosAcumulados > 0 && (
+        <BotaoDoDialogo
+          style={{ marginTop: 16 }}
+          accessibilityRole="button"
+          onPress={() => handleGiveUp(TIPO_ESCUDO)}
+          disabled={enviando}
+          accessibilityState={{ disabled: enviando, busy: enviando }}
+        >
+          <TextoDoBotao>{t('desistir.usarEscudo', { n: bloqueiosAcumulados })}</TextoDoBotao>
+        </BotaoDoDialogo>
+      )}
+    </Dialogo>
   );
 };
 

@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
-import { fonts } from '../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const StoreRoot = styled.View`
   flex: 1;
@@ -173,40 +173,6 @@ export const BuyButtonText = styled.Text`
   font-family: ${fonts.bold};
   color: ${(props) => (props.$disabled ? props.theme.textSecondary : 'white')};
   font-size: 17px;
-`;
-
-export const EmptyStateContainer = styled.View`
-  flex: 1;
-  padding: 24px;
-  justify-content: center;
-  align-items: center;
-`;
-
-export const EmptyIconWrapper = styled.View`
-  background-color: rgba(6, 12, 30, 0.62);
-  border-width: 1px;
-  border-color: rgba(255, 255, 255, 0.22);
-  width: 80px;
-  height: 80px;
-  border-radius: 40px;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-`;
-
-export const EmptyTitle = styled.Text`
-  font-family: ${fonts.bold};
-  font-size: 18px;
-  margin-bottom: 8px;
-  color: white;
-  text-align: center;
-`;
-
-export const EmptyText = styled.Text`
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  line-height: 21px;
-  text-align: center;
 `;
 
 export const PickerOverlay = styled(Pressable)`

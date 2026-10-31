@@ -163,7 +163,7 @@
       ]
     },
     {
-      "name": "02 - Calibração (RF20)",
+      "name": "02 - Calibração",
       "item": [
         {
           "name": "Questionário — Exercício",
@@ -306,7 +306,7 @@
                 }
               ]
             },
-            "description": "Só existem três moldes: AGUA, ESTUDO e EXERCICIO (RF02)."
+            "description": "Só existem três moldes: AGUA, ESTUDO e EXERCICIO (RF03)."
           },
           "response": [],
           "event": [
@@ -417,7 +417,7 @@
                 "dashboard"
               ]
             },
-            "description": "Custo fixo de 5 consultas, independentemente do número de hábitos. Traz limite_habitos_ativos (2, por RF03)."
+            "description": "Custo fixo de 5 consultas, independentemente do número de hábitos. Traz limite_habitos_ativos (2, sem requisito que o declare)."
           },
           "response": []
         },
@@ -455,7 +455,7 @@
           "response": []
         },
         {
-          "name": "Arquivar hábito",
+          "name": "Excluir hábito",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -469,7 +469,7 @@
                 "{{habitoId}}"
               ]
             },
-            "description": "Soft delete (RF23): ativo = false, histórico preservado."
+            "description": "Exclusão (RF08): ativo = false, histórico de execuções preservado no banco por integridade referencial, sem via de retorno pela interface."
           },
           "response": []
         },
@@ -537,7 +537,7 @@
                 "priming"
               ]
             },
-            "description": "Texto da biblioteca, na categoria do hábito e no idioma do usuário (RF16/RNF13)."
+            "description": "Texto da biblioteca, na categoria do hábito e no idioma do usuário (RF09/RNF10)."
           },
           "response": []
         },
@@ -562,7 +562,7 @@
                 "executions"
               ]
             },
-            "description": "Sem 'tipo': o servidor decide padrão vs. extra comparando com o alvo da ocorrência (RF22). Acumula o realizado e credita moeda na hora, se o total do dia cruzar um patamar novo.",
+            "description": "Sem 'tipo': o servidor decide padrão vs. extra comparando com o alvo da ocorrência (RF11, RF12 e RF15). Acumula o realizado e credita moeda na hora, se o total do dia cruzar um patamar novo.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"execution_token\": \"{{$guid}}\",\n  \"valor_realizado\": 700\n}",
@@ -677,7 +677,7 @@
                 "executions"
               ]
             },
-            "description": "O parcial fica no histórico (RF10) mas não conta como realizado. A ofensiva é decidida no fechamento, não aqui.",
+            "description": "O parcial fica no histórico (RF13) mas não conta como realizado. A ofensiva é decidida no fechamento, não aqui.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"execution_token\": \"{{$guid}}\",\n  \"tipo\": \"FAIL_TIMEOUT\",\n  \"valor_realizado\": 120\n}",
@@ -711,7 +711,7 @@
                 "executions"
               ]
             },
-            "description": "Rode duas vezes: a segunda é bloqueada pela idempotência (RF21/RNF09).",
+            "description": "Rode duas vezes: a segunda é bloqueada pela idempotência (RNF07).",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"execution_token\": \"11111111-1111-1111-1111-111111111111\",\n  \"valor_realizado\": 700\n}",
@@ -796,7 +796,7 @@
                 "shield"
               ]
             },
-            "description": "Custa 1500 moedas (RF15). Saldo insuficiente → 422."
+            "description": "Custa 1500 moedas (sem requisito: moedas e escudo estão entre as capacidades sem requisito, ver validacao-requisitos-iso.md parte 3). Saldo insuficiente → 422."
           },
           "response": []
         }
@@ -1024,7 +1024,7 @@
                 "priming"
               ]
             },
-            "description": "Hábito inexistente e hábito alheio respondem igual: 404 não confirma a existência do UUID para quem está sondando (RF22/RNF08)."
+            "description": "Hábito inexistente e hábito alheio respondem igual: 404 não confirma a existência do UUID para quem está sondando (RNF05)."
           },
           "response": [],
           "event": [

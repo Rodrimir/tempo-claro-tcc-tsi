@@ -1,4 +1,4 @@
-import { useI18n } from '../../../contexts/LanguageContext';
+import { useI18n } from '@/contexts/LanguageContext';
 import { TimerContainer, TimeDisplay, BonusWrapper, BonusBadge, BonusText } from './styles';
 
 const MonospaceTimer = ({ isOverachieving, overachieveTime, timeLeft }) => {

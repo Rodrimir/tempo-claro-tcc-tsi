@@ -8,13 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO.OcorrenciaRequestDTO;
-import com.rodrigo.backend2java.habito.DashboardResponseDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO.OcorrenciaRequestDTO;
+import com.rodrigo.backend2java.habito.model.DashboardResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
 import com.rodrigo.backend2java.infra.exception.MessageResponseDTO;
 import com.rodrigo.backend2java.habito.HabitoRepository;
 import com.rodrigo.backend2java.habito.SubAtividadeRepository;
+import com.rodrigo.backend2java.habito.ConfigPendenteRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -28,13 +29,15 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
     @Autowired
     private SubAtividadeRepository subAtividadeRepository;
 
+    @Autowired
+    private ConfigPendenteRepository configPendenteRepository;
+
     private HabitoResponseDTO criarHabitoUmaVezAoDia(final String titulo) {
         final var request = HabitoRequestDTO.builder()
                 .titulo(titulo)
                 .categoria("AGUA")
                 .meta_base(2000)
                 .tipo_medida("QUANTIDADE")
-                .modalidade("DIARIA")
                 .meta_frequencia_diaria(1)
                 .horario_agendado(LocalTime.of(8, 0))
                 .build();
@@ -57,7 +60,6 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
                 .categoria("ESTUDO")
                 .meta_base(2100)
                 .tipo_medida("TEMPO")
-                .modalidade("DIARIA")
                 .meta_frequencia_diaria(3)
                 .frequencia_semanal("1111100")
                 .ocorrencias(List.of(
@@ -97,6 +99,8 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(2, habitoRepository.findAllByUsuarioIdAndAtivoTrue(idUsuarioTeste).size());
     }
 
+    // Desde 16/10/2026 a edição da configuração de execução só vale no dia seguinte (o título muda
+    // na hora). O teste confere a pendência e depois simula a virada do dia.
     @Test
     void atualizarHabito_persisteNovosValores() {
         final var criado = criarHabitoUmaVezAoDia("Título original");
@@ -106,7 +110,6 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
                 .categoria("AGUA")
                 .meta_base(3000)
                 .tipo_medida("QUANTIDADE")
-                .modalidade("DIARIA")
                 .meta_frequencia_diaria(1)
                 .horario_agendado(LocalTime.of(9, 0))
                 .build();
@@ -115,12 +118,21 @@ class HabitoIntegracaoTest extends BaseAPIIntegracaoTest {
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
         final var noBanco = habitoRepository.findById(criado.id()).orElseThrow();
         assertEquals("Título editado", noBanco.getTitulo());
-        assertEquals(3000, noBanco.getMetaBase());
+        assertEquals(2000, noBanco.getMetaBase(), "a meta nova só vale amanhã");
+        final var pendente = configPendenteRepository.findById(criado.id()).orElseThrow();
+        assertEquals(3000, pendente.getMetaBase());
+
+        pendente.setVigenteEm(pendente.getVigenteEm().minusDays(1));
+        configPendenteRepository.save(pendente);
+        get("/api/dashboard", Object.class);
+
+        assertEquals(3000, habitoRepository.findById(criado.id()).orElseThrow().getMetaBase());
+        assertTrue(configPendenteRepository.findById(criado.id()).isEmpty());
     }
 
     @Test
-    void deletarHabito_arquivaSemRemoverDoBanco() {
-        final var criado = criarHabitoUmaVezAoDia("Para arquivar");
+    void deletarHabito_excluiSemRemoverDoBanco() {
+        final var criado = criarHabitoUmaVezAoDia("Para excluir");
 
         final var resposta = delete("/api/habits/" + criado.id(), Object.class);
 

@@ -6,10 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.rodrigo.backend2java.execucao.GamificacaoService;
-import com.rodrigo.backend2java.execucao.ExecutionRequestDTO;
-import com.rodrigo.backend2java.execucao.PrimingResponseDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionRequestDTO;
+import com.rodrigo.backend2java.execucao.model.PrimingResponseDTO;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.rodrigo.backend2java.execucao.ExecutionResponseDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
+import com.rodrigo.backend2java.habito.model.DashboardResponseDTO;
 
 @RestController
 @RequestMapping("/api")

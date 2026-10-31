@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 import { Pressable } from 'react-native';
-import { fonts } from '../../../styles/fonts';
+import { fonts } from '@/styles/fonts';
 
 export const Field = styled(Pressable)`
   width: 100%;
@@ -26,7 +26,7 @@ export const Overlay = styled(Pressable)`
   background-color: rgba(15, 23, 42, 0.85);
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 16px;
 `;
 
 export const Sheet = styled.View`

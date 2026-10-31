@@ -42,7 +42,7 @@ public class CatalogoCalibracao {
     public CategoriaCalibracao categoria(final String categoria) {
         final var encontrada = catalogo.categorias().get(categoria);
         if (encontrada == null) {
-            throw new ValidacaoException("Categoria sem calibração disponível: " + categoria);
+            throw new ValidacaoException("calibracao.categoriaSemCalibracao", categoria);
         }
         return encontrada;
     }

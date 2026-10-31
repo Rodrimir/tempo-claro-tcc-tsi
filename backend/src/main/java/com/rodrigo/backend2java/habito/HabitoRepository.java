@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
+import com.rodrigo.backend2java.habito.model.Habito;
 
 public interface HabitoRepository extends JpaRepository<Habito, UUID> {
 
@@ -16,5 +17,5 @@ public interface HabitoRepository extends JpaRepository<Habito, UUID> {
     @Transactional
     @Query(value = "UPDATE habitos SET hab_ativo = false, hab_arquivado_em = CURRENT_TIMESTAMP WHERE hab_id = ?1",
            nativeQuery = true)
-    void archive(UUID id);
+    void excluir(UUID id);
 }

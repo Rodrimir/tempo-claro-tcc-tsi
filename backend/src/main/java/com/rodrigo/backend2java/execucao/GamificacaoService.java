@@ -1,5 +1,7 @@
 package com.rodrigo.backend2java.execucao;
 import java.util.List;
+import java.time.Clock;
+import org.springframework.beans.factory.annotation.Value;
 import java.util.UUID;
 import java.util.HashSet;
 import java.util.Optional;
@@ -10,18 +12,22 @@ import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.rodrigo.backend2java.habito.Habito;
-import com.rodrigo.backend2java.habito.SubAtividade;
-import com.rodrigo.backend2java.usuario.Usuario;
-import com.rodrigo.backend2java.biblioteca.BibliotecaTexto;
+import com.rodrigo.backend2java.habito.model.Habito;
+import com.rodrigo.backend2java.habito.model.SubAtividade;
+import com.rodrigo.backend2java.usuario.model.Usuario;
+import com.rodrigo.backend2java.biblioteca.model.BibliotecaTexto;
 import com.rodrigo.backend2java.biblioteca.BibliotecaTextoRepository;
 import com.rodrigo.backend2java.habito.AcessoHabitoService;
+import com.rodrigo.backend2java.habito.ApuracaoService;
 import com.rodrigo.backend2java.habito.SubAtividadeRepository;
 import com.rodrigo.backend2java.habito.ProximoVencimentoService;
 import com.rodrigo.backend2java.infra.util.ZonaUsuario;
-import com.rodrigo.backend2java.infra.exception.RecursoNaoEncontradoException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import com.rodrigo.backend2java.infra.exception.ValidacaoException;
+import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
+import com.rodrigo.backend2java.execucao.model.PrimingResponseDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionRequestDTO;
+import com.rodrigo.backend2java.execucao.model.ExecutionResponseDTO;
 
 @Service
 public class GamificacaoService {
@@ -47,14 +53,24 @@ public class GamificacaoService {
     private final ProximoVencimentoService proximoVencimentoService;
     private final SubAtividadeRepository subAtividadeRepository;
     private final AcessoHabitoService acessoHabitoService;
+    private final ApuracaoService apuracaoService;
+    private final Clock relogio;
+    private final boolean regrasDoHorarioDoDia;
 
-    public GamificacaoService(StatusHabitoRepository statusHabitoRepository, HistoricoExecucaoRepository historicoRepository, BibliotecaTextoRepository bibliotecaRepository, ProximoVencimentoService proximoVencimentoService, SubAtividadeRepository subAtividadeRepository, AcessoHabitoService acessoHabitoService) {
+    // A tarefa abre 15 minutos antes do horário marcado, como no app (MINUTOS_ANTECEDENCIA_LIBERACAO).
+    private static final int MINUTOS_ANTECEDENCIA_LIBERACAO = 15;
+
+    public GamificacaoService(StatusHabitoRepository statusHabitoRepository, HistoricoExecucaoRepository historicoRepository, BibliotecaTextoRepository bibliotecaRepository, ProximoVencimentoService proximoVencimentoService, SubAtividadeRepository subAtividadeRepository, AcessoHabitoService acessoHabitoService, ApuracaoService apuracaoService, Clock relogio,
+            @Value("${app.regras.horario-do-dia:true}") boolean regrasDoHorarioDoDia) {
+        this.relogio = relogio;
+        this.regrasDoHorarioDoDia = regrasDoHorarioDoDia;
         this.statusHabitoRepository = statusHabitoRepository;
         this.historicoRepository = historicoRepository;
         this.bibliotecaRepository = bibliotecaRepository;
         this.proximoVencimentoService = proximoVencimentoService;
         this.subAtividadeRepository = subAtividadeRepository;
         this.acessoHabitoService = acessoHabitoService;
+        this.apuracaoService = apuracaoService;
     }
 
     public PrimingResponseDTO obterPriming(final UUID habitoId, final String emailContexto) {
@@ -70,16 +86,15 @@ public class GamificacaoService {
     @Transactional
     public ExecutionResponseDTO processarExecucao(final UUID habitoId, final String emailContexto,
             final ExecutionRequestDTO request) {
-        if (historicoRepository.existsByExecutionToken(request.execution_token())) {
-            throw new RegraDeNegocioException("Execução duplicada");
-        }
-
         final var acesso = acessoHabitoService.carregar(habitoId, emailContexto);
         final var habito = acesso.habito();
         final var dono = acesso.dono();
 
-        final var status = statusHabitoRepository.findById(habitoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Status do hábito não encontrado"));
+        final var status = apuracaoService.apurarAteHoje(habitoId, dono).status();
+
+        if (historicoRepository.existsByExecutionToken(request.execution_token())) {
+            throw new RegraDeNegocioException("execucao.duplicada");
+        }
 
         final var hojeLocal = LocalDate.now(ZonaUsuario.resolver(dono));
 
@@ -97,29 +112,35 @@ public class GamificacaoService {
             final var execucoesAntes = status.getExecucoesHoje();
             final var subAtividades = subAtividadeRepository.findAllByHabitoIdOrderByOrdem(habitoId);
             final var fuso = ZonaUsuario.resolver(dono);
-            final var agora = ZonedDateTime.now(fuso);
+            final var agora = ZonedDateTime.now(relogio.withZone(fuso));
             final var feitasHojeIds = historicoRepository.agregarPorSubAtividadeNoDia(habitoId, hojeLocal).stream()
                     .map(HistoricoExecucaoRepository.AgregadoPorSubAtividade::getSubAtividadeId)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
-            final var ocorrencia = proximoVencimentoService.encontrarAtiva(subAtividades, feitasHojeIds, agora)
-                    .orElse(ocorrenciaMaisTardia(subAtividades));
+            final var ativa = proximoVencimentoService.encontrarAtiva(subAtividades, feitasHojeIds, agora);
+            exigirTarefaLiberada(ativa.orElse(null), fuso);
+            final var ocorrencia = ativa.orElse(ocorrenciaMaisTardia(subAtividades));
             subAtividadeExecutada = ocorrencia == null ? null : ocorrencia.getId();
-
-            final var alvoDaOcorrencia = ocorrencia == null ? habito.getMetaBase() : ocorrencia.getAlvo();
-            bonus = classificarConclusaoPeloValorRealizado(alvoDaOcorrencia, request.valor_realizado());
-            tipoResultado = bonus ? "COMPLETE_EXTRA" : "COMPLETE_PADRAO";
 
             status.setExecucoesHoje(execucoesAntes + 1);
             status.setValorAcumuladoHoje(status.getValorAcumuladoHoje() + request.valor_realizado());
 
-            final var percentualDoDia = (double) status.getValorAcumuladoHoje() / habito.getMetaBase();
+            // A parte dispensada na criação (horário já passado) sai da meta das moedas; se tudo foi
+            // dispensado, o que for feito hoje vale sobre a meta inteira.
+            final var alvoDispensado = status.getAlvoDispensadoHoje() == null ? 0 : status.getAlvoDispensadoHoje();
+            final var metaParaMoedas = habito.getMetaBase() - alvoDispensado > 0
+                    ? habito.getMetaBase() - alvoDispensado
+                    : habito.getMetaBase();
+            final var percentualDoDia = (double) status.getValorAcumuladoHoje() / metaParaMoedas;
             final var devidoHoje = TabelaDeMoedas.devidoPeloPercentual(percentualDoDia);
             moedasGanhasAgora = Math.max(0, devidoHoje - status.getMoedasCreditadasHoje());
             if (moedasGanhasAgora > 0) {
                 status.setMoedasLocais(status.getMoedasLocais() + moedasGanhasAgora);
                 status.setMoedasCreditadasHoje(status.getMoedasCreditadasHoje() + moedasGanhasAgora);
             }
+
+            bonus = percentualDoDia >= MULTIPLICADOR_EXTRA && moedasGanhasAgora > 0;
+            tipoResultado = bonus ? "COMPLETE_EXTRA" : "COMPLETE_PADRAO";
 
             if (bonus) {
                 textoFeedback = buscarTextos(habito, dono)
@@ -139,10 +160,10 @@ public class GamificacaoService {
                     proximoVencimentoService.calcular(habito, dono, feitasComEsta));
         } else if ("FAIL_BLOQUEIO".equals(tipoRequisicao)) {
             if (status.getBloqueiosAcumulados() <= 0) {
-                throw new RegraDeNegocioException("Nenhum escudo disponível para proteger a ofensiva");
+                throw new RegraDeNegocioException("execucao.semEscudo");
             }
             if (Boolean.TRUE.equals(status.getBloqueioUsadoHoje())) {
-                throw new RegraDeNegocioException("Escudo já utilizado hoje neste hábito");
+                throw new RegraDeNegocioException("execucao.escudoJaUsado");
             }
             status.setBloqueiosAcumulados(status.getBloqueiosAcumulados() - 1);
             status.setBloqueioUsadoHoje(true);
@@ -152,7 +173,7 @@ public class GamificacaoService {
             textoFeedback = textoNoIdioma(dono, TEXTO_DESISTENCIA_PT, TEXTO_DESISTENCIA_EN);
             tipoResultado = tipoRequisicao;
         } else {
-            throw new ValidacaoException("Tipo de execução inválido: " + tipoRequisicao);
+            throw new ValidacaoException("execucao.tipoInvalido", tipoRequisicao);
         }
 
         statusHabitoRepository.save(status);
@@ -181,12 +202,24 @@ public class GamificacaoService {
                 .build();
     }
 
-    private SubAtividade ocorrenciaMaisTardia(final List<SubAtividade> subAtividades) {
-        return subAtividades.isEmpty() ? null : subAtividades.get(subAtividades.size() - 1);
+    // Mesma regra do botão do app: com uma ocorrência ativa ainda por vir, a conclusão só é aceita a
+    // partir de 15 minutos antes do início. Sem ocorrência ativa (todas feitas ou vencidas), uma
+    // execução extra continua aceita.
+    private void exigirTarefaLiberada(final SubAtividade ativa, final java.time.ZoneId fuso) {
+        if (!regrasDoHorarioDoDia || ativa == null || ativa.getHorarioInicio() == null) {
+            return;
+        }
+        final var agora = ZonedDateTime.now(relogio.withZone(fuso));
+        final var abertura = agora.toLocalDate().atTime(ativa.getHorarioInicio()).atZone(fuso)
+                .minusMinutes(MINUTOS_ANTECEDENCIA_LIBERACAO);
+        if (agora.isBefore(abertura)) {
+            throw new RegraDeNegocioException("execucao.antesDaLiberacao",
+                    abertura.toLocalTime().toString());
+        }
     }
 
-    private boolean classificarConclusaoPeloValorRealizado(final Integer alvoDaOcorrencia, final int valorRealizado) {
-        return alvoDaOcorrencia != null && valorRealizado >= alvoDaOcorrencia * MULTIPLICADOR_EXTRA;
+    private SubAtividade ocorrenciaMaisTardia(final List<SubAtividade> subAtividades) {
+        return subAtividades.isEmpty() ? null : subAtividades.get(subAtividades.size() - 1);
     }
 
     private Optional<BibliotecaTexto> buscarTextos(final Habito habito, final Usuario dono) {
@@ -213,13 +246,12 @@ public class GamificacaoService {
 
     @Transactional
     public void comprarEscudo(final UUID habitoId, final String emailContexto) {
-        acessoHabitoService.carregar(habitoId, emailContexto);
+        final var acesso = acessoHabitoService.carregar(habitoId, emailContexto);
 
-        final var status = statusHabitoRepository.findById(habitoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Status do hábito não encontrado"));
+        final var status = apuracaoService.apurarAteHoje(habitoId, acesso.dono()).status();
 
         if (status.getMoedasLocais() < CUSTO_ESCUDO) {
-            throw new RegraDeNegocioException("Saldo insuficiente");
+            throw new RegraDeNegocioException("loja.saldoInsuficiente");
         }
 
         status.setMoedasLocais(status.getMoedasLocais() - CUSTO_ESCUDO);

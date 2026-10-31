@@ -479,3 +479,74 @@ COMMENT ON COLUMN status_habitos.sta_moedas_creditadas_hoje IS
 -- ck_sta_nivel continua sendo apenas ">= 1", de propósito: desde a v3.2 o nível
 -- é cumulativo e pode passar de 5. O 5 virou teto de APARÊNCIA (a arte tem cinco
 -- variações, e avatares.js satura nela), não teto do valor.
+
+
+-- -----------------------------------------------------------------------------
+-- v3.3 (16/10/2026) — preferências guardadas no servidor, guia de primeiro
+-- acesso, troca de fuso adiada, dia retroativo na criação, edição adiada e
+-- e-mail normalizado. Idempotente, sem bloco DO, como o resto do arquivo.
+-- -----------------------------------------------------------------------------
+
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS usu_notificacoes_ativas BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS usu_som_ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS usu_onboarding_concluido_em TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS usu_fuso_pendente VARCHAR(50);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS usu_fuso_vigente_em TIMESTAMPTZ;
+
+COMMENT ON COLUMN usuarios.usu_onboarding_concluido_em IS
+    'Quando a pessoa terminou o guia de primeiro acesso. Nulo: o app abre o guia, que é obrigatório.';
+COMMENT ON COLUMN usuarios.usu_fuso_pendente IS
+    'Fuso escolhido no Perfil que ainda não vale. Passa a valer em usu_fuso_vigente_em, a meia-noite seguinte no fuso de antes.';
+
+-- E-mail em minúsculas e sem espaços nas pontas (EmailNormalizado). Uma linha só
+-- muda se nenhuma outra conta tiver o mesmo endereço normalizado: nesse caso as
+-- duas ficam como estão e o login continua achando a conta por lower(usu_email).
+UPDATE usuarios u SET usu_email = lower(btrim(u.usu_email))
+    WHERE u.usu_email <> lower(btrim(u.usu_email))
+      AND NOT EXISTS (SELECT 1 FROM usuarios o
+                      WHERE o.usu_id <> u.usu_id
+                        AND lower(btrim(o.usu_email)) = lower(btrim(u.usu_email)));
+UPDATE codigos_verificacao SET cod_email = lower(btrim(cod_email))
+    WHERE cod_email <> lower(btrim(cod_email));
+
+-- Dia retroativo: ocorrências cujo horário já tinha passado quando o hábito foi
+-- criado ficam dispensadas naquele dia, sem moedas nem efeito na ofensiva.
+ALTER TABLE status_habitos ADD COLUMN IF NOT EXISTS sta_alvo_dispensado_hoje INT NOT NULL DEFAULT 0;
+COMMENT ON COLUMN status_habitos.sta_alvo_dispensado_hoje IS
+    'Soma dos alvos das ocorrências dispensadas hoje (criação com horário já passado). A meta do dia para moedas e fechamento é meta_base menos este valor.';
+
+ALTER TABLE historico_execucoes DROP CONSTRAINT IF EXISTS ck_his_tipo;
+ALTER TABLE historico_execucoes ADD CONSTRAINT ck_his_tipo CHECK (his_tipo_sucesso IN (
+    'COMPLETE_PADRAO',
+    'COMPLETE_EXTRA',
+    'DESISTENCIA',
+    'PROTEGIDO_ESCUDO',
+    'PROTEGIDO_AUTOMATICO',
+    'DISPENSADO'
+));
+
+-- Edição adiada: a nova configuração de execução de um hábito só vale a partir
+-- do dia seguinte. Título e gatilho mudam na hora e não passam por aqui.
+CREATE TABLE IF NOT EXISTS habitos_config_pendente (
+    hcp_habito_id           UUID PRIMARY KEY,
+    hcp_categoria           VARCHAR(50)  NOT NULL,
+    hcp_tipo_medida         VARCHAR(20)  NOT NULL,
+    hcp_meta_base           INT          NOT NULL,
+    hcp_meta_maxima         INT,
+    hcp_incremento          INT          NOT NULL DEFAULT 0,
+    hcp_dias_incremento     INT          NOT NULL DEFAULT 10,
+    hcp_frequencia_semanal  CHAR(7)      NOT NULL,
+    hcp_vezes_ao_dia        INT          NOT NULL,
+    hcp_horario_agendado    TIME,
+    hcp_ocorrencias         TEXT,
+    hcp_vigente_em          DATE         NOT NULL,
+    hcp_criado_em           TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_hcp_habito FOREIGN KEY (hcp_habito_id)
+        REFERENCES habitos (hab_id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE habitos_config_pendente IS
+    'Configuração de execução editada que só vale a partir de hcp_vigente_em (amanhã no fuso do usuário). ApuracaoService aplica e apaga a linha.';
+COMMENT ON COLUMN habitos_config_pendente.hcp_ocorrencias IS
+    'Horários de cada ocorrência, "HH:mm|HH:mm" (início|fim, fim opcional), separados por ";". Nulo quando a ocorrência é única e usa hcp_horario_agendado.';

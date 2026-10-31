@@ -1,7 +1,7 @@
 # Artefatos de build
 /backend/target/
 /backend/bin/
-
+/tcc
 # Dependências e builds do app
 node_modules/
 /frontend/.expo/
@@ -10,13 +10,14 @@ node_modules/
 /.vscode
 /.idea
 /.claude
+/auditoria
 # Variáveis de ambiente — jwt.secret e as credenciais do banco vêm daqui em prod
 .env
 .env.local
 *.env
 
-# Material do TCC que não vai para o repositório
-/docs/tcc
+# Relatório de auditoria: material de trabalho local, fora do repositório.
+/RELATORIO_AUDITORIA.md
 
 # Configuração local do Spring (credenciais de SMTP etc.) — o Spring lê
 # ./config/application.properties automaticamente, com precedência sobre o

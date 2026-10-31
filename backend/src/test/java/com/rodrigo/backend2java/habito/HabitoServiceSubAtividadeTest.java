@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.rodrigo.backend2java.usuario.Usuario;
+import com.rodrigo.backend2java.usuario.model.Usuario;
 import com.rodrigo.backend2java.calibracao.CalibracaoService;
 import com.rodrigo.backend2java.execucao.StatusHabitoRepository;
 import com.rodrigo.backend2java.execucao.HistoricoExecucaoRepository;
@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
 
 @ExtendWith(MockitoExtension.class)
 class HabitoServiceSubAtividadeTest {
@@ -39,18 +40,24 @@ class HabitoServiceSubAtividadeTest {
     private CalibracaoService calibracaoService;
     @Mock
     private HistoricoExecucaoRepository historicoExecucaoRepository;
+    @Mock
+    private ApuracaoService apuracaoService;
+    @Mock
+    private ConfigPendenteRepository configPendenteRepository;
+
+    private final GeradorDeOcorrencias gerador = new GeradorDeOcorrencias();
 
     private HabitoService novoHabitoService() {
         return new HabitoService(habitoRepository, statusHabitoRepository, subAtividadeRepository,
-                proximoVencimentoService, acessoHabitoService, calibracaoService, historicoExecucaoRepository);
+                proximoVencimentoService, acessoHabitoService, calibracaoService, historicoExecucaoRepository,
+                gerador, apuracaoService, configPendenteRepository, java.time.Clock.systemUTC(), false);
     }
 
     @Test
     void habitoDe2100ml_em3vezes_geraTresLinhasDe700() {
-        final var habitoService = novoHabitoService();
-        final var habitoId = UUID.randomUUID();
+                final var habitoId = UUID.randomUUID();
 
-        final var subAtividades = habitoService.gerarSubAtividades(habitoId, 2100, 3, LocalTime.of(8, 0));
+        final var subAtividades = gerador.gerarSubAtividades(habitoId, 2100, 3, LocalTime.of(8, 0), null);
 
         assertEquals(3, subAtividades.size());
         for (var i = 0; i < 3; i++) {
@@ -62,10 +69,9 @@ class HabitoServiceSubAtividadeTest {
 
     @Test
     void metaComResto_jogaSobraNaUltimaOcorrencia() {
-        final var habitoService = novoHabitoService();
-        final var habitoId = UUID.randomUUID();
+                final var habitoId = UUID.randomUUID();
 
-        final var subAtividades = habitoService.gerarSubAtividades(habitoId, 10, 3, LocalTime.of(8, 0));
+        final var subAtividades = gerador.gerarSubAtividades(habitoId, 10, 3, LocalTime.of(8, 0), null);
 
         assertEquals(List.of(3, 3, 4), subAtividades.stream().map(s -> s.getAlvo()).toList());
         assertEquals(10, subAtividades.stream().mapToInt(s -> s.getAlvo()).sum());
@@ -74,10 +80,9 @@ class HabitoServiceSubAtividadeTest {
 
     @Test
     void semVezesAoDiaInformado_geraUmaUnicaSubAtividadeComAMetaInteira() {
-        final var habitoService = novoHabitoService();
-        final var habitoId = UUID.randomUUID();
+                final var habitoId = UUID.randomUUID();
 
-        final var subAtividades = habitoService.gerarSubAtividades(habitoId, 8, null, LocalTime.of(7, 30));
+        final var subAtividades = gerador.gerarSubAtividades(habitoId, 8, null, LocalTime.of(7, 30), null);
 
         assertEquals(1, subAtividades.size());
         assertEquals(1, subAtividades.get(0).getOrdem());
@@ -86,36 +91,33 @@ class HabitoServiceSubAtividadeTest {
 
     @Test
     void semHorarioInformado_comUmaOcorrencia_usaPadrao2359() {
-        final var habitoService = novoHabitoService();
-        final var habitoId = UUID.randomUUID();
+                final var habitoId = UUID.randomUUID();
 
-        final var subAtividades = habitoService.gerarSubAtividades(habitoId, 8, 1, null);
+        final var subAtividades = gerador.gerarSubAtividades(habitoId, 8, 1, null, null);
 
         assertEquals(LocalTime.of(23, 59), subAtividades.get(0).getHorarioInicio());
     }
 
     @Test
     void maisDeUmaVezAoDia_semHorario_rejeitaAntesDeGerar() {
-        final var habitoService = novoHabitoService();
-        final var habitoId = UUID.randomUUID();
+                final var habitoId = UUID.randomUUID();
 
         assertThrows(RuntimeException.class,
-                () -> habitoService.gerarSubAtividades(habitoId, 10, 3, null));
+                () -> gerador.gerarSubAtividades(habitoId, 10, 3, null, null));
     }
 
     @Test
     void metaMenorQueVezesAoDia_rejeitaAntesDeGerarLinhaComAlvoZero() {
-        final var habitoService = novoHabitoService();
-        final var habitoId = UUID.randomUUID();
+                final var habitoId = UUID.randomUUID();
 
         assertThrows(RuntimeException.class,
-                () -> habitoService.gerarSubAtividades(habitoId, 2, 3, LocalTime.of(8, 0)));
+                () -> gerador.gerarSubAtividades(habitoId, 2, 3, LocalTime.of(8, 0), null));
     }
 
     @Test
     void criarHabito_persisteAsSubAtividadesGeradas() {
         final var usuario = Usuario.builder().id(UUID.randomUUID()).email("teste@teste.com").build();
-        when(acessoHabitoService.usuarioPorEmail(anyString())).thenReturn(usuario);
+        when(acessoHabitoService.travarUsuarioPorEmail(anyString())).thenReturn(usuario);
         when(habitoRepository.findAllByUsuarioIdAndAtivoTrue(any())).thenReturn(List.of());
 
         final var request = HabitoRequestDTO.builder()

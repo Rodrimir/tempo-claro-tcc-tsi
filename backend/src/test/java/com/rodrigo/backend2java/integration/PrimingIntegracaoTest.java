@@ -5,9 +5,9 @@ import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
-import com.rodrigo.backend2java.execucao.PrimingResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
+import com.rodrigo.backend2java.execucao.model.PrimingResponseDTO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -20,7 +20,6 @@ class PrimingIntegracaoTest extends BaseAPIIntegracaoTest {
                 .categoria("AGUA")
                 .meta_base(2000)
                 .tipo_medida("QUANTIDADE")
-                .modalidade("DIARIA")
                 .meta_frequencia_diaria(1)
                 .horario_agendado(LocalTime.of(8, 0))
                 .build();

@@ -1,4 +1,4 @@
-import Stats from '../../src/pages/Stats';
+import Stats from '@/pages/Stats';
 
 export default function StatsRoute() {
   return <Stats />;

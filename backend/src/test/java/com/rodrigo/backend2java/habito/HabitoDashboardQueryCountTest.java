@@ -10,10 +10,14 @@ import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
 import jakarta.persistence.EntityManagerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
+import com.rodrigo.backend2java.habito.model.DashboardResponseDTO;
 
 class HabitoDashboardQueryCountTest extends BaseAPIIntegracaoTest {
 
-    private static final long QUERIES_FIXAS_DO_DASHBOARD = 6;
+    // 7 desde 16/10/2026: a sétima é a busca em lote das edições adiadas (habitos_config_pendente).
+    private static final long QUERIES_FIXAS_DO_DASHBOARD = 7;
 
     @Autowired
     private EntityManagerFactory entityManagerFactory;

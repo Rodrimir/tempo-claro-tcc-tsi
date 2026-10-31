@@ -8,9 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.rodrigo.backend2java.BaseAPIIntegracaoTest;
 import com.rodrigo.backend2java.execucao.StatusHabitoRepository;
-import com.rodrigo.backend2java.habito.DashboardResponseDTO;
-import com.rodrigo.backend2java.habito.HabitoRequestDTO;
-import com.rodrigo.backend2java.habito.HabitoResponseDTO;
+import com.rodrigo.backend2java.habito.model.DashboardResponseDTO;
+import com.rodrigo.backend2java.habito.model.HabitoRequestDTO;
+import com.rodrigo.backend2java.habito.model.HabitoResponseDTO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

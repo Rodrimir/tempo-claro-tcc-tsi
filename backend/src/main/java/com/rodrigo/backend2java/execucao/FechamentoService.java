@@ -7,8 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.rodrigo.backend2java.habito.Habito;
-import com.rodrigo.backend2java.habito.FrequenciaSemanal;
+import com.rodrigo.backend2java.habito.model.Habito;
+import com.rodrigo.backend2java.habito.model.FrequenciaSemanal;
+import com.rodrigo.backend2java.execucao.model.StatusHabito;
+import com.rodrigo.backend2java.execucao.model.HistoricoExecucao;
 
 @Service
 public class FechamentoService {
@@ -25,23 +27,36 @@ public class FechamentoService {
         this.historicoRepository = historicoRepository;
     }
 
-    public record ResultadoFechamento(LocalDate dia, boolean diaProgramado, boolean metaCumprida,
-            int totalRealizado, int moedasCreditadas, int diasSeguidos, boolean escudoConsumido) {
-    }
-
+    // O dia em que o hábito foi criado conta a favor quando a meta foi cumprida, mas não penaliza:
+    // sem meta cumprida, só zera os contadores, sem consumir escudo. Ocorrências dispensadas (o
+    // hábito foi criado depois do horário delas) saem da meta do dia; se todas foram dispensadas,
+    // o dia é neutro: não soma nem quebra a ofensiva e não gasta escudo.
     @Transactional
-    public ResultadoFechamento fecharDia(final Habito habito, final StatusHabito status, final LocalDate dia) {
+    public void fecharDia(final Habito habito, final StatusHabito status, final LocalDate dia,
+            final boolean diaDaCriacao) {
         if (!FrequenciaSemanal.ehDiaProgramado(habito.getFrequenciaSemanal(), dia)) {
             limparContadoresDoDia(status, dia);
             statusHabitoRepository.save(status);
-            return new ResultadoFechamento(dia, false, false, 0, 0, status.getDiasSeguidos(), false);
+            return;
         }
 
         final var totalRealizado = totalRealizadoNoDia(habito.getId(), dia);
-        final var metaDoDia = metaDoDia(habito);
+        final var alvoDispensado = status.getAlvoDispensadoHoje() == null ? 0 : status.getAlvoDispensadoHoje();
+        if (alvoDispensado >= metaDoDia(habito)) {
+            limparContadoresDoDia(status, dia);
+            statusHabitoRepository.save(status);
+            return;
+        }
+        final var metaDoDia = Math.max(1, metaDoDia(habito) - alvoDispensado);
         final var percentualDoDia = (double) totalRealizado / metaDoDia;
 
         final var metaCumprida = totalRealizado >= metaDoDia;
+
+        if (!metaCumprida && diaDaCriacao) {
+            limparContadoresDoDia(status, dia);
+            statusHabitoRepository.save(status);
+            return;
+        }
 
         var escudoConsumido = false;
         if (metaCumprida) {
@@ -66,9 +81,6 @@ public class FechamentoService {
         log.info("Fechamento do hábito {} em {}: {}/{} ({}%), {} moeda(s), ofensiva {}{}.",
                 habito.getId(), dia, totalRealizado, metaDoDia, Math.round(percentualDoDia * 100),
                 moedasCreditadasHoje, status.getDiasSeguidos(), escudoConsumido ? " (escudo)" : "");
-
-        return new ResultadoFechamento(dia, true, metaCumprida, totalRealizado, moedasCreditadasHoje,
-                status.getDiasSeguidos(), escudoConsumido);
     }
 
     private int totalRealizadoNoDia(final UUID habitoId, final LocalDate dia) {
@@ -99,6 +111,7 @@ public class FechamentoService {
         status.setValorAcumuladoHoje(0);
         status.setMoedasCreditadasHoje(0);
         status.setBloqueioUsadoHoje(false);
+        status.setAlvoDispensadoHoje(0);
         status.setUltimoReset(dia);
     }
 }

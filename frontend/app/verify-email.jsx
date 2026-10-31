@@ -1,4 +1,4 @@
-import VerifyEmail from '../src/pages/VerifyEmail';
+import VerifyEmail from '@/pages/VerifyEmail';
 
 export default function VerifyEmailRoute() {
   return <VerifyEmail />;

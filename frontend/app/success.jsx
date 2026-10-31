@@ -1,4 +1,4 @@
-import Success from '../src/pages/Success';
+import Success from '@/pages/Success';
 
 export default function SuccessRoute() {
   return <Success />;
