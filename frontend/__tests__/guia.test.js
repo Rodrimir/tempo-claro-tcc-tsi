@@ -1,4 +1,4 @@
-import { passosDoGuia, deveMostrarGuia, proximaEtapa, posicaoDoBalao, ALVOS } from '@/onboarding/passos';
+import { passosDoGuia, deveMostrarGuia, proximaEtapa, posicaoDoBalao, ALVOS, PAGINAS_DA_PROPOSTA } from '@/onboarding/passos';
 import { traduzir } from '@/i18n';
 
 describe('guia de primeiro acesso', () => {
@@ -25,6 +25,28 @@ describe('guia de primeiro acesso', () => {
         expect(traduzir('pt-BR', `guia.passos.${p.id}`)).not.toBe(`guia.passos.${p.id}`);
         expect(traduzir('en-US', `guia.passos.${p.id}`)).not.toBe(`guia.passos.${p.id}`);
       });
+    }
+  });
+
+  test('a proposta tem quatro telas e só a última pede o compromisso', () => {
+    expect(PAGINAS_DA_PROPOSTA.map((p) => p.id)).toEqual(['conceito', 'minimo', 'leis', 'compromisso']);
+    expect(PAGINAS_DA_PROPOSTA.filter((p) => p.compromisso)).toEqual([PAGINAS_DA_PROPOSTA[3]]);
+    expect(PAGINAS_DA_PROPOSTA[2].blocos.map((b) => b.numero)).toEqual([1, 2, 3, 4]);
+  });
+
+  test('todo texto da proposta existe em pt e en, cada tela com um avatar', () => {
+    const chaves = PAGINAS_DA_PROPOSTA.flatMap((pagina) => {
+      expect(['AGUA', 'ESTUDO', 'EXERCICIO']).toContain(pagina.avatar);
+      const base = `guia.proposta.${pagina.id}`;
+      return [
+        `${base}.titulo`,
+        ...pagina.blocos.flatMap((b) => (b.tipo === 'lei' ? [`${base}.${b.chave}.nome`, `${base}.${b.chave}.texto`] : [`${base}.${b.chave}`])),
+      ];
+    });
+    chaves.push('guia.pular', 'guia.continuar', 'guia.proposta.compromisso.comprometer', 'guia.proposta.compromisso.agoraNao',
+      'guia.proposta.compromisso.segure', 'guia.proposta.compromisso.segureLeitor', 'perfil.reverProposta');
+    for (const idioma of ['pt-BR', 'en-US']) {
+      chaves.forEach((chave) => expect(traduzir(idioma, chave)).not.toBe(chave));
     }
   });
 

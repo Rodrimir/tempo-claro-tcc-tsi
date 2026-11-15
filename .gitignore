@@ -6,6 +6,8 @@
 node_modules/
 /frontend/.expo/
 /frontend/android/app/build/
+# APKs gerados para teste, deixados na raiz
+/*.apk
 /docs
 /.vscode
 /.idea

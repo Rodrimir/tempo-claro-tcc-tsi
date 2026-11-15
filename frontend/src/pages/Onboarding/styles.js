@@ -120,6 +120,130 @@ export const Sugerido = styled.Text`
   color: ${(props) => props.theme.successColor};
 `;
 
+export const LadoDoCabecalho = styled.View`
+  width: 72px;
+  align-items: ${(props) => (props.$direita ? 'flex-end' : 'flex-start')};
+`;
+
+export const BotaoPular = styled(Pressable)`
+  min-height: 44px;
+  padding: 0px 4px;
+  justify-content: center;
+`;
+
+export const PularTexto = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 14px;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const CartaoTexto = styled.View`
+  background-color: ${(props) => props.theme.bgSurface};
+  border-radius: 16px;
+  border-width: 1px;
+  border-color: ${(props) => props.theme.borderColor};
+  padding: 18px;
+  gap: 14px;
+`;
+
+export const Paragrafo = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 16px;
+  line-height: 22px;
+  color: ${(props) => props.theme.textPrimary};
+`;
+
+export const Destaque = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 17px;
+  line-height: 24px;
+  color: ${(props) => props.theme.primaryColor};
+`;
+
+export const Citacao = styled.View`
+  border-left-width: 3px;
+  border-left-color: ${(props) => props.theme.primaryColor};
+  padding-left: 12px;
+`;
+
+export const CitacaoTexto = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 15px;
+  line-height: 22px;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const Lei = styled.View`
+  flex-direction: row;
+  gap: 12px;
+  align-items: flex-start;
+`;
+
+export const LeiNumero = styled.View`
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.primaryLight};
+`;
+
+export const LeiNumeroTexto = styled.Text`
+  font-family: ${fonts.bold};
+  font-size: 14px;
+  color: ${(props) => props.theme.primaryColor};
+`;
+
+export const LeiTexto = styled.Text`
+  flex: 1;
+  font-family: ${fonts.regular};
+  font-size: 15px;
+  line-height: 22px;
+  color: ${(props) => props.theme.textPrimary};
+`;
+
+export const LeiNome = styled.Text`
+  font-family: ${fonts.bold};
+  color: ${(props) => props.theme.textPrimary};
+`;
+
+export const ConteudoDoBotao = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const BotaoSegurar = styled(Pressable)`
+  background-color: ${(props) => props.theme.primaryStrong};
+  border-radius: 14px;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+`;
+
+export const DicaDoBotao = styled.Text`
+  font-family: ${fonts.regular};
+  font-size: 12px;
+  text-align: center;
+  color: ${(props) => props.theme.textSecondary};
+  margin-top: 8px;
+`;
+
+export const BotaoSecundario = styled(Pressable)`
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+`;
+
+export const BotaoSecundarioTexto = styled.Text`
+  font-family: ${fonts.semiBold};
+  font-size: 15px;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
 export const Rodape = styled.View`
   padding-top: 4px;
 `;

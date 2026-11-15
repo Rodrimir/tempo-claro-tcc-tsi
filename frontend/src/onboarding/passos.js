@@ -18,6 +18,43 @@ export const FASES = {
   TOUR: 'tour',
 };
 
+// Telas de texto fixo entre as preferências e o tour: a proposta do app, antes das funções da tela.
+// As falas ficam no i18n (guia.proposta.<id>.<chave>). Cada bloco vira um parágrafo, uma citação,
+// um destaque ou uma das quatro leis; a última tela pede o compromisso, que se confirma segurando
+// o botão (um pequeno esforço deliberado, e não mais um toque). Todas podem ser puladas e revistas
+// depois no Perfil.
+const LEIS = ['evidente', 'atraente', 'facil', 'satisfatorio'];
+
+export const PAGINAS_DA_PROPOSTA = [
+  {
+    id: 'conceito',
+    avatar: 'AGUA',
+    blocos: [{ tipo: 'texto', chave: 'texto' }, { tipo: 'citacao', chave: 'citacao' }],
+  },
+  {
+    id: 'minimo',
+    avatar: 'ESTUDO',
+    blocos: [
+      { tipo: 'destaque', chave: 'exemplos' },
+      { tipo: 'texto', chave: 'texto' },
+      { tipo: 'texto', chave: 'porIsso' },
+    ],
+  },
+  {
+    id: 'leis',
+    avatar: 'EXERCICIO',
+    blocos: LEIS.map((chave, i) => ({ tipo: 'lei', chave, numero: i + 1 })),
+  },
+  {
+    id: 'compromisso',
+    avatar: 'AGUA',
+    compromisso: true,
+    blocos: [{ tipo: 'texto', chave: 'texto' }, { tipo: 'destaque', chave: 'pergunta' }],
+  },
+];
+
+export const SEGUNDOS_PARA_SE_COMPROMETER = 2;
+
 // Quem ainda não tem hábito termina criando o primeiro: só o botão de criar fica tocável. Quem já
 // tem (contas antigas, que também passam pelo guia uma vez) termina com "Entendi".
 export function passosDoGuia({ temHabitos }) {

@@ -10,14 +10,19 @@ import { useAuth, perfilDoServidor } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useOnboarding } from '@/onboarding/OnboardingContext';
+import { PAGINAS_DA_PROPOSTA, SEGUNDOS_PARA_SE_COMPROMETER } from '@/onboarding/passos';
 import { definirPreferenciasIniciais } from '@/services/api';
 import { FUSOS, fusoDoAparelho, fusoSuportado, rotuloDoFuso } from '@/model/Fusos';
 import { avatarDe } from '@/assets/avatares';
 import { getApiErrorMessage } from '@/utils/erros';
+import { BotaoDeCompromisso } from './BotaoDeCompromisso';
 import {
   Container,
   Conteudo,
   Cabecalho,
+  LadoDoCabecalho,
+  BotaoPular,
+  PularTexto,
   AvatarCaixa,
   Balao,
   BalaoTexto,
@@ -31,18 +36,66 @@ import {
   OpcaoFuso,
   OpcaoFusoTexto,
   Sugerido,
+  CartaoTexto,
+  Paragrafo,
+  Destaque,
+  Citacao,
+  CitacaoTexto,
+  Lei,
+  LeiNumero,
+  LeiNumeroTexto,
+  LeiTexto,
+  LeiNome,
   Rodape,
   BotaoPrincipal,
   BotaoPrincipalTexto,
+  ConteudoDoBotao,
+  BotaoSecundario,
+  BotaoSecundarioTexto,
   BotaoVoltar,
 } from './styles';
 
 const PASSO_IDIOMA = 0;
 const PASSO_FUSO = 1;
+const PRIMEIRA_PAGINA = 2;
+const TOTAL_DE_PASSOS = PRIMEIRA_PAGINA + PAGINAS_DA_PROPOSTA.length;
 
-// Passos 1 e 2 do guia de primeiro acesso: idioma e fuso, obrigatórios antes do resto do app. O
-// tour pela tela inicial vem logo depois (SpotlightOverlay).
-const Onboarding = () => {
+function BlocoDaProposta({ pagina, bloco, t }) {
+  const chave = `guia.proposta.${pagina.id}.${bloco.chave}`;
+  if (bloco.tipo === 'destaque') return <Destaque>{t(chave)}</Destaque>;
+  if (bloco.tipo === 'citacao') {
+    return (
+      <Citacao>
+        <CitacaoTexto>{t(chave)}</CitacaoTexto>
+      </Citacao>
+    );
+  }
+  if (bloco.tipo === 'lei') {
+    return (
+      <Lei>
+        <LeiNumero>
+          <LeiNumeroTexto>{bloco.numero}</LeiNumeroTexto>
+        </LeiNumero>
+        <LeiTexto>
+          <LeiNome>{t(`${chave}.nome`)}</LeiNome> — {t(`${chave}.texto`)}
+        </LeiTexto>
+      </Lei>
+    );
+  }
+  return <Paragrafo>{t(chave)}</Paragrafo>;
+}
+
+// Guia de primeiro acesso, primeira parte: idioma e fuso, obrigatórios antes do resto do app, e as
+// quatro telas que contextualizam a proposta, cada uma aceita com "Continuar" e a última com o
+// compromisso. As telas da proposta podem ser puladas. As preferências só vão ao servidor quando a
+// pessoa sai das telas da proposta, para que voltar a uma tela anterior não salve duas vezes. O tour
+// pela tela inicial vem logo depois (SpotlightOverlay).
+//
+// No modo "revisao", aberto pelo Perfil, a tela mostra só as quatro telas da proposta e volta ao
+// Perfil no fim, sem salvar nada.
+const Onboarding = ({ modo = 'guia' }) => {
+  const revisao = modo === 'revisao';
+  const primeiroPasso = revisao ? PRIMEIRA_PAGINA : PASSO_IDIOMA;
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -50,27 +103,38 @@ const Onboarding = () => {
   const { idioma, setIdioma, idiomas, t } = useI18n();
   const { addToast } = useToast();
   const { comecarTour } = useOnboarding();
-  const [passo, setPasso] = useState(PASSO_IDIOMA);
+  const [passo, setPasso] = useState(primeiroPasso);
   const sugerido = fusoDoAparelho();
   const [fuso, setFuso] = useState(() =>
     sugerido || (fusoSuportado(user?.fuso_horario) ? user.fuso_horario : 'America/Sao_Paulo')
   );
   const [enviando, setEnviando] = useState(false);
+  const pagina = passo >= PRIMEIRA_PAGINA ? PAGINAS_DA_PROPOSTA[passo - PRIMEIRA_PAGINA] : null;
+  const totalDePontos = TOTAL_DE_PASSOS - primeiroPasso;
+  const pontoAtual = passo - primeiroPasso;
+
+  const sair = () => router.back();
+
+  const voltar = () => {
+    if (enviando) return;
+    if (passo > primeiroPasso) setPasso(passo - 1);
+    else if (revisao) sair();
+  };
 
   useEffect(() => {
     const assinatura = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (passo === PASSO_FUSO) setPasso(PASSO_IDIOMA);
+      voltar();
       return true;
     });
     return () => assinatura.remove();
-  }, [passo]);
+  });
 
   const escolherIdioma = (codigo) => {
     setIdioma(codigo);
     setPasso(PASSO_FUSO);
   };
 
-  const confirmar = async () => {
+  const salvarPreferenciasEComecarTour = async () => {
     if (enviando) return;
     setEnviando(true);
     try {
@@ -85,37 +149,90 @@ const Onboarding = () => {
     }
   };
 
+  // Pular, "Agora não" e o compromisso levam ao mesmo lugar: o tour, ou de volta ao Perfil.
+  const concluir = revisao ? sair : salvarPreferenciasEComecarTour;
+
   const ordemDosFusos = sugerido ? [sugerido, ...FUSOS.map((f) => f.value).filter((v) => v !== sugerido)] : null;
 
   return (
     <Container style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }}>
       <Cabecalho>
-        {passo === PASSO_FUSO ? (
-          <BotaoVoltar accessibilityRole="button" accessibilityLabel={t('comum.voltar')} onPress={() => setPasso(PASSO_IDIOMA)}>
-            <Feather name="arrow-left" size={24} color={theme.textPrimary} />
-          </BotaoVoltar>
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
-        <Pontos accessibilityLabel={t('guia.passoDe', { atual: passo + 1, total: 2 })}>
-          <Ponto $ativo={passo === PASSO_IDIOMA} />
-          <Ponto $ativo={passo === PASSO_FUSO} />
+        <LadoDoCabecalho>
+          {passo > primeiroPasso || revisao ? (
+            <BotaoVoltar accessibilityRole="button" accessibilityLabel={t('comum.voltar')} onPress={voltar}>
+              <Feather name="arrow-left" size={24} color={theme.textPrimary} />
+            </BotaoVoltar>
+          ) : null}
+        </LadoDoCabecalho>
+        <Pontos accessibilityLabel={t('guia.passoDe', { atual: pontoAtual + 1, total: totalDePontos })}>
+          {Array.from({ length: totalDePontos }, (_, i) => (
+            <Ponto key={i} $ativo={pontoAtual === i} />
+          ))}
         </Pontos>
-        <View style={{ width: 44 }} />
+        <LadoDoCabecalho $direita>
+          {pagina ? (
+            <BotaoPular accessibilityRole="button" disabled={enviando} onPress={concluir}>
+              <PularTexto>{revisao ? t('comum.fechar') : t('guia.pular')}</PularTexto>
+            </BotaoPular>
+          ) : null}
+        </LadoDoCabecalho>
       </Cabecalho>
 
       <Animated.View key={passo} entering={FadeIn.duration(220)} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
         <AvatarCaixa>
-          <Image source={avatarDe('AGUA', 'feliz', 1)} contentFit="contain" style={{ width: '100%', height: '100%' }} />
+          <Image
+            source={avatarDe(pagina ? pagina.avatar : 'AGUA', 'feliz', 1)}
+            contentFit="contain"
+            style={{ width: '100%', height: '100%' }}
+          />
         </AvatarCaixa>
         <Balao>
           <BalaoTexto accessibilityRole="header">
-            {passo === PASSO_IDIOMA ? t('guia.perguntaIdioma') : t('guia.perguntaFuso')}
+            {pagina
+              ? t(`guia.proposta.${pagina.id}.titulo`)
+              : passo === PASSO_IDIOMA
+                ? t('guia.perguntaIdioma')
+                : t('guia.perguntaFuso')}
           </BalaoTexto>
         </Balao>
       </Animated.View>
 
-      {passo === PASSO_IDIOMA ? (
+      {pagina ? (
+        <>
+          <Lista contentContainerStyle={{ paddingBottom: 12 }}>
+            <Animated.View key={pagina.id} entering={FadeIn.duration(220)}>
+              <CartaoTexto>
+                {pagina.blocos.map((bloco) => (
+                  <BlocoDaProposta key={bloco.chave} pagina={pagina} bloco={bloco} t={t} />
+                ))}
+              </CartaoTexto>
+            </Animated.View>
+          </Lista>
+          <Rodape>
+            {pagina.compromisso ? (
+              <>
+                <BotaoDeCompromisso
+                  rotulo={enviando ? t('guia.salvando') : t('guia.proposta.compromisso.comprometer')}
+                  dica={t('guia.proposta.compromisso.segure', { segundos: SEGUNDOS_PARA_SE_COMPROMETER })}
+                  dicaLeitor={t('guia.proposta.compromisso.segureLeitor')}
+                  desabilitado={enviando}
+                  onConfirmar={concluir}
+                />
+                <BotaoSecundario accessibilityRole="button" disabled={enviando} onPress={concluir}>
+                  <BotaoSecundarioTexto>{t('guia.proposta.compromisso.agoraNao')}</BotaoSecundarioTexto>
+                </BotaoSecundario>
+              </>
+            ) : (
+              <BotaoPrincipal accessibilityRole="button" onPress={() => setPasso(passo + 1)}>
+                <ConteudoDoBotao>
+                  <BotaoPrincipalTexto>{t('guia.continuar')}</BotaoPrincipalTexto>
+                  <Feather name="arrow-right" size={18} color="#ffffff" />
+                </ConteudoDoBotao>
+              </BotaoPrincipal>
+            )}
+          </Rodape>
+        </>
+      ) : passo === PASSO_IDIOMA ? (
         <Conteudo>
           {Object.entries(idiomas).map(([codigo, info]) => (
             <CartaoIdioma
@@ -160,13 +277,8 @@ const Onboarding = () => {
             ))}
           </Lista>
           <Rodape>
-            <BotaoPrincipal
-              accessibilityRole="button"
-              accessibilityState={{ disabled: enviando, busy: enviando }}
-              disabled={enviando}
-              onPress={confirmar}
-            >
-              <BotaoPrincipalTexto>{enviando ? t('guia.salvando') : t('guia.confirmarFuso')}</BotaoPrincipalTexto>
+            <BotaoPrincipal accessibilityRole="button" onPress={() => setPasso(PRIMEIRA_PAGINA)}>
+              <BotaoPrincipalTexto>{t('guia.confirmarFuso')}</BotaoPrincipalTexto>
             </BotaoPrincipal>
           </Rodape>
         </>

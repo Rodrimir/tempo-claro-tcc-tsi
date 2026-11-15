@@ -422,6 +422,19 @@ const Profile = () => {
             <Feather name="chevron-right" size={20} color={theme.textSecondary} />
           </MenuRow>
 
+          <Separador />
+
+          <MenuRow accessibilityRole="button" onPress={() => router.push('/proposta')}>
+            <MenuIcone>
+              <Feather name="book-open" size={18} color={theme.primaryColor} />
+            </MenuIcone>
+            <MenuTexto>
+              <MenuLabel>{t('perfil.reverProposta')}</MenuLabel>
+              <MenuValor>{t('perfil.reverPropostaSub')}</MenuValor>
+            </MenuTexto>
+            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+          </MenuRow>
+
           <SectionTitle>{t('perfil.conta')}</SectionTitle>
 
           <MenuRow accessibilityRole="button" $danger onPress={() => setSairAberto(true)}>

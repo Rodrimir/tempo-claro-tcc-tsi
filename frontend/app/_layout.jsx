@@ -102,6 +102,7 @@ function AuthGuard() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="create" />
       <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="proposta" />
       <Stack.Screen name="pretask" />
       <Stack.Screen name="execute" />
       <Stack.Screen name="success" />

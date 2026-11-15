@@ -1,0 +1,29 @@
+Banco no ar, com backend_db e backend_db_teste. Esse volume tem 5 semanas e o schema mudou desde então, então vou subir a aplicação     1 file changed -154                                                                    ✕
+para conferir se o ddl-auto=validate aceita as tabelas.                                                                                                                                                                          
+RELATORIO_AUDITORIA.md                                                              -154
+Ran 3 shell commands, wrote 1 memory                                                                                                                                                                                             
+────────────────────────────────────────────────────────────────────────────────────────
+● O backend já está subindo. Não havia erro no código: a aplicação procura o PostgreSQL em localhost:5433, e o container do banco         RELATORIO_AUDITORIA.md                                                                   
+(postgres_db) estava parado havia umas 3 semanas, por isso a conexão era recusada.                                                      ────────────────────────────────────────────────────────────────────────────────────────
+1 -# Relatório de Auditoria: Tempo Claro                                              
+O que eu fiz:                                                                                                                              2 -
+- Liguei só o banco do compose.yaml, com docker compose up -d db. Não precisei criar um banco novo, porque o container já existia com o    3 -## 1. Escopo e método                                                              
+  volume backend_postgres_data e as duas bases:                                                                                            4 -
+    - backend_db, que a aplicação usa ao rodar pelo IntelliJ;                                                                                5 -Este relatório foi produzido por leitura direta do código do backend (Spring Boot,
+    - backend_db_teste, que os testes usam, criada pelo db-init/init-test-db.sql.                                                              - `backend/src/main/java`) e do frontend (Expo Router, `frontend/src` e `frontend/a
+- Para conferir, subi o backend: ele iniciou em 4 s, as tabelas antigas passaram pela checagem do Hibernate, e o Swagger e o                 -pp`), comparando o comportamento observado com a documentação funcional fornecida  
+    /v3/api-docs responderam 200. Depois desliguei o backend, então a porta 8084 está livre para o IntelliJ. O banco continua ligado.          -pelo autor. Nenhum código foi alterado nem comentado durante esta auditoria: o obj 
+                                                                                                                                               -etivo é só o diagnóstico.                                                          
+  Para usar agora: rode a configuração TempoClaro no IntelliJ, não a TempoClaro-docker. A segunda procura o banco em db:5432, um endereço    6 -                                                                                   
+  que só existe dentro da rede do Docker. Depois abra:                                                                                       7 -Nem todo o projeto foi lido linha a linha. As seções 2 a 4 documentam o que foi co 
+                                                                                                                                               -nfirmado por leitura. A seção 5 lista o que não foi auditado, para não passar a fa 
+  http://localhost:8084/swagger-ui/index.html                                                                                                  -lsa impressão de cobertura total.                                                  
+                                                                                                                                             8 -                                                                                   
+  Se reiniciar o PC e o erro voltar, é o container parado de novo. Na pasta backend, rode docker compose up -d db.                           9 -## 2. Documentação funcional por módulo (confirmada por leitura)                   
+                                                                                                                                            10 -                                                                                   
+  Para testar o cadastro pelo Swagger, saiba que o config/application.properties local manda e-mail pelo remetente onboarding@resend.dev.   11 -### 2.1 Conta e Autenticação                                                       
+  Por ele, o Resend só entrega na própria conta dona da chave, então o código de verificação pode não chegar em outros e-mails.             12 -                                                                                   
+                                                                                                                                            13 -Cadastro em `POST /api/auth/register` (`AuthController.java`, `AuthService.cadastr
+  Também registrei na memória que o Docker voltou a funcionar e que este é o comando para subir o banco.                                       -ar`). Senha validada em `SenhaValidator.java`: mínimo 8 e máximo 25 caracteres, ex
+  -ige 1 maiúscula e 1 caractere especial, não exige minúscula nem dígito. Hash BCryp
+  ✻ Cooked for 1m 12s · done 19:50                                           

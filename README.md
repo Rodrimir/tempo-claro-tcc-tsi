@@ -87,14 +87,25 @@ plano gratuito do Render bloqueia as portas 25, 465 e 587, de modo que SMTP dire
 produção. A porta 443 não é bloqueada. O detalhamento da publicação está em
 [`docs/DEPLOY_PRODUCAO.md`](docs/DEPLOY_PRODUCAO.md).
 
-O mesmo plano suspende a instância depois de uns quinze minutos sem tráfego, o que tem três efeitos
+O mesmo plano suspende a instância depois de uns quinze minutos sem tráfego, o que tem quatro efeitos
 tratados no código. A primeira requisição depois da pausa demora até um minuto: o aplicativo chama
 a API assim que abre, espera até 90 segundos por resposta e avisa a pessoa quando a espera passa de
 seis segundos. Enquanto a instância dorme, a rotina horária de fechamento não roda: por isso toda
 requisição que usa os contadores do dia apura antes os dias vencidos daquele hábito
 (`ApuracaoService`), com trava na linha de `status_habitos`, e a rotina continua existindo para os
 hábitos de quem não abriu o aplicativo. E uma demora no reinício não encerra mais a sessão salva no
-aparelho, que só é descartada quando a API responde 401 ou 403.
+aparelho, que só é descartada quando a API responde 401 ou 403. Por fim, a primeira chamada ao
+Resend depois do despertar pode passar do limite de 20 segundos, porque o JVM ainda está frio: se a
+falha acontece nos primeiros cinco minutos, o cadastro responde que o servidor estava hibernando e
+pede uma nova tentativa.
+
+**Contas de teste.** Com `CONTAS_TESTE_ATIVO=true` no Render, cada partida do backend cria as contas
+que ainda não existem: `testador01` a `testador09@monzai.com.br`, com a senha de
+`CONTAS_TESTE_SENHA`, e a da banca, com o e-mail de `CONTAS_TESTE_EMAIL_BANCA` e a senha de
+`CONTAS_TESTE_SENHA_BANCA`. Todas entram sem verificar o e-mail e abrem o guia de primeiro acesso.
+Cada uma traz o hábito "Treino diário" (exercício, 5 min, uma ocorrência por dia das 08:00 às
+22:00) com o halterzinho no último visual, 10.000 moedas, 10 escudos e ofensiva zerada
+(`CargaDeContasDeTeste`). Uma conta excluída pelo app volta zerada na partida seguinte.
 
 ---
 
@@ -255,7 +266,7 @@ pg_ctl -D $PGDATA -l /tmp/pg.log \
   -o "-p 5433 -c unix_socket_directories='' -c listen_addresses=localhost" start
 psql -h 127.0.0.1 -p 5433 -U postgres -c "CREATE DATABASE backend_db_teste;"
 
-cd backend && ./mvnw test                # 238 testes
+cd backend && ./mvnw test                # 243 testes
 
 pg_ctl -D $PGDATA stop -m fast           # ao terminar
 ```
@@ -267,11 +278,12 @@ substituído, nos testes, por uma implementação falsa que expõe o último có
 há como cadastrar pela API, porque `AuthService.cadastrar` é transacional e desfaz o cadastro
 quando o envio do e-mail falha.
 
-Os relatórios saem em `backend/target/surefire-reports/`. Dos 238, 144 são os da campanha de
+Os relatórios saem em `backend/target/surefire-reports/`. Dos 243, 144 são os da campanha de
 06/10/2026; 27 vieram com a correção dos defeitos, em `CorrecaoDefeitosIntegracaoTest` e
 `UsuarioServiceUsuarioAusenteTest`; e 67 cobrem as regras de 16/10/2026, no pacote `regras`
 (fuso adiado, dia retroativo, edição adiada, liberação da tarefa, exclusão de conta, mensagens em
-inglês, preferências e guia). As regras que dependem da hora do dia ficam desligadas no perfil de
+inglês, preferências e guia). Os outros 5, em `CargaDeContasDeTesteIntegracaoTest`, cobrem as
+contas de teste. As regras que dependem da hora do dia ficam desligadas no perfil de
 teste (`app.regras.horario-do-dia=false`) e são ligadas, com relógio fixo, só nas classes que as
 testam; em produção valem sempre.
 
@@ -369,7 +381,7 @@ Autenticação: nenhuma, a rota é `permitAll` (ver item 6.1 do fluxo em [§8](#
 | ------ | --------------------------------------------------------------------------------------------------------------- | ----- |
 | 201    | Cadastro aceito                                                                                                   | `{ success: true, message: "Cadastro recebido! ..." }` |
 | 400    | Campo obrigatório ausente/vazio/fora do tamanho, e-mail fora do formato, senha fora dos critérios, corpo malformado, ou uma corrida de e-mail duplicado que escapou da checagem prévia | `{ success: false, message: "..." }` |
-| 422    | E-mail já cadastrado, ou o envio do e-mail de verificação falhou (Resend fora do ar, domínio não verificado, limite diário excedido) | `{ success: false, message: "..." }` |
+| 422    | E-mail já cadastrado, ou o envio do e-mail de verificação falhou (Resend fora do ar, domínio não verificado, limite diário excedido; se a falha de comunicação acontece até 5 min depois de a API acordar, a mensagem diz que o servidor estava hibernando) | `{ success: false, message: "..." }` |
 | 500    | Falha não prevista (ex.: banco indisponível)                                                                       | `{ success: false, message: "Erro interno no servidor." }` |
 
 O sucesso não devolve token: a sessão só se abre depois que o e-mail é confirmado, na funcionalidade de Verificação de E-mail. Mapeamento completo em [§8 → Cadastro](#8-fluxos-ponta-a-ponta).
@@ -430,8 +442,11 @@ e dispositivos; os códigos de verificação do e-mail saem junto. O token antig
 
 ### `POST /api/me/onboarding/preferencias` e `POST /api/me/onboarding/concluir`
 
-Token. A primeira recebe `preferencia_idioma` e `fuso_horario` (passos 1 e 2 do guia de primeiro
-acesso): o idioma vale na hora, e o fuso também se a conta ainda não tem hábito ativo; com hábito,
+Token. A primeira recebe `preferencia_idioma` e `fuso_horario`, escolhidos nos passos 1 e 2 do guia
+de primeiro acesso. O app só a chama ao sair das quatro telas sobre a proposta, que vêm depois do
+fuso e antes do tour (`PAGINAS_DA_PROPOSTA` em `src/onboarding/passos.js`): pelo compromisso, que se
+confirma segurando o botão por 2 segundos, por "Agora não" ou por "Pular". As mesmas telas podem ser
+revistas pelo Perfil, na rota `/proposta`, sem chamar a API. O idioma vale na hora, e o fuso também se a conta ainda não tem hábito ativo; com hábito,
 segue a troca adiada do perfil. A segunda grava `usu_onboarding_concluido_em`; repetir não muda a
 data. As duas devolvem o mesmo corpo do `GET /api/me`.
 
@@ -1060,48 +1075,44 @@ Nenhuma ocorrência de `@todo` ou `@remind` neste fluxo.
 
 ## 13. Artefatos do TCC
 
-A pasta `tcc/` reúne os documentos do trabalho de conclusão. Esta seção existe para responder, sem
-abrir arquivo nenhum, qual é o documento atual de cada assunto.
+A pasta `docs/tcc/` reúne os documentos do trabalho de conclusão (fora do git, como todo o
+`docs/`). Esta seção existe para responder, sem abrir arquivo nenhum, qual é o documento atual de
+cada assunto. A monografia em si fica no Google Docs; em qualquer divergência entre documentos do
+projeto, vale o corpo do texto dela.
 
-| Arquivo | O que é | Versionado |
-| --- | --- | --- |
-| `TempoClaro_Monografia.docx` | A monografia. **É a fonte de verdade**: em qualquer divergência entre documentos do projeto, vale o corpo do texto dela, não os índices, que são campos automáticos e podem estar desatualizados | não, binário |
-| `atualizacao-monografia.md` | O que precisa mudar na monografia, capítulo por capítulo, já na formatação do documento. Contém apenas o que muda | sim |
-| `atualizacao-monografia.docx` | O mesmo conteúdo em Word, com as legendas de quadro em Título 5 e os títulos de seção em Título 1 a 3, para copiar e colar na monografia preservando os estilos | sim |
-| `capitulo-7-testes.md` | Texto do Capítulo 7, Testes e Validação, com os Quadros 10 a 13 | sim |
-| `apendice-b-casos-de-uso.md` | Texto do Apêndice B, com a síntese dos 27 casos de uso e a correlação com os requisitos, nos Quadros 16 a 18 | sim |
-| `validacao-requisitos-iso.md` | Validação dos requisitos contra a ISO/IEC 25010, a ISO/IEC/IEEE 29148 e a ISO 9001, com o de-para entre a numeração antiga e a vigente | sim |
-| `Tabela De Testes Tempo Claro Rodrigo Miranda.xlsx` | Planilha da campanha de testes: 281 casos em 17 abas, com rastreabilidade, cobertura e os 20 defeitos | não, binário |
-| `figura-07-casos-de-uso.png` | **A Figura 7 da monografia**, o diagrama de casos de uso na versão final | sim |
-| `figura-07-casos-de-uso-gerado.*` | Versão do mesmo diagrama produzida por programa, em 300 pontos por polegada. Serve de conferência: foi com ela que se verificou que nenhuma linha cruza outra e que nenhum caso de uso inclui mais de um outro | o `.png` não |
-| `gerar-diagrama-casos-de-uso.py` | Gera a versão de conferência e roda o verificador de cruzamentos | sim |
+| Arquivo em `docs/tcc/` | O que é |
+| --- | --- |
+| `ajustes-monografia-requisitos.md` | Índice do que precisa mudar na monografia e das decisões de 18/10/2026 |
+| `monografia/cap4-requisitos-e-casos-de-uso.md` | Quadros 3 a 5 com RF01 a RF33 e a seção 4.3 nova, prontos para colar |
+| `monografia/cap7-testes.md` | Capítulo 7, só com a planilha de testes |
+| `monografia/outras-correcoes.md` | Demais trechos a corrigir, com o texto atual e o novo |
+| `apendice-b-casos-de-uso.md` | Apêndice B: 19 casos de uso, Quadros 14 a 35 |
+| `Planilha de teste(1).xlsx` | Planilha de testes considerada no TCC: 46 casos, na numeração antiga |
+| `Planilha de teste (numeração vigente).xlsx` | A mesma planilha com RF, RNF e UC na numeração da monografia |
+| `figura-07-casos-de-uso.png` e `.drawio` | **A Figura 7 da monografia**; o `.drawio` é a fonte editável |
+| `figura-07-fonte/gerar-figura-07.py` | Regera a Figura 7 a partir do diagrama de 14 casos de uso do autor e verifica cruzamentos e cobertura dos RF |
 
-### Como regerar o diagrama de conferência
+### Como regerar a Figura 7
 
 ```sh
-cd tcc
-python3 gerar-diagrama-casos-de-uso.py                       # escreve .svg e .drawio
-rsvg-convert -d 300 -p 300 figura-07-casos-de-uso-gerado.svg \
-             -o figura-07-casos-de-uso-gerado.png
+cd docs/tcc/figura-07-fonte
+python3 gerar-figura-07.py ..        # grava ../figura-07-casos-de-uso.drawio e .png
 ```
 
-A saída precisa imprimir `VERIFICAÇÃO: nenhum cruzamento` e `casos de uso com mais de um include:
-nenhum`. Essas duas condições são exigência da modelagem: a primeira é legibilidade, a segunda vem
-da semântica de inclusão em UML, já que dois `«include»` obrigatórios no mesmo caso de uso não têm
-ordem definida.
+A saída precisa imprimir `VERIFICAÇÃO: nenhum problema` (nenhuma linha cruza outra, atravessa
+elipse ou tem rótulo sobre elipse) e `RF cobertos: 33 faltam: nenhum`.
 
 ### Números que valem como referência rápida
 
 | O quê | Quanto |
 | --- | --- |
-| Requisitos funcionais | 21, de RF01 a RF21 |
+| Requisitos funcionais | 33, de RF01 a RF33 (RF22 a RF33 acrescentados em 18/10/2026) |
 | Requisitos não funcionais | 11, de RNF01 a RNF11, classificados pela ISO/IEC 25010 |
-| Casos de uso | 27, de UC01 a UC27, um ator |
-| Quadros da monografia | 18 |
+| Casos de uso | 19, de UC01 a UC19, um ator, agrupados por tela |
+| Quadros da monografia | 35: 13 no corpo e 22 no Apêndice B |
 | Figuras da monografia | 24 |
-| Casos de teste | 281, dos quais 222 executados: 200 aprovados e 22 reprovados |
-| Defeitos registrados | 20: 4 de severidade alta, 13 funcionais e 3 baixas |
-| Testes automatizados do backend | 144 na campanha; 171 depois da correção dos defeitos |
+| Casos de teste da monografia | 46 (planilha): 38 aprovados e 8 não executados, nenhum reprovado |
+| Testes automatizados do backend | fora da monografia; ver a seção de testes deste README |
 
 ---
 
