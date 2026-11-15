@@ -33,6 +33,7 @@
 | **Curso**       | Tecnologia em Sistemas para Internet (TSI)                   |
 | **Semestre**    | 2026/1                                                       |
 | **Autor**       | Rodrigo Miranda da Silva                                     |
+| **Orientadora** | Prof.ª Me. Marcia Zechlinski Gusmão                          |
 | **GitHub**      | [`Rodrimir`](https://github.com/Rodrimir)                    |
 | **Repositório** | `tempo-claro-tcc-tsi`                                        |
 
@@ -52,9 +53,9 @@ separação é a tradução, em arquitetura, do requisito não funcional RNF08.
 | Camada | O que é | Onde |
 | --- | --- | --- |
 | Apresentação | Expo SDK 57 com React Native. Navegação pelo Expo Router, que deriva as rotas da árvore de arquivos. Estilos em `styled-components`. | `frontend/app`, `frontend/src/pages` |
-| Estado do cliente | Sete contextos React, um por preocupação: sessão, hábito corrente, resultado da execução, idioma, som, tema e avisos. Token em `expo-secure-store`, perfil em `AsyncStorage`. | `frontend/src/contexts` |
+| Estado do cliente | Sete contextos React, um por preocupação: sessão, hábito corrente, resultado da execução, idioma, som, tema e avisos; mais o do guia de primeiro acesso, em `src/onboarding`. Token em `expo-secure-store`, perfil em `AsyncStorage`. | `frontend/src/contexts` |
 | Transporte | Cliente Axios único, com interceptor que anexa o token e trata expiração de sessão. | `frontend/src/services/api.js` |
-| Controle | Cinco controladores Spring que recebem a requisição, validam o corpo e devolvem o DTO de resposta. Nenhuma regra de negócio aqui. | `backend/.../*Controller.java` |
+| Controle | Seis controladores Spring que recebem a requisição, validam o corpo e devolvem o DTO de resposta. Nenhuma regra de negócio aqui. | `backend/.../*Controller.java` |
 | Regra de negócio | Serviços por domínio. Todo cálculo de meta, ofensiva, moedas, nível e estatística acontece aqui, nunca no banco nem no cliente. | `backend/.../*Service.java` |
 | Persistência | Spring Data JPA sobre PostgreSQL. O banco guarda fatos e estado e garante integridade referencial; não tem gatilho, visão nem função armazenada. | `backend/.../*Repository.java` |
 
@@ -62,12 +63,12 @@ separação é a tradução, em arquitetura, do requisito não funcional RNF08.
 
 | Onde | Tecnologia | Papel |
 | --- | --- | --- |
-| Backend | Java 21, Spring Boot 3 | Aplicação e injeção de dependência |
+| Backend | Java 17, Spring Boot 4.1 | Aplicação e injeção de dependência |
 | Backend | Spring Security + JWT (HS512) | Autenticação sem estado; validade do token configurável em `jwt.expiration` |
 | Backend | Spring Data JPA, Hibernate | Mapeamento objeto-relacional |
 | Backend | Lombok | Redução de código repetitivo nos DTOs e entidades |
 | Backend | Maven, via `./mvnw` | Compilação e testes |
-| Banco | PostgreSQL 16 | Dez tabelas, nove relacionamentos em cascata, sete índices |
+| Banco | PostgreSQL (16 local, 17 no Neon) | Onze tabelas, dez chaves estrangeiras, sete índices |
 | Frontend | React Native, Expo SDK 57 | Aplicação Android |
 | Frontend | Expo Router | Navegação baseada em arquivos |
 | Frontend | styled-components | Estilo com tema claro e escuro |
@@ -78,14 +79,13 @@ separação é a tradução, em arquitetura, do requisito não funcional RNF08.
 
 | Serviço | Papel | Como se reconhece no repositório |
 | --- | --- | --- |
-| Render | Hospeda o backend em contêiner | `application-prod.properties` lê `${PORT:8084}`, que é o padrão do Render |
-| Neon | PostgreSQL gerenciado | O mesmo arquivo aponta a URL do Neon |
-| EAS Build | Gera o APK do aplicativo | `frontend/eas.json` |
+| Render | Hospeda o backend em contêiner (`backend/Dockerfile`) | `application-prod.properties` lê a porta de `${PORT}`, que o Render fornece; 8084 é o padrão local |
+| Neon | PostgreSQL gerenciado | O mesmo arquivo lê a conexão de `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` |
+| Gradle local | Gera o APK assinado, a partir do projeto Android que o `expo prebuild` deriva | `frontend/plugins/withAssinaturaRelease.js`, ver [§5](#5-execução-local) |
 
 O envio de e-mail passa pela API HTTP do Resend, e não por SMTP, por uma razão de infraestrutura: o
 plano gratuito do Render bloqueia as portas 25, 465 e 587, de modo que SMTP direto nunca entrega em
-produção. A porta 443 não é bloqueada. O detalhamento da publicação está em
-[`docs/DEPLOY_PRODUCAO.md`](docs/DEPLOY_PRODUCAO.md).
+produção. A porta 443 não é bloqueada.
 
 O mesmo plano suspende a instância depois de uns quinze minutos sem tráfego, o que tem quatro efeitos
 tratados no código. A primeira requisição depois da pausa demora até um minuto: o aplicativo chama
@@ -114,46 +114,50 @@ Cada uma traz o hábito "Treino diário" (exercício, 5 min, uma ocorrência por
 ```
 tempo-claro-tcc-tsi/
 ├── backend/                      API Spring Boot
+│   ├── compose.yaml              PostgreSQL local em Docker, porta 5433
+│   ├── Dockerfile                Imagem usada no Render
 │   └── src/
 │       ├── main/java/.../backend2java/
 │       │   ├── autenticacao/     Cadastro, login, emissão de token      (10 classes)
 │       │   ├── verificacao/      Código de 6 dígitos e envio de e-mail   (6 classes)
-│       │   ├── usuario/          Entidade do usuário e perfil            (6 classes)
-│       │   ├── habito/           Criação, edição, exclusão, painel e apuração (15 classes)
+│       │   ├── usuario/          Entidade do usuário, perfil e contas de teste (9 classes)
+│       │   ├── habito/           Criação, edição, exclusão, painel e apuração (18 classes)
 │       │   ├── execucao/         Execução, desistência, escudo e moedas (10 classes)
 │       │   ├── calibracao/       Questionário e cálculo da sugestão     (10 classes)
 │       │   ├── biblioteca/       Frases motivacionais por categoria      (2 classes)
 │       │   ├── stats/            Ofensiva, recordes e constância         (4 classes)
-│       │   └── infra/            Segurança, exceções e utilitários      (13 classes)
+│       │   └── infra/            Segurança, exceções, idioma e utilitários (20 classes)
 │       ├── main/resources/
-│       │   ├── schema.sql        As dez tabelas, índices e restrições
+│       │   ├── schema.sql        As onze tabelas, índices e restrições
 │       │   ├── calibracao/       Catálogo de perguntas do questionário
+│       │   ├── i18n/             Mensagens da API em português e inglês
 │       │   └── Postman/          Coleção de testes manuais, 29 requisições
-│       └── test/java/            171 provas automatizadas
+│       └── test/java/            243 testes automatizados
 ├── frontend/                     Aplicativo Expo
-│   ├── app/                      18 rotas do Expo Router, arquivos finos
+│   ├── app/                      20 arquivos de rota do Expo Router, finos
+│   ├── __tests__/                42 testes de unidade (Jest)
+│   ├── plugins/                  Assinatura do APK de release no prebuild
+│   ├── scripts/                  Verificação das traduções
 │   └── src/
-│       ├── pages/                14 telas, cada uma com index, estilos e domínio
-│       ├── components/           10 componentes compartilhados
+│       ├── pages/                15 telas, cada uma com index, estilos e domínio
+│       ├── components/           11 componentes compartilhados
 │       ├── contexts/             7 contextos de estado global
+│       ├── onboarding/           Guia de primeiro acesso e telas da proposta
 │       ├── hooks/                Ganchos reutilizáveis
 │       ├── i18n/                 Catálogos pt-BR e en-US
 │       ├── model/                Enumerações de estado
-│       ├── services/             Cliente HTTP
+│       ├── services/             Cliente HTTP e notificações locais
 │       ├── styles/               Temas claro e escuro
 │       └── utils/                Armazenamento, formatação e erros
-├── tcc/                          Documentos do trabalho, ver §13
-├── docs/                         Material de apoio, fora do versionamento
-├── README.md                     Este arquivo
-├── RELATORIO_AUDITORIA.md        Auditoria de código de 27/09/2026
-└── revisao.md                    Metodologia de documentação e análise
+├── docs/                         Material de apoio local, fora do versionamento
+└── README.md                     Este arquivo
 ```
 
 ---
 
 ## 4. Banco de Dados
 
-Dez tabelas em PostgreSQL. O banco guarda fatos e estado e garante integridade referencial; não há
+Onze tabelas em PostgreSQL. O banco guarda fatos e estado e garante integridade referencial; não há
 gatilho, visão nem função armazenada, de modo que toda regra de negócio fica na camada de serviço,
 onde pode ser testada sem banco. O esquema está em `backend/src/main/resources/schema.sql` e roda
 na subida da aplicação.
@@ -172,10 +176,12 @@ na subida da aplicação.
 | `calibracoes` | Sessão do questionário, com a meta sugerida e se foi aceita | `usuarios`, `habitos` |
 | `calibracao_respostas` | Cada resposta dada dentro de uma sessão de calibração | `calibracoes` |
 | `dispositivos_push` | Token do aparelho para notificação, previsto como trabalho futuro | `usuarios` |
+| `habitos_config_pendente` | Configuração de execução editada que só passa a valer no dia seguinte (edição adiada) | `habitos` |
 
 Chave primária do tipo UUID em todas, para que um identificador vazado não revele a quantidade de
-registros nem permita adivinhar o vizinho. Nove relacionamentos com remoção em cascata e sete
-índices sobre as colunas das consultas de maior frequência.
+registros nem permita adivinhar o vizinho. Dez chaves estrangeiras: nove com remoção em cascata e
+uma, `his_sub_atividade_id`, que vira nula quando a sub-atividade some, para preservar o histórico.
+Sete índices sobre as colunas das consultas de maior frequência.
 
 ### Detalhamento por tabela
 
@@ -189,7 +195,7 @@ acima, até que o fluxo correspondente seja documentado.
 | ------------------------ | ------------ | ---------------------------------------- | ---------- |
 | `usu_id`                 | UUID (PK)    | `DEFAULT gen_random_uuid()`              | Cadastro (9.2) |
 | `usu_nome`               | VARCHAR(150) | `NOT NULL`                                | Cadastro (9.2) |
-| `usu_email`              | VARCHAR(255) | `UNIQUE NOT NULL`, `CHECK (LIKE '%@%')`   | Cadastro (9.1, 9.2) |
+| `usu_email`              | VARCHAR(255) | `UNIQUE NOT NULL`, `CHECK (LIKE '%@%')`   | Cadastro (9.1, 9.2, gravado em minúsculas) |
 | `usu_senha_hash`         | VARCHAR(255) | `NOT NULL`                                | Cadastro (9.2) |
 | `usu_fuso_horario`       | VARCHAR(64)  | `NOT NULL DEFAULT 'America/Sao_Paulo'`    | Cadastro (9.2, valor fixo, não escolhido pelo usuário) |
 | `usu_preferencia_idioma` | VARCHAR(10)  | `NOT NULL DEFAULT 'pt-BR'`                | Cadastro (9.2) |
@@ -197,6 +203,11 @@ acima, até que o fluxo correspondente seja documentado.
 | `usu_criado_em`          | TIMESTAMPTZ  | `NOT NULL DEFAULT CURRENT_TIMESTAMP`      | Cadastro (9.2) |
 | `usu_atualizado_em`      | TIMESTAMPTZ  | `NOT NULL DEFAULT CURRENT_TIMESTAMP`      | Cadastro (9.2, via `@PrePersist`) |
 | `usu_email_verificado`   | BOOLEAN      | `NOT NULL DEFAULT FALSE`                  | Cadastro (9.2, nasce `false`) |
+| `usu_notificacoes_ativas` | BOOLEAN     | `NOT NULL DEFAULT TRUE`                   | Cadastro (recebe o default da coluna) |
+| `usu_som_ativo`          | BOOLEAN      | `NOT NULL DEFAULT TRUE`                   | Cadastro (recebe o default da coluna) |
+| `usu_onboarding_concluido_em` | TIMESTAMPTZ | nulo                                  | Cadastro (nasce nulo, o que abre o guia de primeiro acesso) |
+| `usu_fuso_pendente`      | VARCHAR(50)  | nulo                                      | Cadastro (nasce nulo; só a troca de fuso pelo Perfil preenche) |
+| `usu_fuso_vigente_em`    | TIMESTAMPTZ  | nulo                                      | Cadastro (nasce nulo, junto com `usu_fuso_pendente`) |
 
 ### `codigos_verificacao`
 
@@ -220,24 +231,28 @@ acima, até que o fluxo correspondente seja documentado.
 
 | Ferramenta | Versão | Para quê |
 | --- | --- | --- |
-| JDK | 21 | Compilar e rodar o backend |
-| PostgreSQL | 16 ou superior | Banco local |
+| JDK | 17 ou superior | Compilar e rodar o backend |
+| PostgreSQL | 16 ou superior, ou Docker | Banco local |
 | Node.js | 20 ou superior | Ferramentas do Expo |
 | Android Studio ou um aparelho com Expo Go | — | Executar o aplicativo |
 
 ### Backend
 
+O backend local procura o PostgreSQL em `localhost:5433`, base `backend_db`, usuário `postgres` e
+senha `123` (valores só de desenvolvimento, em `application.properties`). O `compose.yaml` sobe
+exatamente esse banco, já com a base `backend_db_teste` dos testes.
+
 O Spring lê `backend/config/application.properties` automaticamente, com precedência sobre o
-arquivo do classpath. É nesse arquivo local, que não é versionado, que ficam a senha do banco, o
-segredo do JWT e a chave do Resend.
+arquivo do classpath. É nesse arquivo local, que não é versionado, que ficam o segredo do JWT e a
+chave do Resend.
 
 ```sh
-createdb backend_db                      # uma vez
 cd backend
+docker compose up -d db                  # PostgreSQL na porta 5433, uma vez por sessão
 ./mvnw spring-boot:run                   # sobe em http://localhost:8084
 ```
 
-O `schema.sql` roda na subida da aplicação e cria as dez tabelas se ainda não existirem.
+O `schema.sql` roda na subida da aplicação e cria as onze tabelas se ainda não existirem.
 
 ### Frontend
 
@@ -291,9 +306,9 @@ testam; em produção valem sempre.
 
 ```sh
 cd frontend
-npm test                 # 37 testes de unidade (jest-expo)
+npm test                 # 42 testes de unidade (jest-expo)
 npm run i18n:check       # mesmas chaves em pt e en, nenhum texto fixo no JSX
-npx expo lint            # sem erros nem avisos
+npx expo lint            # análise estática (ESLint)
 ```
 
 O roteiro de ponta a ponta da API, com 117 casos, fica em `docs/campanha-v1.1/e2e_api.py` (pasta
@@ -326,8 +341,10 @@ O endereço embutido é o de `EXPO_PUBLIC_API_URL` no momento do build. A config
 
 ## 6. API — Contratos Completos
 
-Vinte rotas e um job agendado. Todas as rotas vivem sob `/api`. Seis são públicas, declaradas uma a
-uma em `SecurityConfig`; as demais exigem o token no cabeçalho `Authorization: Bearer <token>`.
+Vinte e três rotas e um job agendado. Todas as rotas vivem sob `/api`. Sete são públicas (as seis
+de autenticação e o `/api/health`), declaradas uma a uma em `SecurityConfig`; as demais exigem o
+token no cabeçalho `Authorization: Bearer <token>`. Os identificadores EP01 a EP20 são os da
+planilha de testes; as quatro rotas sem identificador vieram depois dela.
 
 ### Visão geral
 
@@ -353,6 +370,10 @@ uma em `SecurityConfig`; as demais exigem o token no cabeçalho `Authorization: 
 | EP18 | `GET /api/calibration/questions` | token | Perguntas da categoria, no idioma do usuário |
 | EP19 | `POST /api/calibration` | token | Cálculo da sugestão de meta |
 | EP20 | `FechamentoDiarioJob` | job | Apuração horária dos dias encerrados, não é rota HTTP |
+| — | `DELETE /api/me` | token | Exclusão da conta e de tudo o que depende dela |
+| — | `POST /api/me/onboarding/preferencias` | token | Idioma e fuso escolhidos no guia de primeiro acesso |
+| — | `POST /api/me/onboarding/concluir` | token | Marca o guia de primeiro acesso como concluído |
+| — | `GET /api/health` | pública | Verificação de disponibilidade, sem tocar no banco |
 
 ### Respostas comuns a todas as rotas protegidas
 
@@ -371,7 +392,7 @@ Autenticação: nenhuma, a rota é `permitAll` (ver item 6.1 do fluxo em [§8](#
 | Campo                | Tipo   | Obrigatório | Observação |
 | --------------------- | ------ | ------------- | ---------- |
 | `nome`                | string | sim           | até 150 caracteres (`@Size`, item 5, e `.max()` no cliente, item 2) |
-| `email`                | string | sim           | precisa conter `@`, até 255 caracteres; a checagem de duplicidade é sensível a maiúsculas/minúsculas de propósito (ver item 9.1) |
+| `email`                | string | sim           | precisa conter `@`, até 255 caracteres; é gravado em minúsculas e sem espaços nas pontas, e a checagem de duplicidade ignora maiúsculas (ver item 9.1) |
 | `password`             | string | sim           | entre 8 e 25 caracteres, ao menos 1 letra maiúscula e 1 caractere especial (item 8) |
 | `preferencia_idioma`   | string | não           | aceita `"pt-BR"` ou `"en-US"`; qualquer outro valor, ou a ausência do campo, vira `"pt-BR"` |
 
@@ -392,7 +413,7 @@ Pública. Corpo: `email` e `password`, ambos obrigatórios.
 
 | Status | Quando ocorre | Corpo |
 | --- | --- | --- |
-| 200 | Credenciais corretas e e-mail já confirmado | `{ token, usuario: { ... } }` |
+| 200 | Credenciais corretas e e-mail já confirmado | `{ token, user: { ... } }` |
 | 401 | Senha incorreta ou e-mail inexistente | `{ success: false, message: "..." }` |
 | 403 | E-mail ainda não confirmado. `Usuario.isEnabled()` devolve `emailVerificado`, e o Spring Security recusa login de conta desabilitada | `{ success: false, message: "..." }` |
 
@@ -405,12 +426,17 @@ exigir um login em seguida.
 | --- | --- |
 | 200 | Código correto e dentro do prazo. Devolve token e usuário |
 | 400 | Código ausente ou malformado |
-| 422 | Código incorreto ou expirado |
+| 422 | Código incorreto, expirado ou já usado, ou bloqueado depois de cinco tentativas erradas |
 
 ### `POST /api/auth/resend-code`
 
-Pública. Corpo: `email`. Gera um código novo e invalida o anterior. Responde 200 mesmo para e-mail
-inexistente, para não revelar quais endereços estão cadastrados.
+Pública. Corpo: `email`. Gera um código novo e invalida o anterior.
+
+| Status | Quando ocorre |
+| --- | --- |
+| 200 | Novo código enviado |
+| 404 | Nenhuma conta com esse e-mail |
+| 422 | Conta já verificada, ou pedido feito antes de 60 segundos desde o último código |
 
 ### `POST /api/auth/forgot-password`
 
@@ -496,12 +522,12 @@ Token. É o contrato mais extenso da API.
 | `categoria` | string | sim | `AGUA`, `ESTUDO` ou `EXERCICIO` |
 | `tipo_medida` | string | sim | `TEMPO` ou `QUANTIDADE`, determinado pela categoria |
 | `meta_base` | inteiro | sim | mínimo 1 |
-| `meta_frequencia_diaria` | inteiro | não | vezes ao dia, com mínimo e máximo |
-| `ocorrencias` | lista | não | horários das sub-atividades; só é usada quando o tamanho da lista bate com `meta_frequencia_diaria`, ver DEF-10 |
+| `meta_frequencia_diaria` | inteiro | não | vezes ao dia, de 1 a 12 |
+| `ocorrencias` | lista | não | um horário por sub-atividade; a lista precisa ter o tamanho de `meta_frequencia_diaria`, senão responde 400 (DEF-10) |
 | `frequencia_semanal` | string | não | dias cobrados, validado por padrão de texto |
 | `meta_maxima`, `incremento`, `dias_incremento` | inteiro | não | progressão automática da meta |
 | `gatilho_ancora` | string | não | até 120 caracteres; campo opcional no formulário de criação e edição |
-| `calibracao_id` | UUID | não | vincula uma sessão de calibração; falha em silêncio se não existir, ver DEF-15 |
+| `calibracao_id` | UUID | não | vincula uma sessão de calibração; inexistente ou de outro dono responde 404, já usada ou de outra categoria responde 422 (DEF-15) |
 
 | Status | Quando ocorre |
 | --- | --- |
@@ -542,7 +568,7 @@ Token. Registra o desfecho de uma ocorrência.
 | --- | --- |
 | 200 | Execução registrada. A resposta traz o valor acumulado, as moedas creditadas e se houve bônus |
 | 400 | Tipo inválido ou valor negativo |
-| 422 | Token já usado, ou hábito sem ocorrência pendente |
+| 422 | Token já usado, hábito sem ocorrência pendente, ou ocorrência ainda não liberada (a liberação é 15 minutos antes do horário) |
 
 ### `POST /api/habits/{id}/shield`
 
@@ -578,7 +604,7 @@ de a API estar acordada na hora do job.
 
 ## 7. Frontend — Estrutura e Componentes
 
-Quatorze telas, dezoito rotas, dez componentes compartilhados e sete contextos. A pasta `app`
+Quinze telas, vinte arquivos de rota, onze componentes compartilhados e sete contextos. A pasta `app`
 contém só as rotas, que são arquivos finos cuja única função é apontar para a página em
 `src/pages`; essa separação é imposição do Expo Router, que deriva a navegação da árvore de
 arquivos, e tem o efeito desejável de manter a lógica de tela fora da definição de rota.
@@ -590,12 +616,13 @@ arquivos, e tem o efeito desejável de manter a lógica de tela fora da definiç
 | `Login` | `login.jsx` | Duas abas no mesmo formulário: entrar e criar conta |
 | `VerifyEmail` | `verify-email.jsx` | Campo do código de seis dígitos, com reenvio |
 | `ForgotPassword` | `forgot-password.jsx` | Dois passos: pedido do código e definição da nova senha |
+| `Onboarding` | `onboarding.jsx`, `proposta.jsx` | Guia de primeiro acesso: idioma, fuso e as quatro telas da proposta, antes do tour pela tela inicial. A rota `proposta` reabre as quatro telas pelo Perfil |
 | `Calibration` | `calibration.jsx` | Questionário, uma pergunta por vez, com indicador de progresso |
-| `CreateHabit` | `(tabs)/create.jsx` | Assistente de quatro passos: molde, modo de configuração, meta e revisão |
+| `CreateHabit` | `create.jsx` | Assistente de quatro passos: molde, modo de configuração, meta e revisão |
 | `Home` | `(tabs)/home.jsx` | Carrossel com um hábito em foco, progresso do dia e ações do hábito |
 | `Stats` | `(tabs)/stats.jsx` | Ofensiva, desempenho de trinta dias, recordes e constância |
 | `Store` | `(tabs)/store.jsx` | Custo do escudo, saldo por hábito e inventário |
-| `Profile` | `(tabs)/profile.jsx` | Nome, idioma, tema e fuso horário |
+| `Profile` | `(tabs)/profile.jsx` | Nome, idioma, tema, som, lembretes e fuso; atalhos para troca de senha, revisão da proposta, saída e exclusão da conta |
 | `ChangePassword` | `change-password.jsx` | Troca de senha, com confirmação |
 | `PreTask` | `pretask.jsx` | Frase motivacional antes de iniciar |
 | `Execution` | `execute.jsx` | Cronômetro ou contador, conforme o tipo de medida |
@@ -614,15 +641,16 @@ As demais rotas são `index.jsx`, que decide entre acesso e tela inicial; `+not-
 | `ExecutionResultContext` | Carrega o resultado da execução até as telas de sucesso e falha |
 | `LanguageContext` | Idioma corrente e troca em tempo de execução |
 | `ThemeToggleContext` | Tema claro e escuro |
-| `SoundContext` | Efeitos sonoros, preferência guardada só no aparelho |
+| `SoundContext` | Efeitos sonoros; a preferência fica no aparelho e no perfil do servidor (`som_ativo`) |
 | `ToastContext` | Avisos curtos, inclusive o de sessão expirada |
 
 ### Camadas de apoio
 
 | Pasta | Conteúdo |
 | --- | --- |
-| `src/services` | Cliente Axios único. O interceptor anexa o token e, ao receber 401 ou 403 fora das rotas de login e cadastro, avisa o usuário, aguarda dois segundos, limpa as credenciais e redireciona |
-| `src/i18n` | Catálogos `pt.js` e `en.js`. O de inglês tem seis chaves a mais, ver DEF-01 |
+| `src/services` | Cliente Axios único. O interceptor anexa o token e, ao receber 401 ou 403 fora das rotas de login e cadastro, avisa o usuário, aguarda dois segundos, limpa as credenciais e redireciona. Também agenda os lembretes locais (`notificacoes.js`): 15 minutos antes e na hora de cada ocorrência |
+| `src/i18n` | Catálogos `pt.js` e `en.js`, com as mesmas chaves nos dois idiomas, conferidas por teste e por `npm run i18n:check` |
+| `src/onboarding` | Contexto, roteiro e destaque (spotlight) do guia de primeiro acesso, e a definição das quatro telas da proposta |
 | `src/model` | Enumerações de estado de hábito e de ocorrência |
 | `src/utils` | Armazenamento seguro do token, formatação de data e tradução de erro da API para texto de usuário |
 | `src/hooks` | Ganchos reutilizáveis de temporização e de ciclo de vida |
@@ -647,10 +675,10 @@ Instância única do axios com `baseURL` fixa e dois interceptors: um de requisi
 
 ## 8. Fluxos Ponta a Ponta
 
-> **Escopo desta seção.** O mapeamento ponta a ponta é feito uma funcionalidade por vez, pelo
-> método descrito em [`revisao.md`](revisao.md): percorrer o caminho inteiro, do toque na tela à
+> **Escopo desta seção.** O mapeamento ponta a ponta é feito uma funcionalidade por vez:
+> percorrer o caminho inteiro, do toque na tela à
 > linha no banco, e deixar no código-fonte as anotações `@note`, `@audit-ok`, `@audit-issue`,
-> `@audit-info`, `@todo` e `@remind` que sustentam o texto. Hoje existem 53 anotações, em dezesseis
+> `@audit-info`, `@todo` e `@remind` que sustentam o texto. Hoje existem 55 anotações, em dezessete
 > arquivos, todas do caminho de cadastro. Por isso esta seção e a [§12](#12-sumário-de-bookmarks-do-fluxo-de-funcionalidades)
 > cobrem só o Cadastro. Aguardam mapeamento: Autenticação, Verificação de e-mail, Recuperação de
 > senha, Criação de hábito, Calibração, Execução da tarefa, Gamificação, Estatísticas e Perfil. As
@@ -698,6 +726,10 @@ estourava como `DataIntegrityViolationException` (item 13.4) em vez de um erro d
 Corrigido com `TAMANHO_MAXIMO_NOME = 150` e `.max(...)` no schema, espelhando o `@Size`
 adicionado em `RegisterRequestDTO.java` (item 5).
 
+`@audit-info` [outcome: fixed] `senha` não tinha `.max()`: uma senha maior que os 72 bytes que o
+BCrypt considera (item 8.1) passava validada, mas tinha a cauda descartada na hora de autenticar
+depois. Corrigido com `TAMANHO_MAXIMO_SENHA`, que espelha `SenhaValidator.TAMANHO_MAXIMO`.
+
 #### 3. [Frontend / Estado Global] `src/contexts/AuthContext.jsx`
 
 `@note` 3.1. Função `register`: traduz os campos do formulário (`nome`, `email`, `senha`,
@@ -725,7 +757,7 @@ em `nome` e `@Size(max = 255)` em `email`, espelhando o schema.sql.
 
 `@audit-info` [outcome: fixed elsewhere] `password` de propósito não ganhou `@Size` aqui: as
 outras regras de força de senha (mínimo, maiúscula, caractere especial) já não vivem como
-anotação de bean validation neste DTO, e sim em `SenhaValidator.motivoInvalida` (item 8.1),
+anotação de bean validation neste DTO, e sim em `SenhaValidator.exigirValida` (item 8.1),
 reaplicado também por `redefinirSenha` (recuperação de senha). O teto de tamanho entrou lá, pelo
 mesmo motivo — ver item 8.
 
@@ -762,7 +794,7 @@ mais o cenário de usuário órfão.
 
 #### 8. [Backend / Validação] `infra/util/SenhaValidator.java`
 
-`@note` 8.1. Método `motivoInvalida`: as mesmas regras do item 2.1 (tamanho mínimo e máximo,
+`@note` 8.1. Método `exigirValida`: as mesmas regras do item 2.1 (tamanho mínimo e máximo,
 maiúscula, caractere especial), reaplicadas no servidor. Também é chamado por `redefinirSenha`
 (recuperação de senha, fora deste mapeamento), então o teto de tamanho vale para os dois fluxos.
 
@@ -774,11 +806,14 @@ do BCrypt), e não no DTO — para ficar no mesmo lugar das outras regras de for
 
 #### 9. [Backend / Persistência] `usuario/model/Usuario.java` + `usuario/UsuarioRepository.java`
 
-`@note` 9.1. Método `existsByEmail`: checagem de duplicidade usada no item 7.1(a). É sensível a
-maiúsculas/minúsculas — nada normaliza o e-mail para caixa baixa antes de comparar ou salvar, então
-duas variações de maiúscula do mesmo endereço são tratadas como contas diferentes. Levantado como
-possível inconsistência e confirmado pelo autor como comportamento intencional: e-mail é
-case-sensitive de propósito, sem normalização.
+`@note` 9.1. Método `existsByEmail`: checagem de duplicidade usada no item 7.1(a). Compara sem
+diferença de maiúsculas (`lower(u.email) = lower(:email)`).
+
+`@audit-issue` [outcome: fixed] a checagem era sensível a maiúsculas, e duas variações do mesmo
+endereço viravam contas diferentes; o login com a primeira letra maiúscula também falhava. Em
+16/10/2026 o autor revogou a decisão anterior, que mantinha o e-mail sensível a maiúsculas: ele
+passou a ser normalizado nos DTOs de autenticação (`EmailNormalizado`), em minúsculas e sem espaços
+nas pontas, e comparado sem diferença de caixa.
 
 `@note` 9.2. Método `save` (via `JpaRepository`, chamado no item 7.1c): grava a linha do novo
 usuário.
@@ -924,9 +959,9 @@ quando `!isLoginTab`, e sempre em `confirmarSenha`) passam `textContentType="new
 ## 9. Padrão de Rastreabilidade — `@audit-ok`
 
 A cada revisão, a jornada de uma funcionalidade é remapeada arquivo por arquivo (frontend e
-backend) em [§8](#8-fluxos-ponta-a-ponta) e anotada com um conjunto fixo de marcações. As
-marcações não vivem como comentário dentro do código-fonte: elas existem só nesta documentação,
-presas ao arquivo e à função onde a observação foi feita.
+backend) em [§8](#8-fluxos-ponta-a-ponta) e anotada com um conjunto fixo de marcações. Cada
+marcação aparece em dois lugares: como comentário no ponto exato do código-fonte e nesta
+documentação, presa ao arquivo e à função onde a observação foi feita.
 
 | Tag            | Uso |
 | --------------- | --- |
@@ -953,10 +988,11 @@ descrição aponta o requisito que a requisição exercita.
 ### Como usar
 
 1. No Postman, **Import** e selecionar o arquivo da coleção.
-2. Criar uma variável de ambiente `base_url` com `http://localhost:8084/api`.
-3. Rodar `01 - Autenticação → Register`, confirmar o e-mail com o código, e depois `Login`. A
-   resposta do login traz o token; guardá-lo na variável `token`, que as demais requisições usam no
-   cabeçalho de autorização.
+2. Criar as variáveis `baseUrl` (`http://localhost:8084/api`), `email` e `senha`.
+3. Rodar `01 - Autenticação → Register`, confirmar o e-mail com o código, e depois `Login`. Os
+   scripts da coleção guardam sozinhos o `token` (usado no cabeçalho de autorização de todas as
+   requisições), o `calibracaoId` devolvido por `Calcular sugestão` e o `habitoId` devolvido pela
+   criação do hábito.
 
 ### As sete pastas
 
@@ -966,7 +1002,7 @@ descrição aponta o requisito que a requisição exercita.
 | 02 - Calibração | 5 | Questionário das três categorias, cálculo da sugestão e categoria inexistente |
 | 03 - Hábitos | 6 | Criação com e sem calibração, painel, edição, exclusão e o limite de dois ativos |
 | 04 - Execução | 8 | Frase pré-tarefa, conclusão, superação, desistência com e sem escudo, token repetido, tipo inválido e compra de escudo |
-| 05 - Estatísticas | 2 | Estatísticas do mês e o apelido da rota, que devolve o mesmo conteúdo |
+| 05 - Estatísticas | 2 | Estatísticas dos últimos trinta dias (`/monthly`) e dos últimos sete (`/weekly`) |
 | 06 - Perfil | 2 | Atualização de nome e fuso, e troca de senha |
 | 07 - Segurança | 3 | Requisição sem token, senha errada e tentativa de acessar hábito de outro usuário |
 
@@ -978,8 +1014,8 @@ de um hábito criado na pasta 03.
 ## 11. Limitações Conhecidas
 
 Duas listas. A primeira são os defeitos levantados pela campanha de testes de 06 de outubro de
-2026, registrados na aba Defeitos de
-[`tcc/Tabela De Testes Tempo Claro Rodrigo Miranda.xlsx`](tcc/), que é o registro canônico. Nenhum
+2026, registrados na aba Defeitos da planilha de testes entregue na disciplina, que é o registro
+canônico e fica fora deste repositório. Nenhum
 deles foi corrigido durante a campanha, por decisão metodológica: corrigir durante a execução
 invalidaria o resultado registrado. A correção veio depois, em 16/10/2026, como trabalho de
 manutenção, e a coluna Situação abaixo diz o que mudou. A segunda lista são as pendências de
@@ -1029,12 +1065,13 @@ tabela `dispositivos_push` (B19), porque o push remoto é trabalho futuro na se�
 
 | Pendência | O que falta |
 | --- | --- |
+| Senha antiga do banco no histórico do Git | A senha do Neon esteve em `application.properties` até junho de 2026 e continua no histórico público do repositório. Ela precisa ser trocada no painel do Neon, com o novo valor em `DB_PASSWORD` no Render; remover do arquivo não a torna secreta |
 | Código de verificação fixo no painel do Render | A variável `CODIGO_VERIFICACAO_FIXO` já saiu do código e do `application-prod.properties`, mas se ainda estiver definida no painel do Render ela tem precedência sobre o padrão do arquivo. Conferir e apagar lá |
-| Remetente do Resend | O domínio verificado no Resend é `monzai.com.br` (o DKIM está em `resend._domainkey.monzai.com.br`; `send.monzai.com.br` é só o subdomínio de retorno). Definir `RESEND_FROM_EMAIL="Tempo Claro <verificacao@monzai.com.br>"` no Render. Em 16/10/2026 esse remetente entregou para dois endereços, um deles fora da conta do Resend |
+| Envio de e-mail no Render | O domínio verificado no Resend é `monzai.com.br` (o DKIM está em `resend._domainkey.monzai.com.br`; `send.monzai.com.br` é só o subdomínio de retorno). O Render precisa de `RESEND_API_KEY` e de `RESEND_FROM_EMAIL` com o valor `Tempo Claro <verificacao@monzai.com.br>`, sem aspas. Sem as duas, o backend registra "Envio de e-mail desconfigurado" ao subir, e cadastro e recuperação de senha não enviam o código |
 
 ### O que o sistema não faz
 
-A campanha de 16/10/2026 (`docs/campanha-v1.1/CAMPANHA_E_CORRECOES.md`) levantou mais treze achados,
+A campanha de 16/10/2026 (registrada em material local, fora do versionamento) levantou mais treze achados,
 C01 a C13, todos corrigidos na v1.2.0; o principal era a barra inferior por cima do formulário de
 criação, que fazia o toque em "Revisar" cair no botão de começar.
 
@@ -1057,11 +1094,12 @@ Nenhuma ocorrência de `@todo` ou `@remind` neste fluxo.
 | --- | ----- | ------ |
 | `@audit-info`  | 1.1 `Login/index.jsx`                                    | Botão físico de voltar do Android fica bloqueado em toda a tela de login/cadastro. |
 | `@audit-issue` | **[fixed]** 2.1 `Login/validation.js` → `criarRegisterSchema` | Campo `nome` sem limite de tamanho, nem cliente nem servidor. Corrigido com `.max(TAMANHO_MAXIMO_NOME)`. |
+| `@audit-info`  | **[fixed]** 2.1 `Login/validation.js` → `criarRegisterSchema` | Campo `senha` sem `.max()`; o BCrypt descarta o que passa de 72 bytes. Corrigido com `.max(TAMANHO_MAXIMO_SENHA)`. |
 | `@audit-issue` | **[fixed]** 5.1 `RegisterRequestDTO.java`                | Nenhum campo tinha `@Size`. Corrigido: `@Size(max=150)` em `nome`, `@Size(max=255)` em `email`. |
 | `@audit-info`  | 5.1 `RegisterRequestDTO.java`                            | `password` não ganhou `@Size` aqui de propósito: o teto foi para `SenhaValidator` (8.1), junto das outras regras de força de senha. |
 | `@audit-issue` | **[fixed]** 7.1 `AuthService.java` → `cadastrar`         | Faltava `@Transactional` entre salvar o usuário e gerar o código: uma falha no meio deixava um usuário órfão sem código de verificação. Corrigido. |
-| `@audit-info`  | **[fixed]** 8.1 `SenhaValidator.java` → `motivoInvalida`  | Sem limite máximo de senha; BCrypt trunca silenciosamente em 72 bytes. Corrigido com `TAMANHO_MAXIMO = 25` (escolha do autor), reaplicado em cadastro e redefinição de senha. |
-| `@audit-issue` | **[kept as-is]** 9.1 `UsuarioRepository.java` → `existsByEmail` | Checagem de e-mail duplicado é sensível a maiúsculas/minúsculas. Confirmado pelo autor: comportamento intencional, e-mail é case-sensitive de propósito. |
+| `@audit-info`  | **[fixed]** 8.1 `SenhaValidator.java` → `exigirValida`  | Sem limite máximo de senha; BCrypt trunca silenciosamente em 72 bytes. Corrigido com `TAMANHO_MAXIMO = 25` (escolha do autor), reaplicado em cadastro e redefinição de senha. |
+| `@audit-issue` | **[fixed]** 9.1 `UsuarioRepository.java` → `existsByEmail` | Checagem de e-mail duplicado era sensível a maiúsculas/minúsculas. Mantida assim até 16/10/2026; desde então o e-mail é normalizado e comparado sem diferença de caixa. |
 | `@audit-ok`    | 9.2 `UsuarioRepository.java` → `save`                     | Tabela `usuarios`: ver avaliação completa em [§8, item 9](#8-fluxos-ponta-a-ponta). |
 | `@audit-issue` | **[fixed]** 9.2 `Usuario.java`                            | `usu_atualizado_em` existia no schema mas não na entidade: escritas via JPA deixavam a coluna congelada na data de criação. Corrigido com o campo `atualizadoEm` e callbacks `@PrePersist`/`@PreUpdate`. |
 | `@audit-ok`    | 10.1 `CodigoVerificacaoService.java` → `gerarCodigo`      | Tabela `codigos_verificacao`: ver avaliação completa em [§8, item 10](#8-fluxos-ponta-a-ponta). |

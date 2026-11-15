@@ -6,7 +6,7 @@
 -- integridade referencial, recuperar a tabela de textos e corrigir o
 -- modelo de calibração.
 --
--- v3.0: alinhamento com a monografia (plano "Backend Tempo Claro").
+-- v3.0: alinhamento com a monografia.
 --   — vw_habito_hoje REMOVIDA. A §4.5 da monografia determina que o banco
 --     guarde apenas fatos e estado, "sem conter regras de negócio, gatilhos
 --     (triggers), visões (views) ou funções". A derivação de status_hoje e de
@@ -396,8 +396,7 @@ VALUES
 ON CONFLICT (bib_categoria, bib_idioma) DO NOTHING;
 
 -- -----------------------------------------------------------------------------
--- v3.1 — PLANO_REESTRUTURACAO.md, itens G (tema dinâmico), C (verificação de
--- e-mail) e B (recuperação de senha).
+-- v3.1 — tema dinâmico, verificação de e-mail e recuperação de senha.
 --
 -- Roda a cada boot (spring.sql.init.mode=always), por isso tudo aqui é
 -- idempotente. Sem esta seção, um banco criado por uma versão anterior sobe e
@@ -405,13 +404,13 @@ ON CONFLICT (bib_categoria, bib_idioma) DO NOTHING;
 -- codigos_verificacao, que as entidades JPA já declaram.
 -- -----------------------------------------------------------------------------
 
--- G: o CHECK antigo recusa 'dinamico'. DROP + ADD porque o Postgres não tem
+-- Tema dinâmico: o CHECK antigo recusa 'dinamico'. DROP + ADD porque o Postgres não tem
 -- "ALTER CONSTRAINT" para mudar a expressão de um CHECK.
 ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS ck_usu_tema;
 ALTER TABLE usuarios ADD CONSTRAINT ck_usu_tema
     CHECK (usu_tema IN ('claro', 'escuro', 'sistema', 'dinamico'));
 
--- C: contas que já existem precisam continuar entrando.
+-- Verificação de e-mail: contas que já existem precisam continuar entrando.
 --
 -- Sem bloco procedural (DO) de propósito: o inicializador do Spring Boot
 -- (ScriptUtils) separa os comandos por ";" e NAO entende o dollar-quoting do
@@ -429,7 +428,7 @@ ALTER TABLE usuarios ALTER COLUMN usu_email_verificado SET DEFAULT FALSE;
 COMMENT ON COLUMN usuarios.usu_email_verificado IS
     'Usuario.isEnabled() devolve este valor, então o Spring Security recusa sozinho o login de conta não verificada.';
 
--- B + C: uma linha por código emitido; cod_tipo separa os dois fluxos. Guarda
+-- Recuperação de senha e verificação de e-mail: uma linha por código emitido; cod_tipo separa os dois fluxos. Guarda
 -- o HASH do código, nunca o código em claro — mesmo motivo de usu_senha_hash.
 CREATE TABLE IF NOT EXISTS codigos_verificacao (
     cod_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

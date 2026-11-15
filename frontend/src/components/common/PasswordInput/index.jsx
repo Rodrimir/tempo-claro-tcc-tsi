@@ -4,11 +4,11 @@ import { useTheme } from 'styled-components/native';
 import { useI18n } from '@/contexts/LanguageContext';
 import { Wrapper, StyledInput, ToggleButton } from './styles';
 
-// @note - 1.1 (Cadastro) PasswordInput: compartilhado entre o campo "senha" do login, o "senha" do
+// @note - 16.1 (Cadastro) PasswordInput: compartilhado entre o campo "senha" do login, o "senha" do
 // cadastro e o "confirmarSenha" do cadastro (Login/index.jsx). textContentType/autoComplete têm
 // default de campo de senha existente ("password"); os call sites do cadastro sobrescrevem para
 // "newPassword"/"new-password" via props (o spread de {...resto} é o último, então sempre vence).
-// @audit-issue - 1.1 (Cadastro) [outcome: fixed] o default antigo usava
+// @audit-issue - 16.1 (Cadastro) [outcome: fixed] o default antigo usava
 // textContentType="oneTimeCode" (o content type de código de SMS/OTP do iOS, não de senha) e
 // autoComplete="off" + importantForAutofill="no", desligando de propósito o gerenciador de senhas
 // nativo. No cadastro isso impedia o iOS/Android de sugerir "Senha Forte" ao criar a conta e de

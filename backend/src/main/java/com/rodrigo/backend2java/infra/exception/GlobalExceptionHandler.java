@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
     }
 
     // @note - 13.3 (Cadastro) ValidacaoException: HTTP 400. Cobre senha fora dos critérios do
-    // servidor (SenhaValidator.motivoInvalida, item 8.1).
+    // servidor (SenhaValidator.exigirValida, item 8.1).
     @ExceptionHandler(ValidacaoException.class)
     public ResponseEntity<MessageResponseDTO> handleValidacao(ValidacaoException ex) {
         return resposta(HttpStatus.BAD_REQUEST, traduzir(ex));

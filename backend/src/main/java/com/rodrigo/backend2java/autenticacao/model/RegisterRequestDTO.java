@@ -32,6 +32,6 @@ public record RegisterRequestDTO(
 // em Login/validation.js (item 2.1).
 // @audit-info - 5.1 (Cadastro) [outcome: fixed elsewhere] password não ganhou @Size aqui de
 // propósito: as outras regras de força de senha (mínimo, maiúscula, especial) já não são bean
-// validation neste DTO, e sim SenhaValidator.motivoInvalida (item 8.1), reaplicado também por
+// validation neste DTO, e sim SenhaValidator.exigirValida (item 8.1), reaplicado também por
 // redefinirSenha (recuperação de senha). O teto de tamanho (TAMANHO_MAXIMO = 25) entrou lá, pelo
 // mesmo motivo.

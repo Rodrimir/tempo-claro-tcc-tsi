@@ -16,13 +16,14 @@ import org.springframework.web.client.RestClientResponseException;
 import com.rodrigo.backend2java.infra.exception.RegraDeNegocioException;
 import com.rodrigo.backend2java.verificacao.model.TipoCodigo;
 
-// @note - 11.1 (Cadastro) ResendEmailService: substitui o antigo envio por SMTP
-// (JavaMailSender/SimpleMailMessage). Motivo: o plano gratuito do Render bloqueia saída nas
-// portas SMTP 25/465/587 desde 26/09/2025 — SMTP funciona local, mas nunca entrega em produção.
-// A API do Resend é HTTP/HTTPS puro (porta 443), que o Render não bloqueia. Isso também permite
-// remover o código de verificação fixo de application-prod.properties (app.verificacao.codigo-fixo),
-// que era um contorno provisório e um risco de segurança (RECUPERACAO_SENHA com código fixo
-// permite tomar qualquer conta só sabendo o e-mail).
+// @note - 11.1 (Cadastro) ResendEmailService: implementação ativa de EmailService fora do profile de
+// teste. Envia o código de verificação pela API HTTP do Resend (POST https://api.resend.com/emails,
+// porta 443). Ver README §8 > Cadastro > item 11.
+// @audit-issue - 11.1 (Cadastro) [outcome: fixed] a implementação original (SmtpEmailService,
+// removida) usava JavaMailSender/SMTP direto. O plano gratuito do Render bloqueia saída nas portas
+// SMTP 25/465/587 desde 26/09/2025: o SMTP funcionava local, mas nunca entregava em produção.
+// Corrigido trocando para a API HTTP do Resend, que o Render não bloqueia. Isso também permitiu
+// retirar o código de verificação fixo de application-prod.properties (item 10.1).
 @Service
 @Profile("!test")
 public class ResendEmailService implements EmailService {
