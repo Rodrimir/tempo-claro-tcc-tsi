@@ -22,3 +22,4 @@ node_modules/
 # ./config/application.properties automaticamente, com precedência sobre o
 # application.properties do classpath. Nunca versionar.
 /backend/config/
+*.apk
