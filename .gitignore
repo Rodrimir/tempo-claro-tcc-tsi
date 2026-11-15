@@ -2,10 +2,12 @@
 /backend/target/
 /backend/bin/
 /tcc
-# Dependências e builds do app
+# Dependências e builds do app. O projeto Android é gerado pelo `expo prebuild`
+# a cada build e não é versionado (o frontend/.gitignore também o exclui).
 node_modules/
 /frontend/.expo/
-/frontend/android/app/build/
+/frontend/android/
+/frontend/dist/
 # APKs gerados para teste, deixados na raiz
 /*.apk
 /docs
@@ -13,6 +15,14 @@ node_modules/
 /.idea
 /.claude
 /auditoria
+# Configurações de execução do IntelliJ e arquivos de sistema
+/backend/.run/
+.DS_Store
+Thumbs.db
+*.log
+*.bak
+# Anotações locais com contas e senhas de teste
+/frontend/teste.txt
 # Variáveis de ambiente — jwt.secret e as credenciais do banco vêm daqui em prod
 .env
 .env.local
