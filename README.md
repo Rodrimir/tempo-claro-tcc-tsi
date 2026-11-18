@@ -31,7 +31,7 @@
 | --------------- | ------------------------------------------------------------ |
 | **Instituição** | Instituto Federal Sul-rio-grandense (IFSul) — Campus Pelotas |
 | **Curso**       | Tecnologia em Sistemas para Internet (TSI)                   |
-| **Semestre**    | 2026/1                                                       |
+| **Semestre**    | 2026/2                                                       |
 | **Autor**       | Rodrigo Miranda da Silva                                     |
 | **Orientadora** | Prof.ª Me. Marcia Zechlinski Gusmão                          |
 | **GitHub**      | [`Rodrimir`](https://github.com/Rodrimir)                    |
